@@ -1,0 +1,118 @@
+{
+  "statuses": [
+    {
+      "id": "draft",
+      "label": "Draft",
+      "semanticState": "neutral",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 1,
+      "behaviors": {
+        "editable": true,
+        "final": false,
+        "current": true,
+        "visibleToAudience": false
+      }
+    },
+    {
+      "id": "submitted",
+      "label": "Submitted",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "description": "Published to its audience. Nobody owes it anything.",
+      "sortOrder": 2,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": true,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "in-review",
+      "label": "In review",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "description": "Only where a process reviews this kind of record.",
+      "sortOrder": 3,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": true,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "changes-requested",
+      "label": "Changes requested",
+      "semanticState": "warning",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 4,
+      "behaviors": {
+        "editable": true,
+        "final": false,
+        "current": true,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "acknowledged",
+      "label": "Acknowledged",
+      "semanticState": "success",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 5,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": false,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "open",
+      "label": "Open",
+      "semanticState": "warning",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 6,
+      "behaviors": {
+        "editable": true,
+        "final": false,
+        "current": true,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "resolved",
+      "label": "Resolved",
+      "semanticState": "success",
+      "terminal": true,
+      "active": true,
+      "sortOrder": 7,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": false,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "closed",
+      "label": "Closed",
+      "semanticState": "neutral",
+      "terminal": true,
+      "active": true,
+      "sortOrder": 8,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": false,
+        "visibleToAudience": true
+      }
+    }
+  ]
+}

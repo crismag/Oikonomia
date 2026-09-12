@@ -1,0 +1,5 @@
+{
+  "warnWithinDays": 1,
+  "autosaveDelayMs": 600,
+  "trendPeriods": 8
+}

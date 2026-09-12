@@ -1,0 +1,39 @@
+{
+  "groupTypes": [
+    {
+      "id": "leadership-body",
+      "label": "Leadership body",
+      "description": "A body the church answers through — an eldership, a council.",
+      "active": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "committee",
+      "label": "Committee",
+      "description": "A standing group with a remit.",
+      "active": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "team",
+      "label": "Team",
+      "description": "People who serve together.",
+      "active": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "working-group",
+      "label": "Working group",
+      "description": "Formed for a piece of work, and may close when it is done.",
+      "active": true,
+      "sortOrder": 4
+    }
+  ],
+  "assignmentFunctions": [
+    { "id": "head", "label": "Head", "active": true, "sortOrder": 1 },
+    { "id": "leader", "label": "Leader", "active": true, "sortOrder": 2 },
+    { "id": "coordinator", "label": "Coordinator", "active": true, "sortOrder": 3 },
+    { "id": "member", "label": "Member", "active": true, "sortOrder": 4 },
+    { "id": "service-worker", "label": "Service worker", "active": true, "sortOrder": 5 }
+  ]
+}

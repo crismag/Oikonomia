@@ -1,0 +1,10 @@
+{
+  "name": "Oikonomia",
+  "tagline": "Church leadership planning and reporting",
+  "timezone": "America/Toronto",
+  "locale": "en-CA",
+  "weekStartsOn": 1,
+  "dateFormat": "d MMMM yyyy",
+  "timeFormat": "h:mm a",
+  "pageSize": 25
+}

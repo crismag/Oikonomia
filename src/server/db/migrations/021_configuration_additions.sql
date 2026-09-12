@@ -1,0 +1,31 @@
+-- Options an administrator added, as opposed to ones they edited.
+--
+-- `configuration_setting` holds **overrides**: a patch against an option the
+-- product ships. Unknown ids in that table are ignored on purpose — an
+-- override is an edit to something that exists, and a leftover row for an
+-- option a later version removed must not resurrect it.
+--
+-- Adding a value is a different act, and it needs to say so. This column is
+-- that distinction: a row marked as an addition *defines* an option rather
+-- than patching one.
+--
+-- ## Only where an addition can actually work
+--
+-- Most of Oikonomia's vocabularies cannot take a new value, and the service
+-- refuses to add to them. A report status is not a label the church chooses:
+-- `published` is written into the report lifecycle, into the CHECK constraint
+-- on the column, and into the rules that decide what may still be edited.
+-- Adding "Under approval" would produce an option nothing can ever set and
+-- nothing knows how to handle — a control that looks operational and is not.
+--
+-- Two vocabularies are genuinely open, because their columns are free text and
+-- the code reads them generically rather than switching on them:
+--
+--   meetings.types           what kind of meeting this was — a label
+--   information.categories   what kind of information this is, and whether it
+--                            asks for attention
+--
+-- The second is the valuable one: a church that wants a "Safeguarding" category
+-- that reaches leadership can have it without a code change.
+
+ALTER TABLE configuration_setting ADD COLUMN is_addition INTEGER NOT NULL DEFAULT 0;

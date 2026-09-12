@@ -1,0 +1,84 @@
+# What has to pass before a change lands.
+#
+# ## Why the build step is not optional
+#
+# The release readiness audit found a P0 that every local check passed
+# straight through: migrations were read from disk at runtime, so the bundler
+# never copied them, and a deployed Oikonomia could not open its own database.
+# Tests, typecheck and lint were all green while the production build was
+# unusable. `npm run build` is here because of that, and the smoke job below
+# is here because a build that merely succeeds is not the same as a server
+# that starts and migrates.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push supersedes a run in progress on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck, lint, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `ci` rather than `install`: the lockfile is the input, and a run that
+      # quietly resolves a different tree is testing something else.
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Warnings are allowed; errors are not. `--max-warnings` is deliberately
+      # absent — see docs/readiness for the 37 react-refresh warnings and why
+      # failing on them would be noise rather than signal.
+      - name: Lint
+        run: npx eslint .
+
+      - name: Tests
+        run: npx vitest run
+
+      - name: Production build
+        run: npm run build
+
+      # Everything above can pass on a build that cannot serve a request.
+      - name: Start the built server against an empty database
+        run: node scripts/smoke.mjs
+        env:
+          NODE_ENV: production
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Production dependencies only. Dev-only advisories are real but are not
+      # shipped to a church, and failing the build on them trains people to
+      # ignore this job.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

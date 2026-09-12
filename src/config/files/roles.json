@@ -1,0 +1,34 @@
+[
+  {
+    "id": "leader",
+    "label": "Leader",
+    "description": "Personal ministry, Lifegroup follow-up, reports returned to me",
+    "capabilities": [],
+    "active": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "ministry-head",
+    "label": "Ministry Head",
+    "description": "Ministry work, team reviews, event responsibilities",
+    "capabilities": [],
+    "active": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "bishop",
+    "label": "Bishop",
+    "description": "Routed reviews, concerns, cross-ministry oversight",
+    "capabilities": ["campus-oversight", "cross-ministry-oversight"],
+    "active": true,
+    "sortOrder": 3
+  },
+  {
+    "id": "admin",
+    "label": "Admin",
+    "description": "Organisation setup and operational configuration",
+    "capabilities": ["administration"],
+    "active": true,
+    "sortOrder": 4
+  }
+]

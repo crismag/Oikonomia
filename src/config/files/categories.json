@@ -1,0 +1,107 @@
+[
+  {
+    "id": "general",
+    "label": "General",
+    "description": "Ordinary information. It is here to read.",
+    "attentionTrigger": false,
+    "contexts": [
+      "entry",
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 1
+  },
+  {
+    "id": "highlight",
+    "label": "Highlight",
+    "description": "Something worth noticing that is going well.",
+    "attentionTrigger": false,
+    "contexts": [
+      "entry",
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 2
+  },
+  {
+    "id": "prayer",
+    "label": "Prayer request",
+    "description": "Something to pray about. Not a task.",
+    "attentionTrigger": false,
+    "contexts": [
+      "entry",
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 3
+  },
+  {
+    "id": "visitor",
+    "label": "Visitor",
+    "description": "Somebody new came.",
+    "attentionTrigger": false,
+    "contexts": [
+      "entry"
+    ],
+    "active": true,
+    "sortOrder": 4
+  },
+  {
+    "id": "decision",
+    "label": "Decision",
+    "description": "What was decided, recorded where it happened.",
+    "attentionTrigger": false,
+    "contexts": [
+      "entry",
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 5
+  },
+  {
+    "id": "action",
+    "label": "Action",
+    "description": "Something somebody is doing about it.",
+    "attentionTrigger": false,
+    "contexts": [
+      "entry"
+    ],
+    "active": true,
+    "sortOrder": 6
+  },
+  {
+    "id": "follow-up",
+    "label": "Follow-up",
+    "description": "Somebody needs to be followed up with.",
+    "attentionTrigger": true,
+    "contexts": [
+      "entry",
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 7
+  },
+  {
+    "id": "concern",
+    "label": "Concern",
+    "description": "Something is wrong, or heading that way.",
+    "attentionTrigger": true,
+    "contexts": [
+      "entry",
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 8
+  },
+  {
+    "id": "attention-required",
+    "label": "Attention required",
+    "description": "Leadership needs to look at this.",
+    "attentionTrigger": true,
+    "contexts": [
+      "report"
+    ],
+    "active": true,
+    "sortOrder": 9
+  }
+]

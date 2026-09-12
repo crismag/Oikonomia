@@ -1,0 +1,37 @@
+{
+  "statuses": [
+    {
+      "id": "active",
+      "label": "Active",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "completed",
+      "label": "Completed",
+      "semanticState": "success",
+      "terminal": true,
+      "active": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "on-hold",
+      "label": "On hold",
+      "semanticState": "warning",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "carried-forward",
+      "label": "Carried forward",
+      "semanticState": "neutral",
+      "terminal": true,
+      "active": true,
+      "description": "Taken into a later year rather than dropped.",
+      "sortOrder": 4
+    }
+  ]
+}

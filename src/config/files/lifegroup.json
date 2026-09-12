@@ -1,0 +1,111 @@
+{
+  "attendance": [
+    {
+      "id": "present",
+      "label": "Present",
+      "semanticState": "success",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "absent",
+      "label": "Absent",
+      "semanticState": "neutral",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "excused",
+      "label": "Excused",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "description": "Absent, and the leader knows why.",
+      "sortOrder": 3
+    }
+  ],
+  "gatheringStatuses": [
+    {
+      "id": "planned",
+      "label": "Needs leader",
+      "semanticState": "warning",
+      "terminal": false,
+      "active": true,
+      "description": "A row on the schedule nobody has picked up yet.",
+      "sortOrder": 1
+    },
+    {
+      "id": "assigned",
+      "label": "Assigned",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "confirmed",
+      "label": "Confirmed",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "open",
+      "label": "Gathering",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 4
+    },
+    {
+      "id": "completed",
+      "label": "Completed",
+      "semanticState": "success",
+      "terminal": true,
+      "active": true,
+      "sortOrder": 5
+    },
+    {
+      "id": "cancelled",
+      "label": "Cancelled",
+      "semanticState": "neutral",
+      "terminal": true,
+      "active": true,
+      "sortOrder": 6
+    }
+  ],
+  "entryVisibility": [
+    {
+      "id": "leaders",
+      "label": "Leaders",
+      "active": true,
+      "description": "Ordinary LifeGroup reporting.",
+      "sortOrder": 1,
+      "entryStrategy": "all-leaders"
+    },
+    {
+      "id": "assigned-leaders",
+      "label": "This gathering's leaders",
+      "active": true,
+      "sortOrder": 2,
+      "entryStrategy": "gathering-leaders"
+    },
+    {
+      "id": "selected-viewers",
+      "label": "Selected viewers",
+      "active": true,
+      "sortOrder": 3,
+      "entryStrategy": "named-viewers"
+    },
+    {
+      "id": "private",
+      "label": "Only me",
+      "active": true,
+      "sortOrder": 4,
+      "entryStrategy": "author-only"
+    }
+  ]
+}

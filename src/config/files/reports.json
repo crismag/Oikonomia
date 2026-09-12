@@ -1,0 +1,97 @@
+{
+  "statuses": [
+    {
+      "id": "draft",
+      "label": "Draft",
+      "semanticState": "neutral",
+      "terminal": false,
+      "active": true,
+      "sortOrder": 1,
+      "behaviors": {
+        "editable": true,
+        "final": false,
+        "current": true,
+        "visibleToAudience": false
+      }
+    },
+    {
+      "id": "shared",
+      "label": "Shared",
+      "semanticState": "info",
+      "terminal": false,
+      "active": true,
+      "description": "Out to its audience, still open to changes by its author.",
+      "sortOrder": 2,
+      "behaviors": {
+        "editable": true,
+        "final": false,
+        "current": true,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "published",
+      "label": "Published",
+      "semanticState": "success",
+      "terminal": false,
+      "active": true,
+      "description": "The submitted record. Its content no longer changes.",
+      "sortOrder": 3,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": true,
+        "visibleToAudience": true
+      }
+    },
+    {
+      "id": "archived",
+      "label": "Archived",
+      "semanticState": "neutral",
+      "terminal": true,
+      "active": true,
+      "description": "Kept, and no longer current.",
+      "sortOrder": 4,
+      "behaviors": {
+        "editable": false,
+        "final": true,
+        "current": false,
+        "visibleToAudience": true
+      }
+    }
+  ],
+  "visibility": [
+    {
+      "id": "private",
+      "label": "Only me",
+      "active": true,
+      "description": "Nobody else, whatever else they can reach.",
+      "sortOrder": 1,
+      "accessStrategy": "owner-only"
+    },
+    {
+      "id": "restricted",
+      "label": "Named people",
+      "active": true,
+      "description": "Its author and the people explicitly added to it.",
+      "sortOrder": 2,
+      "accessStrategy": "named-people"
+    },
+    {
+      "id": "leadership",
+      "label": "Leadership",
+      "active": true,
+      "description": "The named leadership audience.",
+      "sortOrder": 3,
+      "accessStrategy": "leadership-groups"
+    },
+    {
+      "id": "shared",
+      "label": "Shared",
+      "active": true,
+      "description": "Ordinary organisational reading.",
+      "sortOrder": 4,
+      "accessStrategy": "organization"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "types": [
+    {
+      "id": "leadership",
+      "label": "Leadership",
+      "active": true,
+      "sortOrder": 1
+    },
+    {
+      "id": "ministry",
+      "label": "Ministry",
+      "active": true,
+      "sortOrder": 2
+    },
+    {
+      "id": "planning",
+      "label": "Planning",
+      "active": true,
+      "sortOrder": 3
+    },
+    {
+      "id": "committee",
+      "label": "Committee",
+      "active": true,
+      "sortOrder": 4
+    },
+    {
+      "id": "one-on-one",
+      "label": "One to one",
+      "active": true,
+      "sortOrder": 5
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "active": true,
+      "sortOrder": 6
+    }
+  ],
+  "noteTypes": [
+    {
+      "id": "personal",
+      "label": "Personal note",
+      "active": true,
+      "description": "Your own working record of a meeting.",
+      "sortOrder": 1
+    },
+    {
+      "id": "minutes",
+      "label": "Meeting minutes",
+      "active": true,
+      "description": "The meeting's record, for the people it concerned.",
+      "sortOrder": 2
+    }
+  ]
+}

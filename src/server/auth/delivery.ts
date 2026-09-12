@@ -1,0 +1,121 @@
+/**
+ * Getting a sign-in link to somebody.
+ *
+ * ## The boundary, and why it is one
+ *
+ * Authentication should not know how mail is sent. The provider a church uses
+ * is a deployment decision, and binding a login flow to one would mean
+ * rewriting the login flow to change it.
+ *
+ * ## What exists today
+ *
+ * Two adapters, and which one is in force is a deployment decision rather than
+ * a code one.
+ *
+ * **SMTP**, when `OIKONOMIA_SMTP_HOST` and `OIKONOMIA_MAIL_FROM` are set.
+ * Every church already has SMTP — a Google Workspace account, an Exchange
+ * server, a transactional provider — where picking one vendor's HTTP API would
+ * have left the others unable to use magic links at all.
+ *
+ * **The console**, otherwise, which writes the link where a developer can see
+ * it. Genuinely useful and genuinely not production: nothing reaches anybody
+ * who is not reading the server log.
+ *
+ * The consequence is stated rather than hidden. `canDeliver()` is false with
+ * the console adapter, and the sign-in screen removes the controls that end in
+ * an email and says why. Configuring SMTP turns them back on by itself; no
+ * code decides that twice.
+ */
+
+import { siteUrl } from "./site-url";
+import { SmtpDelivery, smtpSettings } from "./smtp";
+
+export interface DeliveryAdapter {
+  readonly id: string;
+  /** Whether a message sent through this reaches somebody who is not us. */
+  readonly reachesRecipients: boolean;
+  send(message: { to: string; subject: string; body: string }): Promise<void>;
+}
+
+/**
+ * Writes the message to the server's own output.
+ *
+ * Deliberately loud. A link printed in a log is a credential sitting in a log,
+ * which is acceptable while nobody's real data is here and unacceptable the
+ * moment it is — so it says which of those it is assuming.
+ */
+export class ConsoleDelivery implements DeliveryAdapter {
+  readonly id = "console";
+  readonly reachesRecipients = false;
+
+  send(message: { to: string; subject: string; body: string }): Promise<void> {
+    console.info(
+      [
+        "",
+        "┌─ Oikonomia · development mail ───────────────────────────────",
+        `│ To:      ${message.to}`,
+        `│ Subject: ${message.subject}`,
+        "│",
+        ...message.body.split("\n").map((line) => `│ ${line}`),
+        "│",
+        "│ No mail provider is configured, so this was not sent anywhere.",
+        "└──────────────────────────────────────────────────────────────",
+        "",
+      ].join("\n"),
+    );
+    return Promise.resolve();
+  }
+}
+
+let adapter: DeliveryAdapter | undefined;
+
+/**
+ * The adapter this installation actually has.
+ *
+ * Chosen from configuration on first use rather than at module load, so a
+ * process that sets its own environment — a test, a script — is not stuck with
+ * a decision made before it ran. SMTP when it is configured; the console
+ * otherwise, which says on screen that nothing was sent.
+ */
+export function delivery(): DeliveryAdapter {
+  if (adapter) return adapter;
+
+  const settings = smtpSettings();
+  adapter = settings ? new SmtpDelivery(settings) : new ConsoleDelivery();
+  return adapter;
+}
+
+/** For a deployment that configures a real provider, and for tests. */
+export function useDelivery(next: DeliveryAdapter): void {
+  adapter = next;
+}
+
+/** Forget the chosen adapter, so configuration is read again. */
+export function forgetDelivery(): void {
+  adapter = undefined;
+}
+
+/** Whether a link sent now would actually reach the person it names. */
+export const canDeliver = (): boolean => delivery().reachesRecipients;
+
+/**
+ * The address of this installation, for building a link somebody can follow.
+ *
+ * See `site-url.ts` for why it is configuration rather than the request's host,
+ * and why a production process without it refuses instead of guessing.
+ */
+export const baseUrl = siteUrl;
+
+export function magicLinkMessage(token: string): { subject: string; body: string } {
+  return {
+    subject: "Your Oikonomia sign-in link",
+    body: [
+      "Somebody asked to sign in to Oikonomia with this address.",
+      "",
+      `${baseUrl()}/login?token=${encodeURIComponent(token)}`,
+      "",
+      "The link works once and expires in 15 minutes.",
+      "If this was not you, nothing has happened and you can ignore this.",
+    ].join("\n"),
+  };
+}
