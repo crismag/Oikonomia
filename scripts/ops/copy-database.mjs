@@ -55,7 +55,9 @@ const fail = (message) => {
 const from = option("from") && resolve(option("from"));
 const to = option("to") && resolve(option("to"));
 if (!from || !to) {
-  fail("usage: --from <source.db> --to <target.db> [--replace-empty] [--artifacts-from <dir> --artifacts-to <dir>] [--sqlite <better-sqlite3 dir>]");
+  fail(
+    "usage: --from <source.db> --to <target.db> [--replace-empty] [--artifacts-from <dir> --artifacts-to <dir>] [--sqlite <better-sqlite3 dir>]",
+  );
 }
 if (from === to) fail("source and target are the same file.");
 if (!existsSync(from)) fail(`no database at ${from}.`);
@@ -171,4 +173,6 @@ if (artifactsFrom && artifactsTo && existsSync(artifactsFrom)) {
   console.log(`artifacts copied → ${artifactsTo}`);
 }
 
-console.log(`\nDone. Point OIKONOMIA_DB at ${to} and restart the application. ${dirname(to)} holds the data.`);
+console.log(
+  `\nDone. Point OIKONOMIA_DB at ${to} and restart the application. ${dirname(to)} holds the data.`,
+);

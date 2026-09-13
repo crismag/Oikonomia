@@ -98,8 +98,10 @@ EOF
     echo "== running application"
     found=0
     for pid in $(pgrep -u "$(id -u)" -f lsnode || true); do
-      open="$(ls -l "/proc/$pid/fd" 2>/dev/null | grep -oE '/[^ ]+\.db$' | sort -u | tr '\n' ' ')"
-      [ -n "$open" ] && echo "  pid $pid has open: $open"
+      # A process with no database open is normal (Passenger keeps spares); grep's
+      # "no match" must not end the script under `set -e -o pipefail`.
+      open="$( { ls -l "/proc/$pid/fd" 2>/dev/null || true; } | { grep -oE '/[^ ]+\.db$' || true; } | sort -u | tr '\n' ' ')"
+      if [ -n "$open" ]; then echo "  pid $pid has open: $open"; fi
       case " $open " in *" $target "*) found=1 ;; esac
     done
     if [ "$found" = 1 ]; then echo "  ok: the private database is the one in use"
