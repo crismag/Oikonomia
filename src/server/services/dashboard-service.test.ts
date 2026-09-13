@@ -15,6 +15,7 @@ import { createReachOutRepository } from "../repositories/reach-out-repository";
 import { createWorkRepository } from "../repositories/work-repository";
 import { createDashboardService } from "./dashboard-service";
 import { needsAttention } from "@/domain/obligations";
+import { toISO, weekDays } from "@/domain/schedule";
 import { viewerFor } from "@/test/viewer";
 import type { Database as Db } from "better-sqlite3";
 
@@ -108,13 +109,30 @@ describe("what it projects", () => {
  */
 describe("it does not report a record as finished work", () => {
   it("calls a gathering with attendance and no report in progress, not done", () => {
+    /*
+     * The fixtures place gatherings in the week the tests run, so this asks
+     * about that week rather than a fixed date — which found nothing once the
+     * date had passed, and then returned without asserting anything.
+     *
+     * The leader is dated as having joined long before it: a seeded person
+     * joins when the seed runs, nothing is owed from before somebody joined,
+     * and so a gathering earlier in the same week was correctly left off the
+     * board — the test passed or failed depending on the weekday.
+     */
+    const today = toISO(new Date());
+    const week = weekDays(today);
+    db.prepare("UPDATE person SET created_at = ? WHERE id = ?").run(
+      "2000-01-01T00:00:00.000Z",
+      maria.person.id,
+    );
+
     const lifegroup = createLifegroupRepository(db);
     const gathering = lifegroup
-      .gatheringsInRange("2026-09-07", "2026-09-13")
+      .gatheringsInRange(week[0]!, week[week.length - 1]!)
       .find((g) => g.assignedLeaderIds.includes(maria.person.id));
-    if (!gathering) return;
+    if (!gathering) throw new Error("The fixtures should give this leader a gathering this week.");
 
-    const board = service.build(maria, TODAY);
+    const board = service.build(maria, today);
     const obligation = board.weekly.obligations.find((o) => o.id === `lifegroup-${gathering.id}`);
     expect(obligation).toBeDefined();
 
