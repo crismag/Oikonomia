@@ -115,20 +115,24 @@ async function onboardingRequiredFor(personId: string): Promise<boolean> {
 async function serverParts() {
   const [
     { ApiError },
-    { getCurrentUser },
+    { getCurrentUser, sessionCookie },
+    { SESSION_COOKIE, cookieValue },
     { getDatabase },
     { refreshConfiguration },
     { createOrganizationRepository },
     { createOrganizationService },
-    { getRequest },
+    { getRequest, setResponseHeader },
+    { currentInstallation },
   ] = await Promise.all([
     import("@/server/api/response"),
     import("@/server/auth/current-user"),
+    import("@/server/auth/principal"),
     import("@/server/db/connection"),
     import("@/server/config/runtime"),
     import("@/server/repositories/organization-repository"),
     import("@/server/services/organization-service"),
     import("@tanstack/react-start/server"),
+    import("@/server/installation/policy"),
   ]);
 
   const db = getDatabase();
@@ -136,11 +140,39 @@ async function serverParts() {
        not the next deployment. */
   refreshConfiguration(db);
   const repo = createOrganizationRepository(db);
+  const request = getRequest();
+  let viewer = getCurrentUser(request, db);
+
+  /*
+   * A demonstration with no session shows nobody the way in to ask —
+   * oikosdemo is always Demo Mode, and it is not the sign-in chooser's whole
+   * reason for existing. This is the call the shell asks "who is this?" to
+   * decide whether to draw a sign-in screen at all, so it is where a
+   * first-time visitor is entered rather than asked first. See
+   * `src/server/demo/auto-enter.ts`.
+   *
+   * Only for a browser that never had a session, though — `cookieValue`
+   * checked, not just `viewer`. A cookie that named a real session which has
+   * since ended (signed out, switched away from, or a reset that removed it)
+   * must still resolve to nobody: that is Slice 7's "the demo was refreshed"
+   * moment, and silently handing the same browser a brand-new identity would
+   * erase the one signal that tells it its old session is gone.
+   */
+  const hadToken = Boolean(cookieValue(request.headers.get("cookie"), SESSION_COOKIE));
+  if (!viewer && !hadToken && currentInstallation().demoMode) {
+    const { autoEnterDemo } = await import("@/server/demo/auto-enter");
+    const entered = autoEnterDemo(db, request.headers.get("user-agent") ?? undefined);
+    if (entered) {
+      setResponseHeader("Set-Cookie", sessionCookie(entered.token));
+      viewer = entered.viewer;
+    }
+  }
+
   return {
     ApiError,
     repo,
     service: createOrganizationService(repo),
-    viewer: getCurrentUser(getRequest(), db),
+    viewer,
   };
 }
 

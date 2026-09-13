@@ -404,11 +404,10 @@ current schema/migrations
         │  scripts/ops/create-demo-baseline-builder.mjs
         ▼
 clean, schema-only builder database
-        │  a normal (Demo Mode off) Oikonomia server, pointed at it —
-        │  /setup, the ordinary admin screens — populates curated content
+        │  npm run demo:content:import -- --source <Data Play repo> --to <builder>
         ▼
 populated candidate
-        │  scripts/ops/mark-demo-baseline.mjs --designate … --sanitize --to …
+        │  scripts/ops/mark-demo-baseline.mjs --sanitize --to …
         ▼
 oikonomia-demo-baseline.db, marked demo-baseline
         │  scripts/ops/demo-provision.mjs
@@ -432,17 +431,31 @@ configuration override — only what a migration seeds on purpose
 `foreign_key_check`, and that no other table holds a row — before it hands the
 file back, and refuses to overwrite an existing one.
 
-**Populating it.** There is no bulk-import API, and none should be built for
-this: the existing interface is the application itself. Point a normal
-installation at the builder file (`OIKONOMIA_DB=<builder>`, `OIKONOMIA_DEMO_MODE`
-unset or `false`) and use `/setup` and the ordinary admin screens exactly as
-setting up a real church — campuses, people, ministries, reports, the rest —
-because that is what curated content is: real Oikonomia records, entered
-through the real application, about people who do not exist. `npm run
-auth:set-password` (see "First run" below) sets a password for whoever
-administers that process; it does not belong in the finished baseline, which
-is why sanitizing is a separate, explicit step rather than something the
-builder or the demo server does for you.
+**Populating it.** The Data Play repository is the canonical, human-readable
+source. Preflight the whole corpus without writing a file, then import it into
+the empty builder:
+
+```bash
+npm run demo:content:import -- \
+  --source /path/to/Oikonomia_demo_content_build \
+  --dry-run
+
+npm run demo:content:import -- \
+  --source /path/to/Oikonomia_demo_content_build \
+  --to oikonomia-demo-baseline-builder.db
+```
+
+The dry run migrates an in-memory database and performs the same repository
+writes and verification as the real import. Treat any warning, skipped record,
+unsafe HTML block, integrity failure or foreign-key problem as a failed build.
+The importer refuses a builder that already contains people, resolves every
+written person and ministry name against the corpus roster, completes
+onboarding for imported accounts, and creates `demo_identity` rows from each
+profile's `Demo persona` field. It writes through the application's
+repositories; only imported historical timestamps are backdated directly.
+
+The authoring repository remains read-only throughout. The builder and final
+baseline are disposable generated artifacts and must never be committed.
 
 **Finalizing.** `demo_identity` — who a visitor may explore as — is
 infrastructure the application deliberately gives no admin screen ("who a
@@ -452,17 +465,18 @@ and clearing what the population step left behind both happen here:
 ```bash
 node scripts/ops/mark-demo-baseline.mjs \
   --candidate oikonomia-demo-baseline-builder.db \
-  --designate <personId>,<personId>,… \
   --sanitize \
   --to oikonomia-demo-baseline.db
 ```
 
-`--designate` inserts `demo_identity` rows for the given people, in the order
-given. `--sanitize` removes every session, sign-in token, throttle row,
-temporary visitor, and credential — the runtime residue of having actually
-used the application to build the content. Both act on a disposable copy
-(`--to`); the populated candidate is only ever read. (`--in-place` marks the
-candidate itself instead, for iterating on a working file.)
+The importer normally supplies the designated identities. `--designate` remains
+available for a manually populated candidate and inserts `demo_identity` rows
+for the given people, in the order given. `--sanitize` removes every session,
+sign-in token, throttle row, temporary visitor, and credential — the runtime
+residue of having actually used the application to build the content. Both act
+on a disposable copy (`--to`); the populated candidate is only ever read.
+(`--in-place` marks the candidate itself instead, for iterating on a working
+file.)
 
 Whether or not anything is being marked, the same command **validates**
 everything `demo-provision.mjs` and a reset both require — built and run with
@@ -507,6 +521,19 @@ session, so everything after the entrance is the real application.
   at once; a reset removes them. This is a ceiling, not abuse protection: the
   application cannot reliably tell one visitor from another.
 - **Switching** from the chooser ends that browser's previous session first.
+- **A browser that has never had a session is not asked first.** The same
+  server call the shell uses to ask "who is this?" (`fetchSession`,
+  `src/lib/organization-api.ts`) signs a cookie-less request straight into the
+  first offered identity — `src/server/demo/auto-enter.ts`, the same entrance
+  `enterDemoAs` uses, just taken on the visitor's behalf. Oikosdemo is always
+  Demo Mode, and it is not the chooser's whole reason for existing, so a
+  first-time visitor lands on Home rather than a page asking them to pick
+  someone. The chooser is still there — at `/login`, and from the demo bar's
+  switcher — for choosing anyone else, or _Try it as yourself_.
+  **A cookie naming a session that has since ended is not re-entered this
+  way**: only the absence of any session cookie triggers it, so a reset or a
+  sign-out still lands a visitor back on the chooser with the "the demo was
+  refreshed" notice rather than silently handing them a new identity.
 
 ### What a visitor sees
 
