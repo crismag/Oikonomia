@@ -44,10 +44,14 @@ environment only — **a `.env` file is not loaded by the built server.**
 (see [Scheduling](#scheduling)); SQLite's write-ahead log makes an abrupt stop
 safe for the database.
 
-`better-sqlite3` is the one native dependency. A deployment target must be able
-to compile it or receive a prebuilt binary — the single thing that makes
-installation non-trivial, and the reason password hashing uses Node's own
-`scrypt` rather than adding a second compiled addon.
+`better-sqlite3` is the one native dependency, and the reason password hashing
+uses Node's own `scrypt` rather than adding a second compiled addon. It ships
+prebuilt binaries (Linux glibc ≥ 2.34 and musl, macOS, Windows; x64 and arm64)
+and loads them in preference to a local compile, so **nothing is compiled on
+install**: `.npmrc` sets `ignore-scripts=true`, because npm otherwise runs
+`node-gyp rebuild` for any package containing a `binding.gyp` — which needs
+Python and a C++ toolchain, and fails on hosts without them. A platform outside
+that list would have to remove the setting and compile.
 
 ### Prove the build before trusting it
 
