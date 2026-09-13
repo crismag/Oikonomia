@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { Database as Db } from "better-sqlite3";
 
 import { applyOverrides, config } from "@/config";
@@ -21,31 +23,37 @@ import { createConfigurationRepository } from "../repositories/configuration-rep
  *
  * ## How it is cheap enough to do every time
  *
- * A stamp — how many overrides there are and when the newest was written — is
- * one indexed query against a tiny table. When it matches what this process
- * already applied, nothing is re-read and nothing is re-parsed. When it does
- * not, the overrides are loaded and the registry's cache is dropped.
+ * A stamp — a digest of every stored override — is read from a table that
+ * holds only what an administrator changed, a handful of rows. When it matches
+ * what this process already applied, nothing is parsed or re-applied. When it
+ * does not, the overrides are loaded and the registry's cache is dropped.
  *
  * This also makes **multiple processes** consistent: each notices the change on
  * its next request, because the stamp is read from the shared database rather
  * than from memory.
  *
- * > **Known limit.** Two writes in the same millisecond that leave the row
- * > count unchanged — deleting one override and adding another — would produce
- * > an identical stamp. Writes go through one service that records a change row
- * > each time, so this has no path to occur in practice; a version counter
- * > would close it entirely if configuration ever becomes high-traffic.
+ * ## Why a digest, not a count and a time
+ *
+ * The stamp used to be the row count and the newest `updated_at`. That only
+ * held while every save inserted a new row. Since migration 034 a save updates
+ * its row in place, so two saves of the same setting within one millisecond
+ * left both the count and the time unchanged — and the process went on serving
+ * the first value. A digest of the stored content cannot miss a change to it.
  */
 
 let applied = "";
 
 /** Load configuration if it has changed since this process last looked. */
 export function refreshConfiguration(db: Db): void {
-  const row = db
-    .prepare("SELECT COUNT(*) AS n, IFNULL(MAX(updated_at), '') AS at FROM configuration_setting")
-    .get() as { n: number; at: string };
+  const rows = db
+    .prepare(
+      `SELECT namespace, option_id, field, value, is_addition, updated_at
+         FROM configuration_setting
+        ORDER BY namespace, IFNULL(option_id, ''), IFNULL(field, '')`,
+    )
+    .all();
 
-  const stamp = `${row.n}:${row.at}`;
+  const stamp = createHash("sha256").update(JSON.stringify(rows)).digest("hex");
   if (stamp === applied) return;
 
   try {

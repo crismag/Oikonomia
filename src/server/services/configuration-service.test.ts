@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../api/response";
 import { openDatabase } from "../db/connection";
@@ -374,6 +374,38 @@ describe("a change reaches a process that did not make it", () => {
 
     refreshConfiguration(db);
     expect(config.label("work.statuses", "open")).toBe("Regional Review 91827");
+  });
+
+  /* Written straight to the table, as another process's save arrives — the
+     saving process re-applies its own change, this one only has the stamp. A
+     save updates its row in place (migration 034), so the row count does not
+     move; with the clock frozen neither does the newest timestamp. Only the
+     value differs, and that alone must be enough. */
+  it("notices another process saving the same setting twice within one millisecond", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-13T12:00:00.000Z"));
+    const elsewhere = createConfigurationRepository(db);
+    try {
+      elsewhere.set({
+        namespace: "work.statuses",
+        optionId: "open",
+        value: { label: "First 91827" },
+        actorId: admin.person.id,
+      });
+      refreshConfiguration(db);
+      expect(config.label("work.statuses", "open")).toBe("First 91827");
+
+      elsewhere.set({
+        namespace: "work.statuses",
+        optionId: "open",
+        value: { label: "Second 91827" },
+        actorId: admin.person.id,
+      });
+      refreshConfiguration(db);
+      expect(config.label("work.statuses", "open")).toBe("Second 91827");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does no work when nothing has changed", () => {
