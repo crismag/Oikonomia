@@ -336,6 +336,101 @@ which must be three different files:
 Separate files keep a mistake from pointing a reset at a church's data. They do
 not make it safe to swap files: see the reset below.
 
+### Building a Demo baseline
+
+The curated content itself — who the demonstration is, what it holds — is
+produced separately and is not part of this repository. What this repository
+provides is the path from "the current schema" to "a file `demo-provision.mjs`
+will accept", so that work never starts from a copy of a real installation's
+database.
+
+```text
+current schema/migrations
+        │  scripts/ops/create-demo-baseline-builder.mjs
+        ▼
+clean, schema-only builder database
+        │  a normal (Demo Mode off) Oikonomia server, pointed at it —
+        │  /setup, the ordinary admin screens — populates curated content
+        ▼
+populated candidate
+        │  scripts/ops/mark-demo-baseline.mjs --designate … --sanitize --to …
+        ▼
+oikonomia-demo-baseline.db, marked demo-baseline
+        │  scripts/ops/demo-provision.mjs
+        ▼
+oikonomia-demo.db — the mutable live demonstration
+```
+
+**The builder.**
+
+```bash
+node scripts/ops/create-demo-baseline-builder.mjs --to oikonomia-demo-baseline-builder.db
+```
+
+Applies `src/server/db/migrations/*.sql` with `loadMigrations`/`migrate`
+(`src/server/db/migrate.ts`) — the same functions the deployed server's
+`bundled-migrations.ts` wraps for a Vite build, read here straight off disk, so
+the schema is defined once. What comes out is the current schema version and
+nothing else: no person, no account, no session, no credential, no
+configuration override — only what a migration seeds on purpose
+(`retention_policy`, migration 031). The script verifies this — `integrity_check`,
+`foreign_key_check`, and that no other table holds a row — before it hands the
+file back, and refuses to overwrite an existing one.
+
+**Populating it.** There is no bulk-import API, and none should be built for
+this: the existing interface is the application itself. Point a normal
+installation at the builder file (`OIKONOMIA_DB=<builder>`, `OIKONOMIA_DEMO_MODE`
+unset or `false`) and use `/setup` and the ordinary admin screens exactly as
+setting up a real church — campuses, people, ministries, reports, the rest —
+because that is what curated content is: real Oikonomia records, entered
+through the real application, about people who do not exist. `npm run
+auth:set-password` (see "First run" below) sets a password for whoever
+administers that process; it does not belong in the finished baseline, which
+is why sanitizing is a separate, explicit step rather than something the
+builder or the demo server does for you.
+
+**Finalizing.** `demo_identity` — who a visitor may explore as — is
+infrastructure the application deliberately gives no admin screen ("who a
+visitor can be is data, never code"; migration 035), so designating identities
+and clearing what the population step left behind both happen here:
+
+```bash
+node scripts/ops/mark-demo-baseline.mjs \
+  --candidate oikonomia-demo-baseline-builder.db \
+  --designate <personId>,<personId>,… \
+  --sanitize \
+  --to oikonomia-demo-baseline.db
+```
+
+`--designate` inserts `demo_identity` rows for the given people, in the order
+given. `--sanitize` removes every session, sign-in token, throttle row,
+temporary visitor, and credential — the runtime residue of having actually
+used the application to build the content. Both act on a disposable copy
+(`--to`); the populated candidate is only ever read. (`--in-place` marks the
+candidate itself instead, for iterating on a working file.)
+
+Whether or not anything is being marked, the same command **validates**
+everything `demo-provision.mjs` and a reset both require — built and run with
+no `--designate`, `--sanitize`, `--to` or `--in-place`, it writes nothing:
+
+```bash
+node scripts/ops/mark-demo-baseline.mjs --candidate <candidate.db>
+```
+
+It checks, against a fresh reference schema it builds for the comparison: SQLite
+integrity and foreign keys; that the schema — tables, columns, the applied
+migrations — matches this build's exactly, catching drift as well as a table
+feature a reset cannot reproduce (a trigger); that `demo_identity` designates
+at least one person; that there is no session, sign-in token, throttle row,
+temporary visitor, or credential; and that `demo_state` is not already marked
+`demo-installation` (a live database is not a baseline). **A candidate that
+already holds curated content but has not yet been sanitized or designated
+must not be marked `demo-baseline`** — that marker is Slice 6's promise that a
+reset may empty every other table and refill it from this file, and an
+unsanitized copy would carry a real credential or a stale session into every
+demonstration reset from then on. Run the validation above, unmarked, as the
+last step before handing a candidate back.
+
 ### Entering a demonstration
 
 `/login` offers a chooser instead of a sign-in form: the people the database
