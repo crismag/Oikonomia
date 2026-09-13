@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node scripts/write-server-entry.mjs",
+    "build": "RAYON_NUM_THREADS=${RAYON_NUM_THREADS:-4} vite build && node scripts/write-server-entry.mjs",
     "start": "node .output/server.js",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",

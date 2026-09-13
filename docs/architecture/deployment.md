@@ -53,6 +53,13 @@ install**: `.npmrc` sets `ignore-scripts=true`, because npm otherwise runs
 Python and a C++ toolchain, and fails on hosts without them. A platform outside
 that list would have to remove the setting and compile.
 
+`npm run build` caps the bundler at four threads (`RAYON_NUM_THREADS`, unless
+already set). Rolldown otherwise starts one per CPU the machine reports, and on
+shared hosting that is the host's CPU count, not the account's: Hostinger's
+build machine reports 64, its account limits refuse the threads, and Rolldown
+panics with `ThreadPoolBuildError … Resource temporarily unavailable` while
+loading `vite.config.ts`. Set `RAYON_NUM_THREADS` higher where that is allowed.
+
 ### Prove the build before trusting it
 
 ```bash
