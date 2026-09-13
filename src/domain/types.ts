@@ -691,6 +691,11 @@ export interface AgendaItem {
   dueAt?: string;
   assigneeId?: string;
   completedAt?: string;
+  /**
+   * The leader whose agenda this is. An agenda is personal: an item is seen by
+   * whoever wrote it and whoever it is for, and by nobody else.
+   */
+  createdBy?: string;
 }
 
 /* ----------------------------------------------------- leadership reports */

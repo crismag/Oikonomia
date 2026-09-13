@@ -91,7 +91,7 @@ export function createDashboardService(repos: {
        * the "a record exists so it must be finished" mistake.
        */
       const entriesThisWeek = repos.calendar.entriesInRange(weekStart, weekEnd);
-      const agendaThisWeek = repos.calendar.agendaInRange(weekStart, weekEnd);
+      const agendaThisWeek = repos.calendar.agendaInRange(weekStart, weekEnd, me);
       const agendaSteps = [
         step("scheduled", "Something scheduled this week", entriesThisWeek.length > 0),
         step("intentions", "What you mean to do written down", agendaThisWeek.length > 0),

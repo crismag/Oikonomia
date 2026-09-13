@@ -538,7 +538,7 @@ const counts = {
   goalUpdates: 0,
   reachOut: 0,
   calendarEntries: 0,
-  agendaWeeksDeferred: 0,
+  agendaItems: 0,
   skippedRecords: 0,
 };
 
@@ -1026,6 +1026,62 @@ const run = db.transaction(() => {
     counts.calendarEntries++;
   }
 
+  /* `- [x] Text — due YYYY-MM-DD — Thursday — Field Ministry — for Name`:
+     every part after the text is optional and may come in any order. */
+  function importAgenda(file: string, record: ParsedRecord) {
+    const owner = ownerOf(file);
+    if (!owner?.personId) return void counts.skippedRecords++;
+
+    const weekMatch = /^Week of (\d{4}-\d{2}-\d{2})$/.exec(record.heading);
+    const weekOf = weekMatch?.[1];
+    if (!weekOf || new Date(`${weekOf}T00:00:00Z`).getUTCDay() !== 1) {
+      warn(`agenda "${record.heading}" (${file}): heading must be "Week of" a Monday`);
+      return void counts.skippedRecords++;
+    }
+    const dayInWeek = (weekday: number) => {
+      const day = new Date(`${weekOf}T00:00:00Z`);
+      day.setUTCDate(day.getUTCDate() + ((weekday + 6) % 7));
+      return day.toISOString().slice(0, 10);
+    };
+
+    for (const block of record.bodyBlocks) {
+      if (block.type !== "checklist") continue;
+      const [text, ...parts] = stripHtml(block.html).split(/\s+—\s+/);
+      let date: string | undefined;
+      let dueAt: string | undefined;
+      let ministryId: string | undefined;
+      let assigneeId = owner.personId;
+      for (const part of parts) {
+        const due = /^due\s+(\d{4}-\d{2}-\d{2})$/i.exec(part);
+        const forName = /^for\s+(.+)$/i.exec(part);
+        const weekday = WEEKDAY_INDEX[part.toLowerCase()];
+        const ministry = ministryByName.get(part.toLowerCase());
+        if (due) dueAt = due[1];
+        else if (weekday !== undefined) date = dayInWeek(weekday);
+        else if (ministry) ministryId = ministry.id;
+        else if (forName) {
+          const id = resolvePersonId(forName[1]);
+          if (id) assigneeId = id;
+          else warn(`agenda item "${text}" (${file}): "for ${forName[1]}" not resolved`);
+        } else warn(`agenda item "${text}" (${file}): unrecognised part "${part}"`);
+      }
+
+      const item = calendar.insertAgendaItem({
+        text: text!.trim(),
+        weekOf,
+        ...(date ? { date } : {}),
+        ...(dueAt ? { dueAt } : {}),
+        ...(ministryId ? { ministryId } : {}),
+        completed: Boolean(block.checked),
+        ...(block.checked ? { completedAt: `${date ?? dueAt ?? dayInWeek(5)}T17:00:00.000Z` } : {}),
+        assigneeId,
+        createdBy: owner.personId,
+      });
+      backdate("agenda_item", item.id, `${weekOf}T08:00:00.000Z`);
+      counts.agendaItems++;
+    }
+  }
+
   function lifegroupSections(record: ParsedRecord): {
     reportBlocks: BodyBlock[];
     entries: { label: string; fields: Map<string, string[]>; blocks: BodyBlock[] }[];
@@ -1317,13 +1373,8 @@ const run = db.transaction(() => {
           else if (section === "Meeting Notes") importMeetingNote(file, record);
           else if (section === "Reach-Out") importReachOut(file, record);
           else if (section === "Calendar") importCalendarEntry(file, record);
-          else if (section === "Agenda") {
-            /* Recognised, deliberately not imported: agenda_item has no owner
-               yet (created_by is never written and agendaInRange is not
-               filtered by viewer), so every leader's weeks would land in one
-               shared binder. Import these once the agenda is per-leader. */
-            counts.agendaWeeksDeferred++;
-          } else if (section === "Goals" || section === "Form") {
+          else if (section === "Agenda") importAgenda(file, record);
+          else if (section === "Goals" || section === "Form") {
             /* Goals (personal and ministry) are read directly, above; Form has
                no authored content yet in this corpus. */
           } else {

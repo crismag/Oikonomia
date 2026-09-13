@@ -51,20 +51,33 @@ export function createCalendarService(repo: CalendarRepository) {
     return entry;
   }
 
+  /**
+   * Load an agenda item the viewer may act on, or refuse as if it did not
+   * exist: another leader's agenda is not something to confirm the shape of.
+   */
+  function requireAgendaItem(viewer: Viewer, id: string): AgendaItem {
+    const item = repo.findAgendaItem(id);
+    const me = viewer.person.id;
+    const mine =
+      item &&
+      (item.createdBy === me || item.assigneeId === me || (!item.createdBy && !item.assigneeId));
+    if (!mine) throw ApiError.notFound("That agenda item");
+    return item;
+  }
+
   return {
     /**
      * What is on the calendar between two dates.
      *
      * The whole calendar is readable — it is shared working information, and
-     * `canView` on a schedule entry is true for everyone. Nothing here is
-     * filtered by viewer, and when that stops being true this is the one place
-     * it changes.
+     * `canView` on a schedule entry is true for everyone. The agenda is not: it
+     * is the viewer's own, plus what was put on it for them.
      */
-    listRange(_viewer: Viewer, input: unknown) {
+    listRange(viewer: Viewer, input: unknown) {
       const range = parse(entryRange, input);
       return {
         entries: repo.entriesInRange(range.from, range.to),
-        agenda: repo.agendaInRange(range.from, range.to),
+        agenda: repo.agendaInRange(range.from, range.to, viewer.person.id),
       };
     },
 
@@ -193,17 +206,16 @@ export function createCalendarService(repo: CalendarRepository) {
 
     /* ------------------------------------------------------------- agenda */
 
-    createAgendaItem(_viewer: Viewer, input: unknown): AgendaItem {
+    createAgendaItem(viewer: Viewer, input: unknown): AgendaItem {
       const values = parse(createAgendaItem, input);
       if (values.relatedEntryId && !repo.findEntry(values.relatedEntryId)) {
         throw ApiError.validation({ relatedEntryId: "That entry no longer exists." });
       }
-      return repo.insertAgendaItem(values);
+      return repo.insertAgendaItem({ ...values, createdBy: viewer.person.id });
     },
 
-    updateAgendaItem(_viewer: Viewer, id: string, input: unknown): AgendaItem {
-      const existing = repo.findAgendaItem(id);
-      if (!existing) throw ApiError.notFound("That agenda item");
+    updateAgendaItem(viewer: Viewer, id: string, input: unknown): AgendaItem {
+      const existing = requireAgendaItem(viewer, id);
 
       const patch = parse(updateAgendaItem, input);
       const merged = { ...existing, ...patch };
@@ -234,7 +246,8 @@ export function createCalendarService(repo: CalendarRepository) {
       return saved;
     },
 
-    deleteAgendaItem(_viewer: Viewer, id: string): void {
+    deleteAgendaItem(viewer: Viewer, id: string): void {
+      requireAgendaItem(viewer, id);
       if (!repo.deleteAgendaItem(id)) throw ApiError.notFound("That agenda item");
     },
   };

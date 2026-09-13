@@ -132,6 +132,7 @@ function toAgendaItem(row: AgendaRow): AgendaItem {
     ...has(row.due_at, "dueAt"),
     ...has(row.assignee_id, "assigneeId"),
     ...has(row.related_entry_id, "relatedEntryId"),
+    ...has(row.created_by, "createdBy"),
   } as AgendaItem;
 }
 
@@ -243,15 +244,22 @@ export function createCalendarRepository(db: Db) {
 
     /* ------------------------------------------------------------- agenda */
 
-    agendaInRange(from: string, to: string): AgendaItem[] {
+    /**
+     * One leader's agenda between two dates: what they wrote and what was put
+     * on it for them. An item with neither an author nor an assignee predates
+     * ownership and stays visible to everyone, as it always was.
+     */
+    agendaInRange(from: string, to: string, personId: string): AgendaItem[] {
       const rows = db
         .prepare(
           `SELECT * FROM agenda_item
-            WHERE (date IS NOT NULL AND date BETWEEN ? AND ?)
-               OR (week_of IS NOT NULL AND week_of BETWEEN ? AND ?)
+            WHERE ((date IS NOT NULL AND date BETWEEN @from AND @to)
+               OR (week_of IS NOT NULL AND week_of BETWEEN @from AND @to))
+              AND (created_by = @person OR assignee_id = @person
+                   OR (created_by IS NULL AND assignee_id IS NULL))
             ORDER BY date IS NULL, date, created_at`,
         )
-        .all(from, to, from, to) as AgendaRow[];
+        .all({ from, to, person: personId }) as AgendaRow[];
       return rows.map(toAgendaItem);
     },
 
@@ -288,7 +296,7 @@ export function createCalendarRepository(db: Db) {
         due_at: values.dueAt ?? null,
         assignee_id: values.assigneeId ?? null,
         related_entry_id: values.relatedEntryId ?? null,
-        created_by: null,
+        created_by: values.createdBy ?? null,
         created_at: at,
         updated_at: at,
       });

@@ -388,6 +388,32 @@ describe("agenda items", () => {
     expect(repo.findAgendaItem(item.id)).toBeUndefined();
   });
 
+  /** An agenda is personal: the author's, and the assignee's, and no one else's. */
+  it("keeps one leader's agenda off another's", () => {
+    const mine = service.createAgendaItem(maria, {
+      text: "Ring the camp office",
+      date: "2026-09-10",
+    });
+    expect(mine.createdBy).toBe(maria.person.id);
+
+    const range = { from: "2026-09-07", to: "2026-09-13" };
+    expect(service.listRange(maria, range).agenda.map((a) => a.id)).toEqual([mine.id]);
+    expect(service.listRange(joel, range).agenda).toEqual([]);
+    expect(() => service.updateAgendaItem(joel, mine.id, { completed: true })).toThrow(ApiError);
+    expect(() => service.deleteAgendaItem(joel, mine.id)).toThrow(ApiError);
+  });
+
+  it("shows an item to the leader it was put on the agenda for", () => {
+    const forJoel = service.createAgendaItem(maria, {
+      text: "Confirm the hall",
+      weekOf: "2026-09-07",
+      assigneeId: joel.person.id,
+    });
+    const range = { from: "2026-09-07", to: "2026-09-13" };
+    expect(service.listRange(joel, range).agenda.map((a) => a.id)).toEqual([forJoel.id]);
+    expect(service.updateAgendaItem(joel, forJoel.id, { completed: true }).completed).toBe(true);
+  });
+
   /**
    * An agenda item outlives the thing it was about: deleting the entry drops
    * the link, and the item stays on the leader's day.
