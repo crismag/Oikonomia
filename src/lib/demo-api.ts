@@ -30,6 +30,7 @@ async function serverParts() {
     { createDemoEntryService },
     { SESSION_COOKIE, cookieValue, sessionCookie, viewerFor },
     { config },
+    { readDemoState },
     { getRequest, setResponseHeader },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -43,6 +44,7 @@ async function serverParts() {
     import("@/server/demo/demo-entry-service"),
     import("@/server/auth/principal"),
     import("@/config"),
+    import("@/server/installation/demo-reset"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -66,6 +68,10 @@ async function serverParts() {
       auth: createAuthService(accounts, organization),
       transaction: (work) => db.transaction(work)(),
       timeZone: config.site.timezone,
+      generation: () => {
+        const state = readDemoState(db);
+        return state?.marker === "demo-installation" ? state.generation : null;
+      },
     }),
     viewerPersonId: () => viewerFor(request, db)?.person.id,
     context: { ...(currentToken ? { currentToken } : {}), ...(userAgent ? { userAgent } : {}) },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countdown, nextRefreshAt, usableTimeZone } from "./refresh-schedule";
+import { countdown, nextRefreshAt, previousRefreshAt, usableTimeZone } from "./refresh-schedule";
 
 /**
  * A demonstration refreshes at 00:00, 06:00, 12:00 and 18:00 on the church's
@@ -79,6 +79,36 @@ describe("the next refresh", () => {
     expect(onClock(nextRefreshAt(new Date("2026-09-13T07:00:00Z"), "Nowhere/Nothing"), "UTC")).toBe(
       "2026-09-13, 12:00",
     );
+  });
+});
+
+describe("the previous refresh", () => {
+  it("is the refresh hour just passed on the site's clock", () => {
+    const at = previousRefreshAt(new Date("2026-09-13T14:30:00Z"), "America/Toronto");
+    expect(at.toISOString()).toBe("2026-09-13T10:00:00.000Z");
+    expect(onClock(at, "America/Toronto")).toBe("2026-09-13, 06:00");
+  });
+
+  it("is now itself when now is exactly a refresh time", () => {
+    const boundary = new Date("2026-09-13T16:00:00Z");
+    expect(previousRefreshAt(boundary, "America/Toronto").getTime()).toBe(boundary.getTime());
+  });
+
+  it("reaches back across midnight to yesterday's evening refresh", () => {
+    const at = previousRefreshAt(new Date("2026-09-14T03:59:00Z"), "America/Toronto");
+    expect(onClock(at, "America/Toronto")).toBe("2026-09-13, 18:00");
+  });
+
+  it("and the next refresh are six hours of the same schedule, across daylight saving", () => {
+    for (const iso of ["2026-03-08T07:30:00Z", "2026-11-01T05:30:00Z", "2026-07-01T00:00:01Z"]) {
+      const now = new Date(iso);
+      const previous = previousRefreshAt(now, "America/Toronto");
+      const next = nextRefreshAt(now, "America/Toronto");
+      expect(previous.getTime()).toBeLessThanOrEqual(now.getTime());
+      expect(next.getTime()).toBeGreaterThan(now.getTime());
+      /* Nothing on the schedule lies between them. */
+      expect(nextRefreshAt(previous, "America/Toronto").getTime()).toBe(next.getTime());
+    }
   });
 });
 

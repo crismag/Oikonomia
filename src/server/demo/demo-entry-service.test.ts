@@ -107,6 +107,7 @@ describe("with Demo Mode off, a demonstration's data opens nothing", () => {
       identities: [],
       visitorsWelcome: false,
       refresh: null,
+      generation: null,
     });
   });
 
@@ -195,6 +196,24 @@ describe("with Demo Mode on and designated identities", () => {
       at: "2026-09-13T16:00:00.000Z",
       timeZone: "America/Toronto",
     });
+  });
+
+  it("says how many times the demonstration has been reset, so a browser can tell a refresh from an expiry", () => {
+    designate("Pilar Ndiaye");
+    const { accounts, organization, identities } = repositories();
+    const counted = createDemoEntryService({
+      demoMode: true,
+      identities,
+      accounts,
+      organization,
+      auth: createAuthService(accounts, organization),
+      transaction: (work) => db.transaction(work)(),
+      timeZone: "America/Toronto",
+      generation: () => 4,
+    });
+    expect(counted.entry().generation).toBe(4);
+    /* A demonstration whose database says nothing about resets. */
+    expect(serviceFor(true).entry().generation).toBeNull();
   });
 
   it("opens an ordinary session that the ordinary request path resolves", () => {

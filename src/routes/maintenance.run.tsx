@@ -38,6 +38,23 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
  * because a cron job is not an administrator with a login and an audit trail
  * that says otherwise is one that lies.
  *
+ * ## Resetting a public demonstration
+ *
+ * `demo-reset` returns a demonstration to its baseline — the only task a
+ * demonstration runs, and one an ordinary installation refuses outright. It
+ * restores rows inside the live database (`src/server/installation/demo-reset.ts`)
+ * rather than replacing the file, which several server processes hold open.
+ * With `&when=due` it resets only if a refresh time on the site's schedule
+ * has passed since the last reset, so an hourly cron entry follows the church's
+ * own clock through daylight-saving changes:
+ *
+ * ```cron
+ * 1 * * * *  curl -fsS -X POST -H "Authorization: Bearer $TOKEN" "http://127.0.0.1:8080/maintenance/run?task=demo-reset&when=due"
+ * ```
+ *
+ * `when=due` can only skip a reset. Nothing a request carries can loosen one of
+ * its checks.
+ *
  * ## When something fails
  *
  * The response is non-zero, which is what `curl -fsS` turns into a failing
@@ -47,7 +64,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
  * matters is filtered too. See `OIKONOMIA_ALERT_TO`.
  */
 
-const TASKS = ["backup", "retention", "sweep"] as const;
+const TASKS = ["backup", "retention", "sweep", "demo-reset"] as const;
 
 /**
  * How long an authentication audit event is kept.
@@ -87,6 +104,10 @@ export const Route = createFileRoute("/maintenance/run")({
         const requested = new URL(request.url).searchParams.get("task") ?? "backup";
         if (!TASKS.includes(requested as Task)) {
           return json(400, { ok: false, reason: "unknown-task", known: TASKS });
+        }
+
+        if (requested === "demo-reset") {
+          return demoReset(request, json);
         }
 
         const [{ getDatabase }, { createDataJobRepository }, { createContinuityService }] =
@@ -163,3 +184,127 @@ export const Route = createFileRoute("/maintenance/run")({
     throw redirect({ to: "/", search: {} });
   },
 });
+
+/**
+ * `task=demo-reset`.
+ *
+ * A refusal (409) means nothing was attempted; a failure (500) means the
+ * restore was rolled back. Both are alerted, because a demonstration that has
+ * stopped resetting quietly accumulates every visitor's changes. A restore that
+ * committed but left artifacts behind is also a 500 — the reset stands, and the
+ * response says so.
+ */
+async function demoReset(
+  request: Request,
+  json: (status: number, payload: Record<string, unknown>) => Response,
+): Promise<Response> {
+  const task = "demo-reset";
+  const [
+    { currentInstallation },
+    { alertMaintenanceFailure },
+    { resetDemo, DemoResetFailed, DemoResetRefused },
+  ] = await Promise.all([
+    import("@/server/installation/policy"),
+    import("@/server/data/alert"),
+    import("@/server/installation/demo-reset"),
+  ]);
+
+  const refused = async (reason: string, message: string) => {
+    const alerted = await alertMaintenanceFailure({ task, reason: message });
+    return json(409, { ok: false, task, reason, error: message, alerted });
+  };
+
+  /* Before the database is even opened: an ordinary installation's is never
+     handed to the reset at all. */
+  if (!currentInstallation().demoMode) {
+    return refused("demo-mode-off", "Demo Mode is off. Only a public demonstration can be reset.");
+  }
+
+  try {
+    const [
+      { getDatabase },
+      { demoBaselinePath, ordinaryDatabasePath },
+      { artifactRoot, localStorageProvider },
+      { refreshConfiguration },
+      { config },
+      { dirname, join },
+    ] = await Promise.all([
+      import("@/server/db/connection"),
+      import("@/server/db/database-paths"),
+      import("@/server/data/storage"),
+      import("@/server/config/runtime"),
+      import("@/config"),
+      import("node:path"),
+    ]);
+
+    const db = getDatabase();
+    /* The refresh hours are on the site's clock, from its configuration. */
+    refreshConfiguration(db);
+    const ordinaryPath = ordinaryDatabasePath();
+    const due = new URL(request.url).searchParams.get("when") === "due";
+
+    const result = resetDemo(
+      {
+        db,
+        demoMode: currentInstallation().demoMode,
+        ordinaryPath,
+        baselinePath: demoBaselinePath(),
+        artifactRoot: artifactRoot(),
+        ordinaryArtifactRoot: ordinaryPath ? join(dirname(ordinaryPath), "artifacts") : undefined,
+        artifacts: localStorageProvider(),
+      },
+      due ? { onlyIfDue: { timeZone: config.site.timezone } } : {},
+    );
+
+    if (result.status === "not-due") {
+      return json(200, {
+        ok: true,
+        task,
+        skipped: "not-due",
+        generation: result.generation,
+        dueAfter: result.dueAfter,
+      });
+    }
+
+    console.info(
+      `Demo reset to generation ${result.generation}: ${result.tables} tables, ${result.rows} rows.`,
+    );
+
+    if (result.artifacts.failed.length > 0) {
+      const message = `The demonstration was reset (generation ${result.generation}), but ${result.artifacts.failed.length} artifact(s) could not be removed.`;
+      console.error(message);
+      const alerted = await alertMaintenanceFailure({ task, reason: message });
+      return json(500, {
+        ok: false,
+        task,
+        databaseReset: true,
+        generation: result.generation,
+        artifactsRemoved: result.artifacts.removed,
+        artifactsNotRemoved: result.artifacts.failed.length,
+        error: message,
+        alerted,
+      });
+    }
+
+    return json(200, {
+      ok: true,
+      task,
+      generation: result.generation,
+      tables: result.tables,
+      rows: result.rows,
+      artifactsRemoved: result.artifacts.removed,
+    });
+  } catch (error) {
+    if (error instanceof DemoResetRefused) {
+      console.error(`Demo reset refused (${error.reason}): ${error.message}`);
+      return refused(error.reason, error.message);
+    }
+    const message =
+      error instanceof DemoResetFailed || error instanceof Error
+        ? error.message
+        : "Unknown failure";
+    console.error("Demo reset failed:", error);
+    const alerted = await alertMaintenanceFailure({ task, reason: message });
+    return json(500, { ok: false, task, databaseReset: false, error: message, alerted });
+  }
+}

@@ -118,10 +118,11 @@ export const ROUTE_HANDLERS: Readonly<
 /**
  * `/maintenance/run?task=…`, task by task.
  *
- * Every task that exists today writes backups or prunes the installation's own
- * records, and a demonstration has neither to keep. A later task that a
- * demonstration needs (resetting itself) is added here as `allowed`; a task
- * with no entry — including a missing or misspelled one — is refused.
+ * Backups, retention and sweeping keep an installation's own records, and a
+ * demonstration has none to keep. `demo-reset` is the one task a demonstration
+ * runs — still behind the maintenance token, and still refused by the reset
+ * itself on anything that is not a marked demonstration database. A task with
+ * no entry — including a missing or misspelled one — is refused.
  */
 export const MAINTENANCE_TASKS: Readonly<
   Record<string, { demo: "allowed" | "denied"; because?: DenialReason }>
@@ -129,6 +130,7 @@ export const MAINTENANCE_TASKS: Readonly<
   backup: { demo: "denied", because: "data" },
   retention: { demo: "denied", because: "data" },
   sweep: { demo: "denied", because: "data" },
+  "demo-reset": { demo: "allowed" },
 };
 
 /** Whether a request to a route handler may proceed in this installation. */

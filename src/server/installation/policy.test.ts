@@ -210,13 +210,30 @@ describe("with Demo Mode on", () => {
     }
   });
 
-  it("refuses every maintenance task that exists, and any that does not", () => {
-    for (const task of Object.keys(MAINTENANCE_TASKS)) {
+  it("refuses every maintenance task but its own reset, and any task that does not exist", () => {
+    expect(Object.keys(MAINTENANCE_TASKS).sort()).toEqual([
+      "backup",
+      "demo-reset",
+      "retention",
+      "sweep",
+    ]);
+    for (const task of ["backup", "retention", "sweep"]) {
       expect(decideRouteRequest(ON, new URL(`http://x/maintenance/run?task=${task}`)).allowed).toBe(
         false,
       );
     }
-    for (const query of ["", "?task=", "?task=reset-everything", "?task=BACKUP"]) {
+    /* Allowed past the policy only; the token and the reset's own checks still decide. */
+    expect(decideRouteRequest(ON, new URL("http://x/maintenance/run?task=demo-reset"))).toEqual({
+      allowed: true,
+    });
+    for (const query of [
+      "",
+      "?task=",
+      "?task=reset-everything",
+      "?task=BACKUP",
+      "?task=DEMO-RESET",
+      "?task=demo-reset%20",
+    ]) {
       expect(decideRouteRequest(ON, new URL(`http://x/maintenance/run${query}`))).toEqual({
         allowed: false,
         because: "unclassified",

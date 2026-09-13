@@ -114,6 +114,37 @@ export function nextRefreshAt(
   throw new Error("No refresh hour could be found.");
 }
 
+/**
+ * The latest refresh at or before `now`.
+ *
+ * What a scheduled reset asks: has a refresh time passed since the last reset?
+ * The same hours and the same timezone as the countdown a visitor sees, so the
+ * screen and the reset cannot describe different schedules.
+ */
+export function previousRefreshAt(
+  now: Date,
+  timeZone: string,
+  hours: readonly number[] = REFRESH_HOURS,
+): Date {
+  const zone = usableTimeZone(timeZone);
+  const today = wallClock(now, zone);
+
+  for (let days = 0; days >= -2; days--) {
+    const date = new Date(Date.UTC(today.year, today.month - 1, today.day + days));
+    for (const hour of [...hours].sort((a, b) => b - a)) {
+      const candidate = instantOf(
+        date.getUTCFullYear(),
+        date.getUTCMonth() + 1,
+        date.getUTCDate(),
+        hour,
+        zone,
+      );
+      if (candidate.getTime() <= now.getTime()) return candidate;
+    }
+  }
+  throw new Error("No refresh hour could be found.");
+}
+
 /** "2h 14m", "9m", "under a minute" — how a countdown reads at a glance. */
 export function countdown(milliseconds: number): string {
   const minutes = Math.floor(Math.max(0, milliseconds) / 60_000);

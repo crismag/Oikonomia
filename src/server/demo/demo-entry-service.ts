@@ -92,6 +92,12 @@ export interface DemoEntry {
    * timezone that time is kept in. Null on an ordinary installation.
    */
   refresh: { at: string; timeZone: string } | null;
+  /**
+   * How many times the demonstration has been reset. A browser that last saw
+   * a different number knows its session ended because the data was
+   * refreshed, not because it expired. Null on an ordinary installation.
+   */
+  generation: number | null;
 }
 
 export function createDemoEntryService(parts: {
@@ -107,6 +113,8 @@ export function createDemoEntryService(parts: {
   transaction: <T>(work: () => T) => T;
   /** The church's timezone, in which refreshes happen on the hour. */
   timeZone: string;
+  /** The live database's reset count (`demo_state`), if it is a demonstration's. */
+  generation?: () => number | null;
   now?: () => Date;
 }) {
   const { identities, accounts, organization, auth } = parts;
@@ -157,7 +165,13 @@ export function createDemoEntryService(parts: {
     /** What the sign-in screen offers. Nothing at all on an ordinary installation. */
     entry(viewerPersonId?: string): DemoEntry {
       if (!parts.demoMode) {
-        return { demo: false, identities: [], visitorsWelcome: false, refresh: null };
+        return {
+          demo: false,
+          identities: [],
+          visitorsWelcome: false,
+          refresh: null,
+          generation: null,
+        };
       }
       const options = offered(viewerPersonId);
       const timeZone = usableTimeZone(parts.timeZone);
@@ -170,6 +184,7 @@ export function createDemoEntryService(parts: {
           at: nextRefreshAt((parts.now ?? (() => new Date()))(), timeZone).toISOString(),
           timeZone,
         },
+        generation: parts.generation?.() ?? null,
       };
     },
 

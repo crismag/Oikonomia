@@ -1,9 +1,11 @@
 import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import type { Database as Db } from "better-sqlite3";
 
+import { currentInstallation } from "../installation/policy";
 import { bundledMigrations } from "./bundled-migrations";
+import { liveDatabasePath } from "./database-paths";
 import { migrate } from "./migrate";
 
 /**
@@ -37,21 +39,14 @@ import { migrate } from "./migrate";
  * on the first routine redeploy. So a production process must be told where its
  * data lives, and refuses rather than guessing, as `siteUrl()` does.
  *
+ * A public demonstration opens its own database, never the ordinary one — see
+ * `database-paths.ts` for the rules and the refusals.
+ *
  * Read on each call rather than at import, so the refusal happens where the
  * database is needed rather than while an unrelated module loads.
  */
 export function databasePath(): string {
-  const configured = process.env["OIKONOMIA_DB"]?.trim();
-  if (configured) return configured;
-
-  if (process.env["NODE_ENV"] === "production") {
-    throw new Error(
-      "OIKONOMIA_DB is not set. A production installation must name a database file " +
-        "outside the application directory, because a redeploy replaces that directory.",
-    );
-  }
-
-  return join(process.cwd(), ".data", "oikonomia.db");
+  return liveDatabasePath(currentInstallation().demoMode);
 }
 
 let instance: Db | undefined;

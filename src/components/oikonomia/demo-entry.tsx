@@ -1,7 +1,8 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { AuthField, AuthPanel } from "@/components/oikonomia/auth-panel";
+import { refreshedSince, rememberedGeneration } from "@/components/oikonomia/demo-generation";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
 import { createDemoVisitor, enterDemoAs, type DemoEntry } from "@/lib/demo-api";
 
@@ -22,6 +23,12 @@ export function DemoEntryPanel({ entry }: { entry: DemoEntry }) {
   const [name, setName] = useState("");
   const nameId = useId();
   const errorId = useId();
+  const [refreshed, setRefreshed] = useState(false);
+
+  /* Read after hydration: the server cannot know what this browser remembers. */
+  useEffect(() => {
+    setRefreshed(refreshedSince(rememberedGeneration(), entry.generation));
+  }, [entry.generation]);
 
   /* A full load rather than a client navigation, so every provider starts from
      the new session rather than from what the sign-in screen had cached. */
@@ -67,6 +74,15 @@ export function DemoEntryPanel({ entry }: { entry: DemoEntry }) {
       title="Explore Oikonomia"
       description="A shared demonstration. Choose someone to explore as — other visitors may be using the same people and changing the same records."
     >
+      {refreshed ? (
+        <p
+          role="status"
+          className="rounded-md border border-status-waiting/30 bg-status-waiting-soft px-3 py-2 text-center text-[13px]"
+        >
+          The demo was refreshed. Choose a demo user to continue.
+        </p>
+      ) : null}
+
       <ul className="space-y-2" aria-label="Explore as">
         {entry.identities.map((identity) => (
           <li key={identity.id}>

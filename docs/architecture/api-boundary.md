@@ -113,6 +113,13 @@ The browser is told the outcome, never the table: `fetchSession` carries
 something. The UI uses it to draw the demo bar and to disable controls with a
 note — nothing the browser holds can switch the policy on or off.
 
+Maintenance tasks are decided one by one. In Demo Mode `backup`, `retention`
+and `sweep` are denied and `demo-reset` is the one allowed — past the policy
+only: it still needs the maintenance bearer token, and the reset itself refuses
+anything but a marked demonstration database. Demo Mode also selects the
+database: `OIKONOMIA_DEMO_DB`, never `OIKONOMIA_DB` (see
+`docs/architecture/deployment.md`, _Demo Mode_).
+
 ## Cross-site protection
 
 Server-function POSTs are refused unless the request carries what a real

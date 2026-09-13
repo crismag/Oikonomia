@@ -18,7 +18,7 @@
  * runnable by hand when a deployment misbehaves.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -526,8 +526,8 @@ try {
       };
       return find(JSON.parse(await response.text()));
     };
-    const siteName = () => {
-      const reader = new Database(database, { readonly: true });
+    const siteName = (path = database) => {
+      const reader = new Database(path, { readonly: true });
       const row = reader
         .prepare(
           "SELECT value FROM configuration_setting WHERE namespace = 'site.profile' AND field = 'name'",
@@ -536,25 +536,67 @@ try {
       reader.close();
       return row ? JSON.parse(row.value) : undefined;
     };
-    const goalsTitled = (title) => {
-      const reader = new Database(database, { readonly: true });
+    const goalsTitled = (title, path = database) => {
+      const reader = new Database(path, { readonly: true });
       const { n } = reader.prepare("SELECT count(*) AS n FROM goal WHERE title = ?").get(title);
       reader.close();
       return n;
     };
-    const maintenance = () =>
-      fetch(`${BASE}/maintenance/run?task=backup`, {
+    const maintenance = (task = "backup", token = MAINTENANCE_TOKEN) =>
+      fetch(`${BASE}/maintenance/run?task=${task}`, {
         method: "POST",
-        headers: { authorization: `Bearer ${MAINTENANCE_TOKEN}` },
+        headers: token ? { authorization: `Bearer ${token}` } : {},
       });
+    /* Every row of every table: proof a database was not touched at all. */
+    const fingerprint = (path) => {
+      const reader = new Database(path, { readonly: true });
+      const tables = reader
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+        .all();
+      const content = tables.map(({ name }) => [
+        name,
+        reader.prepare(`SELECT * FROM "${name}"`).all(),
+      ]);
+      reader.close();
+      return createHash("sha256").update(JSON.stringify(content)).digest("hex");
+    };
+    /* A value from a serialised server-function reply, found by its object's keys. */
+    const fieldOf = (text, keys, field) => {
+      const find = (node) => {
+        if (!node || typeof node !== "object") return undefined;
+        const names = node.p?.k;
+        if (Array.isArray(names) && keys.every((key) => names.includes(key))) {
+          return node.p.v[names.indexOf(field)];
+        }
+        for (const child of Object.values(node)) {
+          const found = find(child);
+          if (found) return found;
+        }
+        return undefined;
+      };
+      return find(JSON.parse(text));
+    };
+    const demoEntryGeneration = async () => {
+      const response = await fetch(`${BASE}/_serverFn/${idOf("fetchDemoEntry", "demo-api")}`, {
+        headers: { "x-tsr-serverfn": "true", "sec-fetch-site": "same-origin" },
+      });
+      const node = fieldOf(await response.text(), ["identities", "generation"], "generation");
+      return node?.t === 0 ? node.s : node;
+    };
     const googleStart = () => fetch(`${BASE}/auth/google/start`, { redirect: "manual" });
     const stop = async () => {
       server.kill("SIGTERM");
       await new Promise((resolve) => server.once("exit", resolve));
     };
 
+    /* A demonstration has its own database and baseline, beside the ordinary one. */
+    const demoBaseline = join(dir, "smoke-demo-baseline.db");
+    const demoDatabase = join(dir, "smoke-demo.db");
+
     const installation = (demo) => ({
       OIKONOMIA_DB: database,
+      OIKONOMIA_DEMO_DB: demoDatabase,
+      OIKONOMIA_DEMO_BASELINE: demoBaseline,
       OIKONOMIA_URL: PUBLIC_URL,
       OIKONOMIA_MAINTENANCE_TOKEN: MAINTENANCE_TOKEN,
       OIKONOMIA_DEMO_MODE: demo,
@@ -602,12 +644,114 @@ try {
         google.status !== 403,
         `got ${google.status}`,
       );
+      const untouched = fingerprint(database);
+      const offReset = await maintenance("demo-reset");
+      const offResetBody = await offReset.json().catch(() => ({}));
+      check(
+        "Demo Mode off: a demo reset is refused, with the token, and the database is untouched",
+        offReset.status === 409 &&
+          offResetBody.reason === "demo-mode-off" &&
+          fingerprint(database) === untouched,
+        `got ${offReset.status} ${JSON.stringify(offResetBody)}`,
+      );
       await stop();
     } else {
       check("starts with Demo Mode off", false);
     }
 
-    /* On: the same administrator, the same cookie. */
+    /*
+     * The demonstration's databases: a curated baseline (here, a copy of the
+     * ordinary database with its sessions removed, marked demo-baseline) and
+     * the live demonstration database the provisioning script creates from it.
+     */
+    {
+      const source = new Database(database, { readonly: true });
+      source.prepare("VACUUM INTO ?").run(demoBaseline);
+      source.close();
+      const curate = new Database(demoBaseline);
+      curate.exec(
+        "DELETE FROM auth_session; DELETE FROM auth_token; DELETE FROM auth_throttle; DELETE FROM demo_identity WHERE kind = 'visitor';",
+      );
+      curate.prepare("INSERT INTO demo_state (id, marker) VALUES (1, 'demo-baseline')").run();
+      curate.pragma("journal_mode = DELETE");
+      curate.close();
+    }
+    const provision = () =>
+      spawnSync(
+        process.execPath,
+        [
+          "scripts/ops/demo-provision.mjs",
+          "--baseline",
+          demoBaseline,
+          "--to",
+          demoDatabase,
+          "--ordinary",
+          database,
+        ],
+        { encoding: "utf8" },
+      );
+    const provisioned = provision();
+    check(
+      "demo-provision creates the demonstration database from its baseline",
+      provisioned.status === 0 && existsSync(demoDatabase),
+      provisioned.stderr,
+    );
+    const reprovisioned = provision();
+    check(
+      "demo-provision never replaces an existing database",
+      reprovisioned.status !== 0 && /already exists/.test(reprovisioned.stderr),
+      reprovisioned.stderr,
+    );
+    {
+      /* The administrator's cookie works in the demonstration too. */
+      const writer = new Database(demoDatabase);
+      writer
+        .prepare(
+          `INSERT INTO auth_session (id, account_id, created_at, last_seen_at, expires_at)
+           VALUES (?, 'acc-smoke-admin', ?, ?, ?)`,
+        )
+        .run(
+          createHash("sha256").update(sessionToken).digest("hex"),
+          now.toISOString(),
+          now.toISOString(),
+          new Date(now.getTime() + 3_600_000).toISOString(),
+        );
+      writer.close();
+    }
+    const ordinaryFingerprint = fingerprint(database);
+
+    /* Demo Mode never opens the ordinary database, not even as a fallback. */
+    for (const [label, env, pattern] of [
+      [
+        "without OIKONOMIA_DEMO_DB",
+        { OIKONOMIA_DEMO_DB: undefined },
+        /OIKONOMIA_DEMO_DB is not set/,
+      ],
+      [
+        "with OIKONOMIA_DEMO_DB naming the ordinary database",
+        { OIKONOMIA_DEMO_DB: database },
+        /same file as OIKONOMIA_DB/,
+      ],
+    ]) {
+      const refused = start({ ...installation("true"), ...env });
+      if (await waitForServer()) {
+        const health = await fetch(`${BASE}/healthz`);
+        check(
+          `Demo Mode on ${label}: the server serves nothing, and says why`,
+          health.status === 503 && pattern.test(refused.text),
+          `got ${health.status}: ${refused.text.slice(0, 200)}`,
+        );
+        await stop();
+      } else {
+        check(`starts, to report Demo Mode on ${label}`, false, refused.text);
+      }
+    }
+    check(
+      "Demo Mode on, misconfigured: the ordinary database was never touched",
+      fingerprint(database) === ordinaryFingerprint,
+    );
+
+    /* On: the same administrator, the same cookie, the demonstration's database. */
     start(installation("true"));
     if (await waitForServer()) {
       const set = await call("setConfigurationValue", "configuration-api", {
@@ -618,8 +762,8 @@ try {
       check(
         "Demo Mode on: an administrator's configuration change is refused",
         set.body.includes("disabled-by-installation") &&
-          siteName() === "Changed with Demo Mode off",
-        `status ${set.status}, stored ${JSON.stringify(siteName())}`,
+          siteName(demoDatabase) === "Changed with Demo Mode off",
+        `status ${set.status}, stored ${JSON.stringify(siteName(demoDatabase))}`,
       );
 
       const reset = await call("resetPassword", "auth-api", {
@@ -647,7 +791,7 @@ try {
       check(
         "Demo Mode on: church work still goes through",
         !goal.body.includes("disabled-by-installation") &&
-          goalsTitled("Written with Demo Mode on") === 1,
+          goalsTitled("Written with Demo Mode on", demoDatabase) === 1,
         `status ${goal.status}`,
       );
 
@@ -688,7 +832,7 @@ try {
 
       const visitor = await call("createDemoVisitor", "demo-api", { name: "Smoke Visitor" }, "");
       const visitorRow = (() => {
-        const reader = new Database(database, { readonly: true });
+        const reader = new Database(demoDatabase, { readonly: true });
         const row = reader
           .prepare(
             `SELECT person.id, person.email, account.status,
@@ -780,6 +924,83 @@ try {
         "Demo Mode on: pages, errors and refusals carry X-Robots-Tag: noindex, nofollow",
         unmarked.length === 0,
         unmarked.map(([label, value]) => `${label}: ${value}`).join(", "),
+      );
+
+      /* The reset: only with the token, in place, and only the demonstration. */
+      const liveInode = (await import("node:fs")).statSync(demoDatabase).ino;
+      const anonymousReset = await maintenance("demo-reset", "");
+      check(
+        "Demo Mode on: a demo reset without the maintenance token is refused",
+        anonymousReset.status === 401,
+        `got ${anonymousReset.status}`,
+      );
+      const viaSession = await fetch(`${BASE}/maintenance/run?task=demo-reset`, {
+        method: "POST",
+        headers: { cookie: `oikonomia_session=${sessionToken}` },
+      });
+      check(
+        "Demo Mode on: an administrator's session is not a maintenance token",
+        viaSession.status === 401,
+        `got ${viaSession.status}`,
+      );
+      check(
+        "Demo Mode on: before a reset, the generation is 0",
+        (await demoEntryGeneration()) === 0,
+        JSON.stringify(await demoEntryGeneration()),
+      );
+
+      const demoReset = await maintenance("demo-reset");
+      const demoResetBody = await demoReset.json().catch(() => ({}));
+      check(
+        "Demo Mode on: the demo reset runs with the token",
+        demoReset.status === 200 && demoResetBody.ok === true && demoResetBody.generation === 1,
+        `got ${demoReset.status} ${JSON.stringify(demoResetBody)}`,
+      );
+      check(
+        "Demo Mode on: the reset restored the demonstration in the same file",
+        goalsTitled("Written with Demo Mode on", demoDatabase) === 0 &&
+          (await import("node:fs")).statSync(demoDatabase).ino === liveInode,
+      );
+      check(
+        "Demo Mode on: after a reset, visitors and their sessions are gone",
+        !(await sessionBody(visitor.issued)).includes("Smoke Visitor") &&
+          !(await sessionBody(switched.issued)).includes("Demo Designate") &&
+          (() => {
+            const reader = new Database(demoDatabase, { readonly: true });
+            const { n } = reader
+              .prepare("SELECT COUNT(*) AS n FROM demo_identity WHERE kind = 'visitor'")
+              .get();
+            reader.close();
+            return n === 0;
+          })(),
+      );
+      check(
+        "Demo Mode on: after a reset, the browser is told the new generation",
+        (await demoEntryGeneration()) === 1,
+        JSON.stringify(await demoEntryGeneration()),
+      );
+      const reentered = await call(
+        "enterDemoAs",
+        "demo-api",
+        { identityId: "demo-smoke-designate" },
+        "",
+      );
+      check(
+        "Demo Mode on: after a reset, a designated identity can be entered again",
+        Boolean(reentered.issued) &&
+          (await sessionBody(reentered.issued)).includes("Demo Designate"),
+        `status ${reentered.status}`,
+      );
+      const notDue = await maintenance("demo-reset&when=due");
+      const notDueBody = await notDue.json().catch(() => ({}));
+      check(
+        "Demo Mode on: a scheduled reset right after one is skipped as not due",
+        notDue.status === 200 && notDueBody.skipped === "not-due" && notDueBody.generation === 1,
+        `got ${notDue.status} ${JSON.stringify(notDueBody)}`,
+      );
+      check(
+        "Demo Mode on: the ordinary database was never touched",
+        fingerprint(database) === ordinaryFingerprint,
       );
       await stop();
     } else {

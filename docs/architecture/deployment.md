@@ -103,7 +103,7 @@ dependency audit.
 | `OIKONOMIA_ENV_FILE`                                      | A private file the built server loads every other setting from | Settings come from the environment only                                         |
 | `OIKONOMIA_URL`                                           | Link building, `Secure` cookies, HSTS, CSRF origin             | Local development assumed; **refuses in production**                            |
 | `OIKONOMIA_DB`                                            | Database file — **outside the app directory**                  | `.data/oikonomia.db` in development; **refuses in production** (`/healthz` 503) |
-| `OIKONOMIA_ARTIFACTS`                                     | Where exports and backups are written                          | `artifacts/` beside the database                                                |
+| `OIKONOMIA_ARTIFACTS`                                     | Where exports and backups are written                          | `artifacts/` beside the database (`demo-artifacts/` in Demo Mode)               |
 | `PORT` / `NITRO_PORT`                                     | Listen port                                                    | 3000                                                                            |
 | `HOST` / `NITRO_HOST`                                     | Listen interface                                               | Every interface                                                                 |
 | `OIKONOMIA_SMTP_HOST`, `OIKONOMIA_MAIL_FROM`              | Magic links, password resets, invitations                      | Those controls are removed and the screen says why                              |
@@ -114,6 +114,8 @@ dependency audit.
 | `OIKONOMIA_MAINTENANCE_TOKEN`                             | Scheduled maintenance                                          | **The endpoint is off, not open**                                               |
 | `OIKONOMIA_ALERT_TO`                                      | Email on a failed scheduled task                               | Only cron's exit code reports it                                                |
 | `OIKONOMIA_DEMO_MODE`                                     | A public demonstration — see [Demo Mode](#demo-mode)           | An ordinary installation. Only `true`/`false`; anything else serves 503         |
+| `OIKONOMIA_DEMO_DB`                                       | Demo Mode's own live database — never `OIKONOMIA_DB`           | Demo Mode **refuses to open any database** in production (`/healthz` 503)       |
+| `OIKONOMIA_DEMO_BASELINE`                                 | The curated baseline a demonstration is reset to               | A demo reset refuses                                                            |
 
 **`OIKONOMIA_URL` is read from configuration, never from the request's `Host`
 header.** A host header is something the client sends, and a sign-in link built
@@ -310,6 +312,30 @@ Both must print `x-robots-tag: noindex, nofollow`. If they print nothing, the
 edge is removing it — report it rather than working around it in the
 application.
 
+### Its own database
+
+A demonstration never opens the ordinary installation's database. Three files,
+which must be three different files:
+
+| File                     | Variable                  | Example                      |
+| ------------------------ | ------------------------- | ---------------------------- |
+| Ordinary live database   | `OIKONOMIA_DB`            | `oikonomia.db`               |
+| Demonstration's database | `OIKONOMIA_DEMO_DB`       | `oikonomia-demo.db`          |
+| Demonstration's baseline | `OIKONOMIA_DEMO_BASELINE` | `oikonomia-demo-baseline.db` |
+
+- `OIKONOMIA_DEMO_MODE=true` opens `OIKONOMIA_DEMO_DB`, and only that. Unset,
+  the server serves nothing (503, and the log says why) rather than fall back
+  to `OIKONOMIA_DB`. In development it defaults to `.data/oikonomia-demo.db`.
+- It also refuses to open `OIKONOMIA_DEMO_DB` when it is the same file as
+  `OIKONOMIA_DB` or as the baseline — the same file meaning the same canonical
+  path through symlinks, or the same inode (a hard link), not the same spelling.
+- The demonstration's artifact directory defaults to `demo-artifacts/` beside
+  its database, so a reset — which empties it — can never reach an ordinary
+  installation's `artifacts/`.
+
+Separate files keep a mistake from pointing a reset at a church's data. They do
+not make it safe to swap files: see the reset below.
+
 ### Entering a demonstration
 
 `/login` offers a chooser instead of a sign-in form: the people the database
@@ -343,8 +369,8 @@ the browser and changes nothing else.
 - **The refresh time is the site's clock.** Refreshes fall at 00:00, 06:00,
   12:00 and 18:00 in `site.timezone` (Administration → Site settings), and the
   countdown is computed on the server from it. An unrecognised timezone counts
-  as UTC rather than failing the page. This slice only _shows_ the schedule;
-  nothing resets yet.
+  as UTC rather than failing the page. The same function decides whether a scheduled reset is due, so the countdown
+  and the reset cannot describe different schedules.
 - **Switched-off controls stay visible.** Where a page offers something the
   installation refuses — people's identity, sessions, configuration, data
   management — its controls are disabled beside a short note saying why. The
@@ -353,6 +379,140 @@ the browser and changes nothing else.
   buttons are courtesy only, and the server refuses the operation regardless.
 - **An ordinary installation draws none of it.** No bar, no notes, and the
   layout offset (`--demo-bar`) stays `0px`.
+- **After a reset** every session has ended. The sign-in screen says _"The demo
+  was refreshed. Choose a demo user to continue."_ when this browser last
+  explored an earlier generation, and nothing when a session simply expired.
+
+### Resetting a demonstration
+
+> **Never replace the live SQLite database file while Oikonomia's server
+> processes are running.** Not by copying over it, renaming onto it, or
+> deleting it with its `-wal` and `-shm`.
+
+Passenger runs several processes, each holding its own open handle on the
+database. A file replaced underneath them is not a reset: processes that
+already have it open keep reading and writing the old inode, the WAL and
+shared-memory files no longer describe the database beside them, and the
+result ranges from stale pages to corruption.
+
+So a reset restores **inside** the live database
+(`src/server/installation/demo-reset.ts`):
+
+1. Every check below, before anything is changed.
+2. The baseline is copied (`VACUUM INTO`, read-only) into the artifact
+   directory, migrated to this build's schema, and verified. The baseline file
+   itself is never written.
+3. That copy is attached to the live connection, and one `BEGIN IMMEDIATE`
+   transaction — which waits for, then excludes, every other writer — deletes
+   the rows of every application table and copies the baseline's in, with
+   foreign keys checked at commit. Tables come from `sqlite_master`, so a table a
+   future migration adds is restored too; a trigger, virtual table or generated
+   column (none exist) makes the reset refuse rather than guess.
+4. Integrity and foreign-key checks run inside the transaction;
+   `demo_state.generation` goes up by one and `last_reset_at` is set; COMMIT.
+   Any failure rolls the whole thing back — nothing changes, the generation
+   included.
+5. After commit, `demo-artifacts/` is emptied. A file that cannot be removed is
+   reported (HTTP 500, `databaseReset: true`) and does not undo the restore.
+
+Every other process sees the restored rows on its next read, through the handle
+it already has. The connection's busy timeout (better-sqlite3's default,
+5 seconds) is how long the reset waits for another writer, and how long a
+visitor's write waits for the reset; a restore of a demonstration-sized
+database takes milliseconds.
+
+**Left alone:** `schema_migrations` (checked to match the baseline's) and
+`demo_state` (whose generation must survive the reset it counts). Sessions,
+sign-in tokens, throttles, visitors and their data are ordinary tables and go
+with everything else; nothing needs cleaning separately.
+
+**A reset refuses — changing nothing — unless all of these hold.** There is no
+flag, parameter or setting that skips one.
+
+- `OIKONOMIA_DEMO_MODE=true`.
+- The live database is not `OIKONOMIA_DB` and not in memory; the baseline is
+  set, exists, is readable, and is neither the live nor the ordinary database.
+- The artifact directory holds none of the three databases and is not the
+  ordinary installation's.
+- The live database's `demo_state` row is marked `demo-installation`. A
+  church's database has no such row, so it fails here whatever its environment
+  says.
+- The baseline is a SQLite database marked `demo-baseline`; it migrates to this
+  build's schema; it passes `integrity_check` and `foreign_key_check`; it
+  designates at least one identity; it holds no sessions, sign-in tokens,
+  throttles or visitors.
+- Both schemas have the same migrations, tables and columns.
+
+#### The baseline
+
+An ordinary Oikonomia database holding the curated demonstration — designated
+identities with active accounts and completed onboarding — plus the marker,
+and nothing a visitor would create. Keep it in the rollback journal so reading
+it creates no `-wal` beside it:
+
+```sql
+INSERT INTO demo_state (id, marker) VALUES (1, 'demo-baseline');
+PRAGMA journal_mode = DELETE;
+```
+
+Keep it in `private/`, readable only by the application's account. It can be at
+an older schema than the build; each reset migrates a copy.
+
+#### Provisioning the live database, once
+
+Before the demonstration first starts:
+
+```bash
+node scripts/ops/demo-provision.mjs \
+  --baseline <private>/data/oikonomia-demo-baseline.db \
+  --to       <private>/data/oikonomia-demo.db \
+  --ordinary <private>/data/oikonomia.db
+```
+
+It only ever **creates** the file — an existing target, or one with a `-wal` or
+`-shm`, is refused — and marks it `demo-installation` at generation 0. From
+then on the file is reset in place, never provisioned again.
+
+#### Running a reset
+
+```bash
+set -a; . <private>/.env; set +a
+curl -fsS -X POST -H "Authorization: Bearer $OIKONOMIA_MAINTENANCE_TOKEN" \
+  "$OIKONOMIA_URL/maintenance/run?task=demo-reset"
+```
+
+`demo-reset` is the only maintenance task a demonstration accepts, and it still
+needs the bearer token: a session — an administrator's included — is not one.
+An ordinary installation answers 409 `demo-mode-off` before opening its
+database. Responses:
+
+| Status | Meaning                                                                              |
+| ------ | ------------------------------------------------------------------------------------ |
+| 200    | `{"ok":true,"generation":N,…}` — reset; or `"skipped":"not-due"` with `when=due`     |
+| 401    | No or wrong token                                                                    |
+| 409    | Refused by a check; `reason` names it. Nothing changed. Alerted                      |
+| 500    | `databaseReset:false` — rolled back, nothing changed; `true` — reset, artifacts left |
+
+#### On the schedule
+
+The countdown promises 00:00, 06:00, 12:00 and 18:00 on the site's clock. A
+cron entry in a fixed timezone cannot follow that through daylight-saving
+changes, so the cron runs **hourly** and the server decides:
+
+```cron
+1 * * * *  set -a; . /home/<user>/domains/<domain>/private/oikonomia/.env; set +a; curl -fsS -X POST -H "Authorization: Bearer $OIKONOMIA_MAINTENANCE_TOKEN" "$OIKONOMIA_URL/maintenance/run?task=demo-reset&when=due"
+```
+
+With `when=due` a run resets only if one of those times — computed from
+`site.timezone` by the same function as the countdown — has passed since
+`last_reset_at`, and otherwise answers `skipped`. Minute `1` rather than `0`
+keeps a slightly early cron clock from landing just before the hour. The
+cron's own timezone does not matter; Hostinger's shell clock is UTC.
+`when=due` can only skip a reset: it loosens no check.
+
+**Check after enabling it** that hPanel runs the job: the first run past a
+refresh time answers `"generation"` rather than `"skipped"`, and the header's
+countdown restarts.
 
 ## Backups
 

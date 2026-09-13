@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/oikonomia/auth-provider";
+import { rememberGeneration } from "@/components/oikonomia/demo-generation";
 import { DemoInformation } from "@/components/oikonomia/demo-information";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { countdown } from "@/domain/refresh-schedule";
@@ -98,6 +99,13 @@ function DemoBar() {
   useEffect(() => {
     if (refreshAt !== null && now >= refreshAt) void refetch();
   }, [now, refreshAt, refetch]);
+
+  /* Which reset this browser is exploring, so the sign-in screen can say so if
+     the next visit finds a newer one. */
+  const generation = entry.data?.generation ?? null;
+  useEffect(() => {
+    if (viewer && generation !== null) rememberGeneration(generation);
+  }, [viewer, generation]);
 
   const remaining = refreshAt === null ? null : countdown(refreshAt - now);
   const identities = entry.data?.identities ?? [];

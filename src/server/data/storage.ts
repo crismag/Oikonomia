@@ -11,6 +11,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 
 import { databasePath } from "../db/connection";
+import { currentInstallation } from "../installation/policy";
 
 /**
  * Where an artifact goes.
@@ -192,10 +193,17 @@ export class DirectoryStorage extends LocalStorage {
  * Derived from the database's location when not set, so a deployment that has
  * put its database somewhere a redeploy cannot reach has put its backups there
  * too — rather than in a `.data/` the next deploy deletes.
+ *
+ * A demonstration's default is `demo-artifacts/` instead. Its database may sit
+ * in the same directory as an ordinary installation's, and a demonstration's
+ * reset empties its artifact directory: sharing `artifacts/` would empty the
+ * church's backups too.
  */
 export function artifactRoot(): string {
   const configured = process.env["OIKONOMIA_ARTIFACTS"]?.trim();
-  return configured || join(dirname(databasePath()), "artifacts");
+  if (configured) return configured;
+  const directory = currentInstallation().demoMode ? "demo-artifacts" : "artifacts";
+  return join(dirname(databasePath()), directory);
 }
 
 let local: LocalStorage | undefined;
