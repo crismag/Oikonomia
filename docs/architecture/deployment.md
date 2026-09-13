@@ -61,6 +61,17 @@ build machine reports 64, its account limits refuse the threads, and Rolldown
 panics with `ThreadPoolBuildError … Resource temporarily unavailable` while
 loading `vite.config.ts`. Set `RAYON_NUM_THREADS` higher where that is allowed.
 
+Hosts that install development dependencies to build (Hostinger does) also
+scan them, so a test-runner advisory shows up against the site even though
+nothing in `.output/` contains it. Keep the audit clean anyway —
+`npm audit` should report 0, not only `npm audit --omit=dev`.
+
+Regenerating the lockfile after a dependency change can crash npm 10's peer
+resolver (`Cannot read properties of null (reading 'edgesOut')`), as the Vitest 4
+upgrade did. Generate it once with `npm install --legacy-peer-deps`; the
+resulting lockfile installs normally with `npm ci` and `npm install`, and no
+flag is needed afterwards.
+
 ### Prove the build before trusting it
 
 ```bash
