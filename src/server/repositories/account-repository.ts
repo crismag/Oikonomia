@@ -17,6 +17,23 @@ import { hashToken, newToken, type StoredSecret } from "../auth/secrets";
 
 export type AccountStatus = "invited" | "active" | "suspended";
 
+/**
+ * How recently a session must have been used to count as active.
+ *
+ * Five minutes: long enough that somebody reading a page is still "here",
+ * short enough that a closed browser stops counting soon after.
+ */
+export const ACTIVE_SESSION_WINDOW_MS = 5 * 60_000;
+
+/**
+ * How stale `last_seen_at` may be before a request refreshes it.
+ *
+ * Recording every request would make every page load, poll and background
+ * fetch a write — and with several server processes, a contended write lock.
+ * A minute is far finer than the five-minute activity window needs.
+ */
+export const SESSION_TOUCH_INTERVAL_MS = 60_000;
+
 export interface Account {
   id: string;
   personId: string;
@@ -260,11 +277,55 @@ export function createAccountRepository(db: Db) {
       };
     },
 
-    touchSession(token: string): void {
-      db.prepare("UPDATE auth_session SET last_seen_at = ? WHERE id = ?").run(
+    /**
+     * Record that a session was used.
+     *
+     * With `ifOlderThan`, only when the stored time is older than it — decided
+     * by the database's value, so two processes that both decide to touch the
+     * same session write it once between them.
+     */
+    touchSession(token: string, ifOlderThan?: string): void {
+      if (ifOlderThan === undefined) {
+        db.prepare("UPDATE auth_session SET last_seen_at = ? WHERE id = ?").run(
+          nowIso(),
+          hashToken(token),
+        );
+        return;
+      }
+      db.prepare("UPDATE auth_session SET last_seen_at = ? WHERE id = ? AND last_seen_at < ?").run(
         nowIso(),
         hashToken(token),
+        ifOlderThan,
       );
+    },
+
+    /**
+     * How many active sessions each of these accounts has.
+     *
+     * Active: not revoked, not expired at `now`, and used at or after `since`.
+     * Sessions, not people — one person in two browsers is two. Accounts with
+     * none are absent from the map. One query, however many accounts.
+     */
+    activeSessionCounts(
+      accountIds: readonly string[],
+      window: { since: string; now: string },
+    ): Map<string, number> {
+      if (accountIds.length === 0) return new Map();
+      const rows = db
+        .prepare(
+          `SELECT account_id, COUNT(*) AS active
+             FROM auth_session
+            WHERE account_id IN (SELECT value FROM json_each(?))
+              AND revoked_at IS NULL
+              AND expires_at > ?
+              AND last_seen_at >= ?
+            GROUP BY account_id`,
+        )
+        .all(JSON.stringify(accountIds), window.now, window.since) as {
+        account_id: string;
+        active: number;
+      }[];
+      return new Map(rows.map((row) => [row.account_id, row.active]));
     },
 
     revokeSession(token: string): void {

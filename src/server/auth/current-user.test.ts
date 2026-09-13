@@ -9,7 +9,7 @@ import { createOrganizationRepository } from "../repositories/organization-repos
 import { createAuthService } from "../services/auth-service";
 import { getCurrentUser, SESSION_COOKIE } from "./current-user";
 import { principalFor } from "./principal";
-import type { Database as Db } from "better-sqlite3";
+import Database, { type Database as Db } from "better-sqlite3";
 
 /**
  * Who the server thinks is asking.
@@ -314,5 +314,167 @@ describe("pruning the audit trail", () => {
     const removed = accounts.pruneEvents(new Date(Date.now() + 60_000).toISOString());
     expect(removed).toBe(before);
     expect(accounts.events(50)).toEqual([]);
+  });
+});
+
+/**
+ * Recording that a session was used, without a write on every request.
+ *
+ * Presence needs minutes; a write per request — polls included — would contend
+ * for the one write lock several server processes share. The decision is made
+ * from the stored time, so every process agrees, and a skipped touch changes
+ * nothing about whether the session is valid or when it expires.
+ */
+describe("recording when a session was last used", () => {
+  const lastSeen = () =>
+    (db.prepare("SELECT last_seen_at AS at FROM auth_session").get() as { at: string }).at;
+  const expiresAt = () =>
+    (db.prepare("SELECT expires_at AS at FROM auth_session").get() as { at: string }).at;
+  const setLastSeen = (msAgo: number) =>
+    db
+      .prepare("UPDATE auth_session SET last_seen_at = ?")
+      .run(new Date(Date.now() - msAgo).toISOString());
+
+  it("refreshes a time more than a minute old", () => {
+    const token = signIn();
+    setLastSeen(61_000);
+    const before = Date.now();
+
+    expect(principalFor(signedInRequest(token), db)).toBeDefined();
+
+    expect(Date.parse(lastSeen())).toBeGreaterThanOrEqual(before - 5);
+  });
+
+  it("leaves a time under a minute old as it is, and still admits the session", () => {
+    const token = signIn();
+    setLastSeen(30_000);
+    const stored = lastSeen();
+
+    expect(principalFor(signedInRequest(token), db)?.accountId).toBe(accountId);
+    expect(lastSeen()).toBe(stored);
+  });
+
+  it("touches only once the minute has fully passed", () => {
+    const token = signIn();
+    setLastSeen(59_000);
+    const stored = lastSeen();
+    principalFor(signedInRequest(token), db);
+    expect(lastSeen()).toBe(stored);
+
+    setLastSeen(60_500);
+    const older = lastSeen();
+    principalFor(signedInRequest(token), db);
+    expect(lastSeen()).not.toBe(older);
+  });
+
+  it("never moves the absolute expiry, touched or not", () => {
+    const token = signIn();
+    const expiry = expiresAt();
+    setLastSeen(30_000);
+    principalFor(signedInRequest(token), db);
+    setLastSeen(120_000);
+    principalFor(signedInRequest(token), db);
+    expect(expiresAt()).toBe(expiry);
+  });
+
+  it("still refuses an expired or revoked session however recently it was used", () => {
+    const token = signIn();
+    setLastSeen(1_000);
+    db.prepare("UPDATE auth_session SET expires_at = '2000-01-01T00:00:00.000Z'").run();
+    expect(principalFor(signedInRequest(token), db)).toBeUndefined();
+
+    const second = signIn();
+    auth.signOut(second, accountId);
+    expect(principalFor(signedInRequest(second), db)).toBeUndefined();
+  });
+
+  it("does not even ask for the write lock when nothing needs writing — from another connection", () => {
+    const token = signIn();
+    setLastSeen(10_000);
+    const stored = lastSeen();
+
+    /* Another process holds the write lock, and this one will not wait for it. */
+    const holder = new Database(join(dir, "test.db"));
+    const impatient = new Database(join(dir, "test.db"), { timeout: 0 });
+    try {
+      holder.exec("BEGIN IMMEDIATE");
+      expect(principalFor(signedInRequest(token), impatient)?.accountId).toBe(accountId);
+      holder.exec("COMMIT");
+
+      /* The second process agrees with the first about what the stored time says. */
+      expect(lastSeen()).toBe(stored);
+      impatient
+        .prepare("UPDATE auth_session SET last_seen_at = ?")
+        .run(new Date(Date.now() - 90_000).toISOString());
+      principalFor(signedInRequest(token), db);
+      expect(Date.parse(lastSeen())).toBeGreaterThan(Date.now() - 5_000);
+    } finally {
+      if (holder.inTransaction) holder.exec("ROLLBACK");
+      holder.close();
+      impatient.close();
+    }
+  });
+});
+
+describe("counting active sessions", () => {
+  const NOW = Date.parse("2026-09-13T14:30:00Z");
+  const at = (minutes: number) => new Date(NOW + minutes * 60_000).toISOString();
+  const window = { since: at(-5), now: at(0) };
+  let sequence = 0;
+  const session = (
+    account: string,
+    {
+      lastSeen = -1,
+      expires = 60,
+      revoked = false,
+    }: { lastSeen?: number; expires?: number; revoked?: boolean } = {},
+  ) => {
+    sequence += 1;
+    db.prepare(
+      `INSERT INTO auth_session (id, account_id, created_at, last_seen_at, expires_at, revoked_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(`s-${sequence}`, account, at(-60), at(lastSeen), at(expires), revoked ? at(-1) : null);
+  };
+  const otherAccount = () => {
+    const person = organization.insertPerson({ name: "Tobias Other", accessRole: "leader" });
+    return accounts.create({ personId: person.id, status: "active" }).id;
+  };
+
+  it("counts a recently used, unexpired, unrevoked session", () => {
+    session(accountId, { lastSeen: -2 });
+    expect(accounts.activeSessionCounts([accountId], window).get(accountId)).toBe(1);
+  });
+
+  it("counts every such session for one account", () => {
+    session(accountId, { lastSeen: -1 });
+    session(accountId, { lastSeen: -3 });
+    session(accountId, { lastSeen: -5 });
+    expect(accounts.activeSessionCounts([accountId], window).get(accountId)).toBe(3);
+  });
+
+  it("does not count revoked, expired or idle sessions", () => {
+    session(accountId, { revoked: true });
+    session(accountId, { expires: 0 });
+    session(accountId, { expires: -10 });
+    session(accountId, { lastSeen: -5.01 });
+    expect(accounts.activeSessionCounts([accountId], window).has(accountId)).toBe(false);
+  });
+
+  it("keeps accounts apart, and says nothing of accounts it was not asked about", () => {
+    const other = otherAccount();
+    const unasked = otherAccount();
+    session(accountId, { lastSeen: -1 });
+    session(other, { lastSeen: -1 });
+    session(other, { lastSeen: -2 });
+    session(unasked, { lastSeen: -1 });
+
+    const counts = accounts.activeSessionCounts([accountId, other], window);
+    expect([...counts.entries()].sort()).toEqual(
+      [
+        [accountId, 1],
+        [other, 2],
+      ].sort(),
+    );
+    expect(accounts.activeSessionCounts([], window).size).toBe(0);
   });
 });

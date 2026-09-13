@@ -1,4 +1,8 @@
-import { createAccountRepository, type Account } from "../repositories/account-repository";
+import {
+  createAccountRepository,
+  SESSION_TOUCH_INTERVAL_MS,
+  type Account,
+} from "../repositories/account-repository";
 import { createOrganizationRepository } from "../repositories/organization-repository";
 import { deploymentIsHttps } from "./site-url";
 import { viewerOf, type Viewer } from "@/domain/viewer";
@@ -83,7 +87,14 @@ export function principalFor(request: Request, db: Db): Principal | undefined {
      happens to lapse. */
   if (account.status !== "active") return undefined;
 
-  accounts.touchSession(token);
+  /* Only when the stored time is more than a minute old: presence needs
+     minutes, not every request, and each touch is a write. The session is
+     valid either way — skipping the touch changes nothing about who is asking
+     or when the session expires. */
+  const touchBefore = new Date(Date.now() - SESSION_TOUCH_INTERVAL_MS).toISOString();
+  if (!(Date.parse(session.lastSeenAt) >= Date.parse(touchBefore))) {
+    accounts.touchSession(token, touchBefore);
+  }
 
   return {
     accountId: account.id,

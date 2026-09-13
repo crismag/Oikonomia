@@ -2,7 +2,10 @@ import { z } from "zod";
 
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
-import type { AccountRepository } from "../repositories/account-repository";
+import {
+  ACTIVE_SESSION_WINDOW_MS,
+  type AccountRepository,
+} from "../repositories/account-repository";
 import type { DemoIdentityRepository } from "../repositories/demo-identity-repository";
 import type { OrganizationRepository } from "../repositories/organization-repository";
 import type { SignedIn } from "../services/auth-service";
@@ -79,11 +82,23 @@ export interface DemoIdentityOption {
   role: string;
   /** Whether this is who the asking browser is already exploring as. */
   current: boolean;
+  /**
+   * How many sessions are exploring as this identity right now — used within
+   * the last few minutes, not revoked, not expired. Sessions, not people: one
+   * visitor with two browsers is two.
+   */
+  active: number;
 }
 
 export interface DemoEntry {
   /** Whether this installation is a demonstration at all. */
   demo: boolean;
+  /**
+   * Whether the asking browser has a session. A page that believes somebody is
+   * signed in, told otherwise, knows its session ended — usually because the
+   * demonstration was reset.
+   */
+  signedIn: boolean;
   identities: DemoIdentityOption[];
   /** Whether trying it as yourself is possible right now. */
   visitorsWelcome: boolean;
@@ -129,22 +144,32 @@ export function createDemoEntryService(parts: {
     return { person, account };
   };
 
-  const offered = (viewerPersonId: string | undefined): DemoIdentityOption[] =>
-    identities.designated().flatMap((identity) => {
+  const offered = (viewerPersonId: string | undefined): DemoIdentityOption[] => {
+    const enterableIdentities = identities.designated().flatMap((identity) => {
       const found = enterable(identity.personId);
-      if (!found) return [];
-      const { person } = found;
-      return [
-        {
-          id: identity.id,
-          name: person.name,
-          initials: person.initials,
-          title: person.role,
-          role: config.label("people.roles", person.accessRole),
-          current: person.id === viewerPersonId,
-        },
-      ];
+      return found ? [{ identity, ...found }] : [];
     });
+
+    /* Every identity's count in one query, not one query each. */
+    const now = (parts.now ?? (() => new Date()))();
+    const active = accounts.activeSessionCounts(
+      enterableIdentities.map(({ account }) => account.id),
+      {
+        since: new Date(now.getTime() - ACTIVE_SESSION_WINDOW_MS).toISOString(),
+        now: now.toISOString(),
+      },
+    );
+
+    return enterableIdentities.map(({ identity, person, account }) => ({
+      id: identity.id,
+      name: person.name,
+      initials: person.initials,
+      title: person.role,
+      role: config.label("people.roles", person.accessRole),
+      current: person.id === viewerPersonId,
+      active: active.get(account.id) ?? 0,
+    }));
+  };
 
   /** Both gates. Anything else is not a demonstration. */
   const requireDemonstration = (): void => {
@@ -167,6 +192,7 @@ export function createDemoEntryService(parts: {
       if (!parts.demoMode) {
         return {
           demo: false,
+          signedIn: viewerPersonId !== undefined,
           identities: [],
           visitorsWelcome: false,
           refresh: null,
@@ -177,6 +203,7 @@ export function createDemoEntryService(parts: {
       const timeZone = usableTimeZone(parts.timeZone);
       return {
         demo: true,
+        signedIn: viewerPersonId !== undefined,
         identities: options,
         visitorsWelcome:
           identities.count("designated") > 0 && identities.count("visitor") < VISITOR_LIMIT,

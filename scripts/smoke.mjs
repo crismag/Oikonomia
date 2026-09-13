@@ -583,6 +583,24 @@ try {
       const node = fieldOf(await response.text(), ["identities", "generation"], "generation");
       return node?.t === 0 ? node.s : node;
     };
+    /* The demonstration's status as one browser sees it: signed in, and presence. */
+    const demoStatus = async (token) => {
+      const response = await fetch(`${BASE}/_serverFn/${idOf("fetchDemoEntry", "demo-api")}`, {
+        headers: {
+          "x-tsr-serverfn": "true",
+          "sec-fetch-site": "same-origin",
+          ...(token ? { cookie: `oikonomia_session=${token}` } : {}),
+        },
+      });
+      const text = await response.text();
+      const signedIn = fieldOf(text, ["signedIn", "identities"], "signedIn");
+      const active = fieldOf(text, ["id", "current", "active"], "active");
+      return {
+        text,
+        signedIn: signedIn?.t === 2 ? signedIn.s === 2 : undefined,
+        active: active?.t === 0 ? active.s : undefined,
+      };
+    };
     const googleStart = () => fetch(`${BASE}/auth/google/start`, { redirect: "manual" });
     const stop = async () => {
       server.kill("SIGTERM");
@@ -816,6 +834,24 @@ try {
         "Demo Mode on: a designated identity opens an ordinary session",
         Boolean(entered.issued) && (await sessionBody(entered.issued)).includes("Demo Designate"),
         `status ${entered.status}`,
+      );
+
+      /* Presence: that session counts for its identity, and nothing about it is sent. */
+      const asEntered = await demoStatus(entered.issued);
+      const anonymous = await demoStatus();
+      check(
+        "Demo Mode on: the status counts the active session for its identity, and says who is signed in",
+        asEntered.active === 1 && asEntered.signedIn === true && anonymous.signedIn === false,
+        JSON.stringify({
+          asEntered: { ...asEntered, text: undefined },
+          anonymous: anonymous.signedIn,
+        }),
+      );
+      check(
+        "Demo Mode on: the status carries no session id, token, user agent or email",
+        !/user_?agent|userAgent|expires|last_?seen|oikonomia_session|@/i.test(asEntered.text) &&
+          !asEntered.text.includes(entered.issued) &&
+          !asEntered.text.includes(createHash("sha256").update(entered.issued).digest("hex")),
       );
 
       const notDesignated = await call(

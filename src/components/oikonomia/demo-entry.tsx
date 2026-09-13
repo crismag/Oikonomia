@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { AuthField, AuthPanel } from "@/components/oikonomia/auth-panel";
-import { refreshedSince, rememberedGeneration } from "@/components/oikonomia/demo-generation";
+import { refreshedSince, rememberedGeneration } from "@/components/oikonomia/demo-awareness";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
 import { createDemoVisitor, enterDemoAs, type DemoEntry } from "@/lib/demo-api";
 

@@ -382,6 +382,34 @@ the browser and changes nothing else.
 - **After a reset** every session has ended. The sign-in screen says _"The demo
   was refreshed. Choose a demo user to continue."_ when this browser last
   explored an earlier generation, and nothing when a session simply expired.
+  The generation (`demo_state`, sent by `fetchDemoEntry`) is the only way the
+  browser tells the two apart.
+- **Kept current by polling, every 60 seconds.** The bar asks `fetchDemoEntry`
+  again each minute while the page is open (paused in a background tab, asked
+  again on return): the next refresh time, the generation, whether this browser
+  is still signed in, and how many sessions are exploring as each offered
+  person. No WebSocket, no server-sent events. The countdown ticks locally in
+  between; the server's time is the one it counts to. An ordinary installation
+  draws no bar and so polls nothing.
+- **Presence counts sessions, not people.** A session is _active_ when it is not
+  revoked, not expired, and was used in the last **5 minutes**
+  (`auth_session.last_seen_at`). One person in two browsers is "2 active". The
+  switcher and _About this demo_ show each offered person's count; the bar
+  shows the total on wide screens only. Nothing about a session — its id, user
+  agent, times — is sent, and nothing is inferred about who is behind it.
+- **When the session ends under the page** — the poll says this browser is no
+  longer signed in while the page still shows somebody — it goes to the sign-in
+  screen once, which shows nobody and therefore never sends anyone back.
+- **A warning about 10 minutes before a refresh**, as an ordinary toast, once
+  per refresh per browser tab (remembered in `sessionStorage`), so the next
+  refresh is warned about in its turn. Nothing is sent by email or stored
+  server-side.
+
+`last_seen_at` is written at most about once a minute per session: a request
+refreshes it only when the stored time is more than 60 seconds old, decided
+from the stored value so every server process agrees, and a request that finds
+it fresh does not write at all. This holds on every installation, and changes
+nothing about whether a session is valid or when it expires.
 
 ### Resetting a demonstration
 

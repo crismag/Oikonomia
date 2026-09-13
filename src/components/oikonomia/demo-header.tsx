@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, ChevronsUpDown, ChevronUp, Info, UserPlus } from "lucide-react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   DropdownMenu,
@@ -11,7 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/components/oikonomia/auth-provider";
-import { rememberGeneration } from "@/components/oikonomia/demo-generation";
+import {
+  DEMO_STATUS_POLL_MS,
+  minutesUntil,
+  rememberGeneration,
+  rememberWarning,
+  resetWarningDue,
+  sessionEnded,
+  warnedFor,
+} from "@/components/oikonomia/demo-awareness";
 import { DemoInformation } from "@/components/oikonomia/demo-information";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { countdown } from "@/domain/refresh-schedule";
@@ -26,6 +34,16 @@ import { notify } from "@/config";
  * banner that shouts. It says whose eyes they are looking through, lets them
  * change that, and says when the demonstration returns to its original data.
  * Everything else about the application is left exactly as it is.
+ *
+ * ## Kept current by asking again
+ *
+ * The status — next refresh, generation, how many sessions are exploring as
+ * each person, whether this browser is still signed in — is asked for every
+ * minute while the page is open (React Query pauses it in a background tab and
+ * asks again on return). No socket, no stream: a minute is as live as a shared
+ * demonstration needs. When the answer says this browser's session is gone —
+ * the demonstration was reset — the page goes to the sign-in screen, which
+ * says why.
  *
  * Drawn only when the server says this installation is a demonstration.
  *
@@ -74,6 +92,7 @@ function DemoBar() {
     queryKey: ["demo-entry"],
     queryFn: async () => unwrap(await withTimeout(fetchDemoEntry({ data: undefined }))),
     staleTime: 30_000,
+    refetchInterval: DEMO_STATUS_POLL_MS,
   });
 
   useLayoutEffect(() => {
@@ -101,11 +120,36 @@ function DemoBar() {
   }, [now, refreshAt, refetch]);
 
   /* Which reset this browser is exploring, so the sign-in screen can say so if
-     the next visit finds a newer one. */
+     the next visit finds a newer one. Only while the server still recognises
+     the session: a status from after a reset must not overwrite what this
+     browser was exploring before it. */
   const generation = entry.data?.generation ?? null;
+  const signedIn = entry.data?.signedIn ?? false;
   useEffect(() => {
-    if (viewer && generation !== null) rememberGeneration(generation);
-  }, [viewer, generation]);
+    if (viewer && signedIn && generation !== null) rememberGeneration(generation);
+  }, [viewer, signedIn, generation]);
+
+  /* The session is gone — almost always a reset. Once, to the sign-in screen,
+     which shows nobody and so never sends anyone back here. */
+  const leaving = useRef(false);
+  const ended = sessionEnded(Boolean(viewer), entry.data);
+  useEffect(() => {
+    if (ended && !leaving.current) {
+      leaving.current = true;
+      window.location.assign("/login");
+    }
+  }, [ended]);
+
+  /* A warning shortly before the reset, once per reset per tab. */
+  const resetAt = refresh?.at ?? null;
+  useEffect(() => {
+    if (!viewer || !resetAt || !resetWarningDue(resetAt, now, warnedFor())) return;
+    rememberWarning(resetAt);
+    notify.warning("demo.reset.soon", { minutes: minutesUntil(resetAt, now) });
+  }, [viewer, resetAt, now]);
+
+  /* Sessions exploring as any of the offered people, this browser's included. */
+  const active = (entry.data?.identities ?? []).reduce((sum, identity) => sum + identity.active, 0);
 
   const remaining = refreshAt === null ? null : countdown(refreshAt - now);
   const identities = entry.data?.identities ?? [];
@@ -171,6 +215,11 @@ function DemoBar() {
                       {[identity.title, identity.role].filter(Boolean).join(" · ")}
                     </span>
                   </span>
+                  {identity.active > 0 ? (
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                      {identity.active} active
+                    </span>
+                  ) : null}
                   {identity.current ? <Check className="size-3.5" aria-label="Current" /> : null}
                 </DropdownMenuItem>
               ))}
@@ -188,6 +237,14 @@ function DemoBar() {
         )}
 
         <span className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          {!collapsed && active > 0 ? (
+            <span
+              className="hidden tabular-nums text-muted-foreground md:inline"
+              title="Sessions exploring the demo in the last few minutes"
+            >
+              {active} active
+            </span>
+          ) : null}
           {remaining ? (
             <span title={refresh ? refreshedAt(refresh.at, refresh.timeZone) : undefined}>
               <span className="hidden sm:inline">Refreshes in </span>
@@ -229,6 +286,7 @@ function DemoBar() {
         viewer={viewer ? { name: viewer.person.name, role: viewer.persona.label } : null}
         refresh={refresh}
         remaining={remaining}
+        identities={identities}
         visitorsWelcome={entry.data?.visitorsWelcome ?? false}
       />
     </>

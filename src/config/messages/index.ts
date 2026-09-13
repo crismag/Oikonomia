@@ -185,6 +185,11 @@ export const messages = {
     title: "Only an administrator may change the organisation.",
     severity: "warning",
   },
+  "demo.reset.soon": {
+    title: "The demo refreshes in about {minutes} minutes.",
+    body: "Changes made in the demo will be reset then.",
+    severity: "warning",
+  },
   "refusal.installation.disabled": {
     title: "This action is disabled in this installation.",
     body: "It is turned off here for everyone, administrators included.",

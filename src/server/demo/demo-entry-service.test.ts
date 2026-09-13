@@ -104,6 +104,7 @@ describe("with Demo Mode off, a demonstration's data opens nothing", () => {
     designate("Pilar Ndiaye");
     expect(serviceFor(false).entry()).toEqual({
       demo: false,
+      signedIn: false,
       identities: [],
       visitorsWelcome: false,
       refresh: null,
@@ -168,6 +169,7 @@ describe("with Demo Mode on and designated identities", () => {
     });
     /* Nothing the screen does not need: no email, account, or person id. */
     expect(Object.keys(entry.identities[0]!).sort()).toEqual([
+      "active",
       "current",
       "id",
       "initials",
@@ -187,6 +189,90 @@ describe("with Demo Mode on and designated identities", () => {
       true,
       false,
     ]);
+  });
+
+  describe("who is exploring as whom", () => {
+    /* The service's clock is fixed at 14:30 UTC; sessions are placed around it. */
+    const NOW = Date.parse("2026-09-13T14:30:00Z");
+    const minutes = (n: number) => new Date(NOW + n * 60_000).toISOString();
+    let sequence = 0;
+    const session = (
+      accountId: string,
+      {
+        lastSeen = -1,
+        expires = 60,
+        revoked = false,
+      }: { lastSeen?: number; expires?: number; revoked?: boolean } = {},
+    ) => {
+      sequence += 1;
+      db.prepare(
+        `INSERT INTO auth_session (id, account_id, created_at, last_seen_at, expires_at, revoked_at, user_agent)
+         VALUES (?, ?, ?, ?, ?, ?, 'Secret Browser/1.0')`,
+      ).run(
+        `session-hash-${sequence}`,
+        accountId,
+        minutes(-120),
+        minutes(lastSeen),
+        minutes(expires),
+        revoked ? minutes(-2) : null,
+      );
+    };
+
+    it("counts each identity's active sessions, separately", () => {
+      const peter = designate("Peter", 1);
+      const john = designate("John", 2);
+      const paul = designate("Paul", 3);
+      session(peter.account.id, { lastSeen: -1 });
+      session(peter.account.id, { lastSeen: -4 });
+      session(paul.account.id, { lastSeen: 0 });
+
+      const counts = serviceFor(true)
+        .entry()
+        .identities.map((option) => [option.name, option.active]);
+      expect(counts).toEqual([
+        ["Peter", 2],
+        ["John", 0],
+        ["Paul", 1],
+      ]);
+      expect(john.identity.id).toBeTruthy();
+    });
+
+    it("does not count a session that was revoked, has expired, or has been idle over five minutes", () => {
+      const peter = designate("Peter", 1);
+      session(peter.account.id, { revoked: true });
+      session(peter.account.id, { expires: -1 });
+      session(peter.account.id, { lastSeen: -6 });
+      session(peter.account.id, { lastSeen: -5.1 });
+
+      expect(serviceFor(true).entry().identities[0]!.active).toBe(0);
+
+      session(peter.account.id, { lastSeen: -4.9 });
+      expect(serviceFor(true).entry().identities[0]!.active).toBe(1);
+    });
+
+    it("says nothing about the sessions themselves", () => {
+      const peter = designate("Peter", 1);
+      session(peter.account.id);
+
+      const serialised = JSON.stringify(serviceFor(true).entry(peter.person.id));
+      for (const secret of [
+        "session-hash",
+        "Secret Browser",
+        "@",
+        peter.account.id,
+        "expires",
+        "lastSeen",
+        "userAgent",
+      ]) {
+        expect(serialised).not.toContain(secret);
+      }
+    });
+
+    it("says whether the asking browser has a session at all", () => {
+      const peter = designate("Peter", 1);
+      expect(serviceFor(true).entry().signedIn).toBe(false);
+      expect(serviceFor(true).entry(peter.person.id).signedIn).toBe(true);
+    });
   });
 
   /* 10:30 in Toronto on the clock the test fixes: the next refresh is noon there. */

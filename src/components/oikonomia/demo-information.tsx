@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { config } from "@/config";
+import type { DemoIdentityOption } from "@/lib/demo-api";
 
 /**
  * What a visitor should know about the demonstration they are in.
@@ -23,6 +24,7 @@ export function DemoInformation({
   viewer,
   refresh,
   remaining,
+  identities,
   visitorsWelcome,
 }: {
   open: boolean;
@@ -30,6 +32,7 @@ export function DemoInformation({
   viewer: { name: string; role: string } | null;
   refresh: { at: string; timeZone: string } | null;
   remaining: string | null;
+  identities: DemoIdentityOption[];
   visitorsWelcome: boolean;
 }) {
   const support = config.site.supportContact;
@@ -80,6 +83,26 @@ export function DemoInformation({
               people and changing the same records while you look — a change you did not make is
               probably someone else&rsquo;s, not a fault.
             </p>
+            {identities.some((identity) => identity.active > 0) ? (
+              <>
+                <ul className="mt-2 space-y-0.5">
+                  {identities
+                    .filter((identity) => identity.active > 0)
+                    .map((identity) => (
+                      <li key={identity.id} className="flex justify-between gap-3">
+                        <span>{identity.name}</span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {identity.active} active
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+                <p className="mt-1 text-[12px] text-muted-foreground">
+                  Sessions used in the last few minutes, yours included — a person open in two
+                  browsers counts twice.
+                </p>
+              </>
+            ) : null}
           </Part>
 
           <Part title="What changes, and what disappears">
