@@ -8,7 +8,9 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+
+import { databasePath } from "../db/connection";
 
 /**
  * Where an artifact goes.
@@ -184,14 +186,22 @@ export class DirectoryStorage extends LocalStorage {
   }
 }
 
-/** Where artifacts live. Beside the database, and never inside the repository. */
-export const ARTIFACT_ROOT =
-  process.env["OIKONOMIA_ARTIFACTS"] ?? join(process.cwd(), ".data", "artifacts");
+/**
+ * Where artifacts live. Beside the database, and never inside the repository.
+ *
+ * Derived from the database's location when not set, so a deployment that has
+ * put its database somewhere a redeploy cannot reach has put its backups there
+ * too — rather than in a `.data/` the next deploy deletes.
+ */
+export function artifactRoot(): string {
+  const configured = process.env["OIKONOMIA_ARTIFACTS"]?.trim();
+  return configured || join(dirname(databasePath()), "artifacts");
+}
 
 let local: LocalStorage | undefined;
 
 export function localStorageProvider(): LocalStorage {
-  local ??= new LocalStorage(ARTIFACT_ROOT);
+  local ??= new LocalStorage(artifactRoot());
   return local;
 }
 

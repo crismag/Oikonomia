@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiError } from "../api/response";
 import { openDatabase } from "../db/connection";
-import { localStorageProvider } from "../data/storage";
+import { forgetProviders, localStorageProvider } from "../data/storage";
 import { createDataJobRepository } from "../repositories/data-job-repository";
 import { createOrganizationRepository } from "../repositories/organization-repository";
 import { createContinuityService } from "./continuity-service";
@@ -48,6 +48,8 @@ afterEach(() => {
   db.close();
   rmSync(dir, { recursive: true, force: true });
   delete process.env["OIKONOMIA_ARTIFACTS"];
+  /* The provider remembers its directory; the next test has a new one. */
+  forgetProviders();
 });
 
 describe("taking a backup", () => {

@@ -28,8 +28,31 @@ import { migrate } from "./migrate";
  * a deployed environment.
  */
 
-/** Where the developer database lives. Overridable so tests get their own. */
-export const DB_PATH = process.env["OIKONOMIA_DB"] ?? join(process.cwd(), ".data", "oikonomia.db");
+/**
+ * Where the database lives.
+ *
+ * `.data/` under the working directory is right for a developer and wrong for a
+ * deployment: hosts that build from a repository replace the application
+ * directory on every deploy, and a database inside it goes with it — silently,
+ * on the first routine redeploy. So a production process must be told where its
+ * data lives, and refuses rather than guessing, as `siteUrl()` does.
+ *
+ * Read on each call rather than at import, so the refusal happens where the
+ * database is needed rather than while an unrelated module loads.
+ */
+export function databasePath(): string {
+  const configured = process.env["OIKONOMIA_DB"]?.trim();
+  if (configured) return configured;
+
+  if (process.env["NODE_ENV"] === "production") {
+    throw new Error(
+      "OIKONOMIA_DB is not set. A production installation must name a database file " +
+        "outside the application directory, because a redeploy replaces that directory.",
+    );
+  }
+
+  return join(process.cwd(), ".data", "oikonomia.db");
+}
 
 let instance: Db | undefined;
 
@@ -61,7 +84,7 @@ export function openDatabase(path: string): Db {
  * assembling its services — should call this.
  */
 export function getDatabase(): Db {
-  if (!instance) instance = openDatabase(DB_PATH);
+  if (!instance) instance = openDatabase(databasePath());
   return instance;
 }
 

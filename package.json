@@ -3,9 +3,13 @@
   "private": true,
   "sideEffects": false,
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/write-server-entry.mjs",
+    "start": "node .output/server.js",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

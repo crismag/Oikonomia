@@ -3,7 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import Database from "better-sqlite3";
 
 import { ApiError } from "../api/response";
-import { DB_PATH } from "../db/connection";
+import { databasePath } from "../db/connection";
 import {
   hasOffsiteProvider,
   localStorageProvider,
@@ -445,7 +445,7 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
               secondaryCopy: {
                 directory: secondary.directory,
                 declaredOffsite: secondary.offsite,
-                separateDevice: onSeparateDevice(secondary.directory, DB_PATH),
+                separateDevice: onSeparateDevice(secondary.directory, databasePath()),
               },
             }
           : {}),

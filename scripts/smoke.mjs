@@ -25,7 +25,13 @@ import { join } from "node:path";
 
 const PORT = Number(process.env.SMOKE_PORT ?? 8123);
 const BASE = `http://127.0.0.1:${PORT}`;
-const ENTRY = ".output/server/index.mjs";
+/* The file a host is told to start — not the bundle behind it — so a broken
+   entry fails here rather than on the host. */
+const ENTRY = ".output/server.js";
+/* The address the installation believes it has. Deliberately not BASE: behind
+   a TLS-terminating proxy the browser's origin is https while the server is
+   spoken to over http, and server functions must still be accepted. */
+const PUBLIC_URL = "https://oikonomia.example";
 
 const dir = mkdtempSync(join(tmpdir(), "oikonomia-smoke-"));
 const database = join(dir, "smoke.db");
@@ -62,25 +68,26 @@ try {
   }
 
   console.log("Starting the built server against an empty database…");
-  server = spawn(process.execPath, [ENTRY], {
-    env: {
-      ...process.env,
-      NODE_ENV: "production",
-      PORT: String(PORT),
-      OIKONOMIA_DB: database,
-      OIKONOMIA_URL: BASE,
-    },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  /* NODE_ENV is left to the entry: a host may not set it. */
+  const { NODE_ENV: _ignored, ...inherited } = process.env;
+  const start = (env) => {
+    server = spawn(process.execPath, [ENTRY], {
+      env: { ...inherited, PORT: String(PORT), ...env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const captured = { text: "" };
+    server.stdout.on("data", (chunk) => (captured.text += chunk));
+    server.stderr.on("data", (chunk) => (captured.text += chunk));
+    return captured;
+  };
 
-  let output = "";
-  server.stdout.on("data", (chunk) => (output += chunk));
-  server.stderr.on("data", (chunk) => (output += chunk));
+  const captured = start({ OIKONOMIA_DB: database, OIKONOMIA_URL: PUBLIC_URL });
 
   if (!(await waitForServer())) {
-    console.error("The built server never started listening.\n" + output);
+    console.error("The built server never started listening.\n" + captured.text);
     process.exit(1);
   }
+  const output = () => captured.text;
 
   /* 1. It serves. */
   const login = await fetch(BASE + "/login");
@@ -174,9 +181,90 @@ try {
     db.close();
   }
 
+  /* 4. The pieces a browser needs, served by the same process. */
+  const shell = await login.text();
+  const asset = /\/assets\/[^"']+\.js/.exec(shell)?.[0];
+  check("the page references a built script", Boolean(asset));
+  if (asset) {
+    const script = await fetch(BASE + asset);
+    check(
+      `GET ${asset} is served as JavaScript`,
+      script.status === 200 && /javascript/.test(script.headers.get("content-type") ?? ""),
+      `got ${script.status} ${script.headers.get("content-type")}`,
+    );
+  }
+
+  /* A route opened directly, as a bookmark or a pasted link would. */
+  const direct = await fetch(BASE + "/people", { redirect: "manual" });
+  check(
+    "a client route opened directly is answered by the application",
+    [200, 302, 307].includes(direct.status),
+    `got ${direct.status}`,
+  );
+
+  /* An address that is nothing is a 404, not the application shell with a 200. */
+  const nothing = await fetch(BASE + "/no-such-page");
+  check("an unknown page is a 404", nothing.status === 404, `got ${nothing.status}`);
+
+  /* Answered by the error page rather than a JSON envelope — the framework
+     throws before any handler runs — but never by a page that says 200. */
+  const noFunction = await fetch(BASE + "/_serverFn/no-such-function", {
+    headers: { "x-tsr-serverfn": "true", "sec-fetch-site": "same-origin" },
+  });
+  check(
+    "an unknown server function is an error, not the application shell",
+    noFunction.status >= 400,
+    `got ${noFunction.status}`,
+  );
+
+  /* 5. Cross-site protection, as a browser behind a TLS-terminating proxy
+        meets it: the request reaches the server over http, the page's origin
+        is the configured https address. */
+  const csrf = (origin) =>
+    fetch(BASE + "/_serverFn/no-such-function", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin },
+      body: "{}",
+    });
+  const sameSite = await csrf(PUBLIC_URL);
+  check(
+    "a server function called from the configured origin passes the CSRF check",
+    sameSite.status !== 403,
+    `got ${sameSite.status}`,
+  );
+  const crossSite = await csrf("https://attacker.example");
+  check(
+    "a server function called from another origin is refused",
+    crossSite.status === 403,
+    `got ${crossSite.status}`,
+  );
+
   /* Nothing was logged that should never be logged. */
-  const leaked = /password|secret|token|hash/i.test(output) && !/OIKONOMIA/i.test(output);
+  const leaked = /password|secret|token|hash/i.test(output()) && !/OIKONOMIA/i.test(output());
   check("no secret-shaped output on startup", !leaked);
+
+  /* 6. A production process that has not been told where its data lives
+        refuses, rather than creating a database a redeploy would delete. */
+  server.kill("SIGTERM");
+  await new Promise((resolve) => server.once("exit", resolve));
+  check("stops cleanly on SIGTERM", server.signalCode === "SIGTERM" || server.exitCode === 0);
+
+  const unconfigured = start({ OIKONOMIA_URL: PUBLIC_URL, OIKONOMIA_DB: "" });
+  if (await waitForServer()) {
+    const refused = await fetch(BASE + "/healthz");
+    check(
+      "without OIKONOMIA_DB the server reports itself unhealthy",
+      refused.status === 503,
+      `got ${refused.status}`,
+    );
+    check(
+      "and says why",
+      /OIKONOMIA_DB is not set/.test(unconfigured.text),
+      unconfigured.text.slice(0, 200),
+    );
+  } else {
+    check("starts without OIKONOMIA_DB so it can say what is missing", false, unconfigured.text);
+  }
 } finally {
   server?.kill("SIGKILL");
   rmSync(dir, { recursive: true, force: true });

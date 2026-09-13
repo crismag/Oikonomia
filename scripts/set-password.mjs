@@ -16,6 +16,7 @@
  */
 import Database from "better-sqlite3";
 import { randomBytes, scryptSync } from "node:crypto";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const [email, password] = process.argv.slice(2);
@@ -30,6 +31,12 @@ if (password.length < 12) {
 }
 
 const path = process.env.OIKONOMIA_DB ?? join(process.cwd(), ".data", "oikonomia.db");
+/* An account can only exist in a database that does; a wrong or missing
+   OIKONOMIA_DB must not quietly create an empty one somewhere else. */
+if (!existsSync(path)) {
+  console.error(`No database at ${path}. Set OIKONOMIA_DB to the installation's database file.`);
+  process.exit(1);
+}
 const db = new Database(path);
 
 const account = db

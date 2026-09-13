@@ -16,10 +16,15 @@ Requires Node 22 and a platform that can build `better-sqlite3`.
 
 ```bash
 npm ci
-cp .env.example .env      # then set OIKONOMIA_URL
 npm run build
-node .output/server/index.mjs
+OIKONOMIA_URL=https://your-host \
+OIKONOMIA_DB=/var/lib/oikonomia/oikonomia.db \
+PORT=8080 npm start       # node .output/server.js
 ```
+
+The built server reads its environment, not a `.env` file. Both variables above
+are required in production; see
+[deployment](docs/architecture/deployment.md) for the rest, and for Hostinger.
 
 The first person to open a new installation is sent to `/setup`, which creates
 the first administrator and then closes itself. Everybody else is invited from

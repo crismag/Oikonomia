@@ -1,9 +1,10 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { openDatabase } from "./connection";
+import { artifactRoot } from "../data/storage";
+import { databasePath, openDatabase } from "./connection";
 
 /**
  * The database actually opens.
@@ -74,5 +75,39 @@ describe("opening a database", () => {
     };
     expect(row.body).toBe("still here");
     second.close();
+  });
+});
+
+describe("where the database lives", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("is wherever OIKONOMIA_DB says", () => {
+    vi.stubEnv("OIKONOMIA_DB", "/srv/oikonomia/data.db");
+    expect(databasePath()).toBe("/srv/oikonomia/data.db");
+  });
+
+  it("defaults to .data/ under the working directory in development", () => {
+    vi.stubEnv("OIKONOMIA_DB", "");
+    vi.stubEnv("NODE_ENV", "development");
+    expect(databasePath()).toBe(join(process.cwd(), ".data", "oikonomia.db"));
+  });
+
+  /* A redeploy replaces the application directory; a guessed path inside it
+     is a database the next deploy deletes. */
+  it("refuses to guess in production", () => {
+    vi.stubEnv("OIKONOMIA_DB", "");
+    vi.stubEnv("NODE_ENV", "production");
+    expect(() => databasePath()).toThrow(/OIKONOMIA_DB is not set/);
+  });
+
+  it("keeps artifacts beside the database unless told otherwise", () => {
+    vi.stubEnv("OIKONOMIA_DB", "/srv/oikonomia/data.db");
+    vi.stubEnv("OIKONOMIA_ARTIFACTS", "");
+    expect(artifactRoot()).toBe(join("/srv/oikonomia", "artifacts"));
+
+    vi.stubEnv("OIKONOMIA_ARTIFACTS", "/mnt/artifacts");
+    expect(artifactRoot()).toBe("/mnt/artifacts");
   });
 });

@@ -20,8 +20,10 @@ live in `oikonomia.db-wal` until a checkpoint folds them back, with
 database must treat the three as a set — see
 [deployment](deployment.md#restoring).
 
-Location comes from `OIKONOMIA_DB`, defaulting to `.data/oikonomia.db` beside
-the application.
+Location comes from `OIKONOMIA_DB`. In development it defaults to
+`.data/oikonomia.db` under the working directory; a production process refuses
+to guess, because the application directory is replaced on redeploy and a
+database inside it would go with it.
 
 ## Migrations
 
