@@ -284,7 +284,7 @@ function HomePage() {
                   return (
                     <ObjectRow
                       key={gathering.id}
-                      to="/lifegroups/$gatheringId"
+                      to={`/lifegroups/${gathering.id}`}
                       search={{}}
                       title={venue?.name ?? "Venue not set"}
                       context={`${format(fromISO(gathering.date), "EEE d MMM")}${gathering.startTime ? ` · ${gathering.startTime}` : ""}`}
@@ -322,7 +322,7 @@ function HomePage() {
                 {myReports.map((report) => (
                   <ObjectRow
                     key={report.id}
-                    to="/leadership-reports/$reportId"
+                    to={`/leadership-reports/${report.id}`}
                     title={report.title || "Untitled report"}
                     context={report.reportingPeriod ?? "No period set"}
                     meta={reportStatusLabel[report.status]}
@@ -366,7 +366,7 @@ function HomePage() {
                 .map((ministry) => (
                   <ObjectRow
                     key={ministry.id}
-                    to="/ministries/$ministryId"
+                    to={`/ministries/${ministry.id}`}
                     search={{}}
                     title={ministry.name}
                     context={ministry.leadId === person.id ? "You lead this" : "You serve here"}
