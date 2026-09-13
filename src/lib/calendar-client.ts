@@ -44,6 +44,15 @@ export function errorMessage(error: unknown): string {
   return "The calendar could not be reached. Check your connection and try again.";
 }
 
+/**
+ * Whether the installation itself refused this, rather than the person's
+ * permissions or the record's state — so a screen can say "not here" instead of
+ * suggesting somebody ask an administrator.
+ */
+export function isDisabledByInstallation(error: unknown): boolean {
+  return error instanceof CalendarError && error.code === "disabled-by-installation";
+}
+
 export function fieldErrors(error: unknown): Record<string, string> {
   return error instanceof CalendarError ? (error.fields ?? {}) : {};
 }

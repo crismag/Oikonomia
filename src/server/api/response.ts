@@ -31,6 +31,7 @@ const STATUS: Record<ErrorCode, number> = {
   forbidden: 403,
   unauthenticated: 401,
   conflict: 409,
+  "disabled-by-installation": 403,
   internal: 500,
 };
 
@@ -101,6 +102,17 @@ export class ApiError extends Error {
    */
   static unauthenticated(message = "Nobody is signed in.") {
     return new ApiError("unauthenticated", message);
+  }
+
+  /**
+   * Not available in this installation, whoever is asking.
+   *
+   * Distinct from `forbidden`, which is about the person: an administrator
+   * who could do this elsewhere cannot do it here, and "you do not have
+   * permission" would send them looking for a permission that does not exist.
+   */
+  static disabledByInstallation(message = "This action is disabled in this installation.") {
+    return new ApiError("disabled-by-installation", message);
   }
 }
 

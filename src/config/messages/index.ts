@@ -185,6 +185,11 @@ export const messages = {
     title: "Only an administrator may change the organisation.",
     severity: "warning",
   },
+  "refusal.installation.disabled": {
+    title: "This action is disabled in this installation.",
+    body: "It is turned off here for everyone, administrators included.",
+    severity: "info",
+  },
 
   /* ------------------------------------------------------ configuration */
   "common.reset.confirm": {

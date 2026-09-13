@@ -393,6 +393,228 @@ try {
     code !== 0 && /could not read OIKONOMIA_ENV_FILE/.test(missing.text),
     `exit ${code}: ${missing.text.slice(0, 200)}`,
   );
+
+  /*
+   * 8. The installation policy, as the built server enforces it.
+   *
+   *    Signed in as an administrator — a real session in the database, sent as
+   *    the real cookie — the same calls are made with OIKONOMIA_DEMO_MODE off
+   *    and on. Off, the administrator may change configuration and run a
+   *    backup. On, neither happens and nothing is written, while church work
+   *    still goes through and reads still answer. The cookie is the same both
+   *    times: only the environment differs.
+   */
+  {
+    const { createHash, randomBytes } = await import("node:crypto");
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { toJSON } = await import("seroval");
+    const { default: Database } = await import("better-sqlite3");
+
+    const MAINTENANCE_TOKEN = randomBytes(24).toString("base64url");
+    const sessionToken = randomBytes(32).toString("base64url");
+    const now = new Date();
+    const writer = new Database(database);
+    writer
+      .prepare(
+        `INSERT INTO account (id, person_id, email, email_verified, status, created_at)
+         VALUES ('acc-smoke-admin', 'per-smoke-probe', NULL, 0, 'active', ?)`,
+      )
+      .run(now.toISOString());
+    writer
+      .prepare(
+        `INSERT INTO auth_session (id, account_id, created_at, last_seen_at, expires_at)
+         VALUES (?, 'acc-smoke-admin', ?, ?, ?)`,
+      )
+      .run(
+        createHash("sha256").update(sessionToken).digest("hex"),
+        now.toISOString(),
+        now.toISOString(),
+        new Date(now.getTime() + 3_600_000).toISOString(),
+      );
+    writer.close();
+
+    const resolver = readdirSync(".output/server").find((f) => f.includes("server-fn-resolver"));
+    const resolverSource = resolver ? readFileSync(join(".output/server", resolver), "utf8") : "";
+    const idOf = (name, api) =>
+      new RegExp(
+        `"([a-f0-9]{64})":\\s*\\{\\s*functionName:\\s*"${name}_createServerFn_handler",\\s*importer:\\s*\\(\\)\\s*=>\\s*import\\("\\./_ssr/${api}-`,
+      ).exec(resolverSource)?.[1];
+
+    const call = async (name, api, data) => {
+      const id = idOf(name, api);
+      if (!id) return { status: 0, body: `no ${name} in the build` };
+      const response = await fetch(`${BASE}/_serverFn/${id}`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-tsr-serverfn": "true",
+          "sec-fetch-site": "same-origin",
+          cookie: `oikonomia_session=${sessionToken}`,
+        },
+        body: JSON.stringify(toJSON({ data })),
+      });
+      return { status: response.status, body: await response.text() };
+    };
+    const siteName = () => {
+      const reader = new Database(database, { readonly: true });
+      const row = reader
+        .prepare(
+          "SELECT value FROM configuration_setting WHERE namespace = 'site.profile' AND field = 'name'",
+        )
+        .get();
+      reader.close();
+      return row ? JSON.parse(row.value) : undefined;
+    };
+    const goalsTitled = (title) => {
+      const reader = new Database(database, { readonly: true });
+      const { n } = reader.prepare("SELECT count(*) AS n FROM goal WHERE title = ?").get(title);
+      reader.close();
+      return n;
+    };
+    const maintenance = () =>
+      fetch(`${BASE}/maintenance/run?task=backup`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${MAINTENANCE_TOKEN}` },
+      });
+    const googleStart = () => fetch(`${BASE}/auth/google/start`, { redirect: "manual" });
+    const stop = async () => {
+      server.kill("SIGTERM");
+      await new Promise((resolve) => server.once("exit", resolve));
+    };
+
+    const installation = (demo) => ({
+      OIKONOMIA_DB: database,
+      OIKONOMIA_URL: PUBLIC_URL,
+      OIKONOMIA_MAINTENANCE_TOKEN: MAINTENANCE_TOKEN,
+      OIKONOMIA_DEMO_MODE: demo,
+    });
+
+    /* Off: an administrator's ordinary powers. */
+    start(installation("false"));
+    if (await waitForServer()) {
+      const set = await call("setConfigurationValue", "configuration-api", {
+        namespace: "site.profile",
+        field: "name",
+        value: "Changed with Demo Mode off",
+      });
+      check(
+        "Demo Mode off: an administrator can change configuration",
+        siteName() === "Changed with Demo Mode off",
+        `status ${set.status}, stored ${JSON.stringify(siteName())}`,
+      );
+      const backup = await maintenance();
+      check(
+        "Demo Mode off: maintenance runs with its token",
+        backup.status === 200,
+        `got ${backup.status}`,
+      );
+      const google = await googleStart();
+      check(
+        "Demo Mode off: Google sign-in is not refused by policy",
+        google.status !== 403,
+        `got ${google.status}`,
+      );
+      await stop();
+    } else {
+      check("starts with Demo Mode off", false);
+    }
+
+    /* On: the same administrator, the same cookie. */
+    start(installation("true"));
+    if (await waitForServer()) {
+      const set = await call("setConfigurationValue", "configuration-api", {
+        namespace: "site.profile",
+        field: "name",
+        value: "Changed with Demo Mode on",
+      });
+      check(
+        "Demo Mode on: an administrator's configuration change is refused",
+        set.body.includes("disabled-by-installation") &&
+          siteName() === "Changed with Demo Mode off",
+        `status ${set.status}, stored ${JSON.stringify(siteName())}`,
+      );
+
+      const reset = await call("resetPassword", "auth-api", {
+        token: "anything",
+        password: "a long enough passphrase",
+      });
+      check(
+        "Demo Mode on: password reset is refused",
+        reset.body.includes("disabled-by-installation"),
+      );
+
+      const exported = await call("runExport", "data-management-api", {
+        scope: { type: "site" },
+        format: "json",
+      });
+      check(
+        "Demo Mode on: a site export is refused",
+        exported.body.includes("disabled-by-installation"),
+      );
+
+      const goal = await call("createGoal", "goals-api", {
+        title: "Written with Demo Mode on",
+        year: now.getFullYear(),
+      });
+      check(
+        "Demo Mode on: church work still goes through",
+        !goal.body.includes("disabled-by-installation") &&
+          goalsTitled("Written with Demo Mode on") === 1,
+        `status ${goal.status}`,
+      );
+
+      const sessionId = idOf("fetchSession", "organization-api");
+      const read = await fetch(`${BASE}/_serverFn/${sessionId}`, {
+        headers: {
+          "x-tsr-serverfn": "true",
+          "sec-fetch-site": "same-origin",
+          cookie: `oikonomia_session=${sessionToken}`,
+        },
+      });
+      check(
+        "Demo Mode on: reads still answer",
+        read.status === 200 && (await read.text()).includes("Directory Probe"),
+        `got ${read.status}`,
+      );
+
+      const backup = await maintenance();
+      check(
+        "Demo Mode on: maintenance is refused even with its token",
+        backup.status === 403 && (await backup.text()).includes("disabled-by-installation"),
+        `got ${backup.status}`,
+      );
+      const google = await googleStart();
+      check(
+        "Demo Mode on: Google sign-in cannot start",
+        google.status === 403,
+        `got ${google.status}`,
+      );
+
+      const health = await fetch(`${BASE}/healthz`);
+      check(
+        "Demo Mode on: the health check still answers",
+        health.status === 200,
+        `got ${health.status}`,
+      );
+      await stop();
+    } else {
+      check("starts with Demo Mode on", false);
+    }
+
+    /* Neither: a value that is not "true" or "false" serves nothing. */
+    const misconfigured = start(installation("yes"));
+    if (await waitForServer()) {
+      const health = await fetch(`${BASE}/healthz`);
+      check(
+        "OIKONOMIA_DEMO_MODE=yes: the server refuses to serve, and says why",
+        health.status === 503 && /OIKONOMIA_DEMO_MODE/.test(misconfigured.text),
+        `got ${health.status}`,
+      );
+      await stop();
+    } else {
+      check("starts, to report OIKONOMIA_DEMO_MODE=yes", false, misconfigured.text);
+    }
+  }
 } finally {
   server?.kill("SIGKILL");
   rmSync(dir, { recursive: true, force: true });

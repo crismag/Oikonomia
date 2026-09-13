@@ -53,14 +53,15 @@ without parsing prose.
 
 ## Errors
 
-| Code              | Status | Means                                                            |
-| ----------------- | ------ | ---------------------------------------------------------------- |
-| `validation`      | 422    | Understood and wrong. `fields` says how                          |
-| `not-found`       | 404    | No such record — **or none this viewer may know exists**         |
-| `forbidden`       | 403    | The record exists, the viewer may know that, and may not do this |
-| `conflict`        | 409    | The request conflicts with the record's current state            |
-| `unauthenticated` | 401    | Nobody is signed in, or the person no longer exists              |
-| `internal`        | 500    | Something the caller could not have prevented                    |
+| Code                       | Status | Means                                                                |
+| -------------------------- | ------ | -------------------------------------------------------------------- |
+| `validation`               | 422    | Understood and wrong. `fields` says how                              |
+| `not-found`                | 404    | No such record — **or none this viewer may know exists**             |
+| `forbidden`                | 403    | The record exists, the viewer may know that, and may not do this     |
+| `conflict`                 | 409    | The request conflicts with the record's current state                |
+| `unauthenticated`          | 401    | Nobody is signed in, or the person no longer exists                  |
+| `disabled-by-installation` | 403    | This installation does not allow it at all — administrators included |
+| `internal`                 | 500    | Something the caller could not have prevented                        |
 
 The line between `not-found` and `forbidden` is a security decision, not a
 taxonomy. A confidential report the viewer is not an audience for returns
@@ -80,6 +81,32 @@ comes from the domain's own catalogue, and the server's specific refusal is
 surfaced only where it tells somebody what to do next ("at least one role has
 to be able to administer Oikonomia").
 
+## Installation policy
+
+What an installation allows **at all**, whoever is asking — decided by its
+environment, never by the database, a setting or a role. Today one policy
+exists: `OIKONOMIA_DEMO_MODE=true` (strictly `true` or `false`; any other value
+stops the server serving, `/healthz` included).
+
+```text
+request → authentication → installation policy → authorization → service
+```
+
+Enforced centrally in `src/start.ts`: global function middleware in front of
+every server function, request middleware in front of the route handlers that
+act on their own (Google sign-in, `/maintenance/run`). It only subtracts:
+services, repositories and domain code know nothing about it, and every
+ownership and administration check still runs for what remains.
+
+**Every server function is classified** in
+`src/server/installation/operations.ts` by `filename#name` — `read`,
+`allowed`, or `denied` with a reason. With Demo Mode on, denied operations and
+any **unclassified POST** return `disabled-by-installation`; reads and allowed
+writes run normally. `src/installation-policy-classified.test.ts` discovers
+server functions, route handlers and maintenance tasks from source and fails
+when one has no decision — so adding a mutation means deciding, in the same
+change, whether a public demonstration may run it.
+
 ## Cross-site protection
 
 Server-function POSTs are refused unless the request carries what a real
@@ -95,7 +122,7 @@ run.
 
 | Route                     | Method | Answers                                                 |
 | ------------------------- | ------ | ------------------------------------------------------- |
-| `/healthz`                | GET    | `{"ok":true,"migrations":33,"schemaVersion":33}`        |
+| `/healthz`                | GET    | `{"ok":true,"migrations":34,"schemaVersion":34}`        |
 | `/maintenance/run?task=…` | POST   | `backup`, `retention` or `sweep`, behind a bearer token |
 
 `/healthz` exists because **no ordinary route touches persistence** — every one

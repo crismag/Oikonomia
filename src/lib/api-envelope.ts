@@ -27,6 +27,12 @@ export type ErrorCode =
   | "conflict"
   /** Nobody is signed in, or the person signed in no longer exists. */
   | "unauthenticated"
+  /**
+   * This installation does not allow the operation at all — for anybody,
+   * administrators included. Decided by the installation's own configuration
+   * (a public demonstration, for instance), never by who is asking.
+   */
+  | "disabled-by-installation"
   /** Something failed that the caller could not have prevented. */
   | "internal";
 

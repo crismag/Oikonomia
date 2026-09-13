@@ -3,6 +3,10 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { withSecurityHeaders } from "./server/http/security-headers";
+import { currentInstallation } from "./server/installation/policy";
+
+/** Logged once per process, not once per request. */
+let reportedMisconfiguration = false;
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -51,6 +55,23 @@ export default {
        through — the error pages below included. A policy that covers the
        application but not its failure modes is a policy with a gap exactly
        where things have already gone wrong. */
+    /* An installation whose policy cannot be read serves nothing — not even
+       /healthz — because a demonstration that is silently not one, or a
+       church installation that silently is, is worse than an outage that
+       names its cause. */
+    try {
+      currentInstallation();
+    } catch (error) {
+      if (!reportedMisconfiguration) console.error(error);
+      reportedMisconfiguration = true;
+      return withSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 503,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);

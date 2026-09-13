@@ -45,6 +45,59 @@ function expectedOrigin(request: Request): string {
   return new URL(request.url).origin;
 }
 
+/*
+ * Installation policy (`src/server/installation/policy.ts`): what this
+ * installation allows at all, whoever is asking. Off unless the environment
+ * says `OIKONOMIA_DEMO_MODE=true`, and then a pure subtraction — nothing here
+ * grants an operation or asks who is signed in.
+ *
+ * The policy is imported lazily inside each server body, as the API modules
+ * import server code: this file is also part of the browser bundle, which may
+ * not reference `src/server/`.
+ */
+
+/** Route handlers that act without a server function: Google sign-in, maintenance. */
+export const installationRequestMiddleware = createMiddleware().server(
+  async ({ request, handlerType, next }) => {
+    if (handlerType !== "router") return next();
+
+    const { currentInstallation, decideRouteRequest, refusal } =
+      await import("./server/installation/policy");
+    const decision = decideRouteRequest(currentInstallation(), new URL(request.url));
+    if (decision.allowed) return next();
+
+    return new Response(JSON.stringify({ ok: false, error: refusal() }), {
+      status: 403,
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+    });
+  },
+);
+
+/**
+ * Every server function, before its own validation, authorization or work.
+ *
+ * A refused call answers in the envelope the function itself would have used,
+ * so the caller's `unwrap()` raises it like any other refusal.
+ */
+export const installationFunctionMiddleware = createMiddleware({ type: "function" }).server(
+  async (context) => {
+    const { currentInstallation, decideServerFunction, refusal } =
+      await import("./server/installation/policy");
+    const decision = decideServerFunction(
+      currentInstallation(),
+      context.serverFnMeta,
+      context.method,
+    );
+    if (decision.allowed) return context.next();
+
+    /* Returning the context with a result, rather than calling `next()`, is
+       how TanStack Start's middleware runner ends a call early; the typed API
+       only describes the `next()` path. */
+    return { ...context, result: { error: refusal() } } as never;
+  },
+);
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, installationRequestMiddleware, csrfMiddleware],
+  functionMiddleware: [installationFunctionMiddleware],
 }));
