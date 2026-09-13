@@ -18,11 +18,12 @@
  *
  * ## What this adds
  *
- * - **Ministry leadership**: any ministry with no lead gets one — the
- *   designated person with the richest authored content who does not already
- *   lead a ministry — and any ministry with fewer than three confirmed team
- *   members is topped up from the same pool. A ministry with no goal at all
- *   gets one.
+ * - **Ministry staffing**: any ministry that already has a lead and fewer
+ *   than three confirmed team members is topped up from the pool of
+ *   designated identities. A ministry with no lead is left exactly as
+ *   written — the corpus may have a real narrative reason (Gifts and Arrows'
+ *   vacancy is itself a Leadership Council goal). A ministry with no goal at
+ *   all gets one.
  * - **Calendar**: one recurring weekly "ministry meeting" per ministry
  *   (`schedule_entry`, `Recurrence`), spanning August through the end of the
  *   year — so Monthly Calendar and Weekly Agenda, which read the same ranged
@@ -114,7 +115,6 @@ const richness = (personId: string): number =>
   ).n;
 
 const counts = {
-  ministriesGivenALead: 0,
   ministriesToppedUp: 0,
   ministryGoalsAdded: 0,
   recurringMinistryMeetings: 0,
@@ -123,10 +123,8 @@ const counts = {
 };
 
 const run = db.transaction(() => {
-  /* --------------------------------------------------- 1. ministry leads */
+  /* --------------------------------------------------- 1. ministry staffing */
 
-  const ministries = organization.ministries();
-  const alreadyLeading = new Set(ministries.map((m: Ministry) => m.leadId).filter(Boolean));
   const designated = (
     db
       .prepare(
@@ -137,20 +135,14 @@ const run = db.transaction(() => {
     .map((p) => ({ ...p, richness: richness(p.id) }))
     .sort((a, b) => b.richness - a.richness);
 
-  for (const ministry of ministries) {
-    if (ministry.leadId) continue;
-    const candidate = designated.find((p) => !alreadyLeading.has(p.id));
-    if (!candidate) continue;
-    organization.updateMinistry(ministry.id, { leadId: candidate.id });
-    alreadyLeading.add(candidate.id);
-    ministry.leadId = candidate.id;
-    counts.ministriesGivenALead++;
-  }
-
-  /* A ministry is thinly staffed when its confirmed, non-shared team — lead
-     included — is fewer than three people. "One or two more leader
-     characters", read as: at least the lead plus two. */
+  /* A ministry with no lead is left exactly as the corpus wrote it: Gifts and
+     Arrows is deliberately unled — the vacancy is itself a Leadership Council
+     goal — and a script assigning one over that narrative would be a worse
+     mistake than leaving a ministry looking incomplete. Only a ministry that
+     already has a lead is topped up, when its confirmed, non-shared team —
+     lead included — is thinner than three people ("one or two more"). */
   for (const ministry of organization.ministries()) {
+    if (!ministry.leadId) continue;
     const teamSize = ministry.teamIds.length;
     if (teamSize >= 3) continue;
     const need = 3 - teamSize;

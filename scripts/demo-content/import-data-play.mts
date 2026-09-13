@@ -68,6 +68,9 @@ const { createEscalationRepository } = await import(
 const { createReachOutRepository } = await import(
   repo("server/repositories/reach-out-repository.ts")
 );
+const { createCalendarRepository } = await import(
+  repo("server/repositories/calendar-repository.ts")
+);
 const { onboardingSteps, ONBOARDING_VERSION } = await import(repo("domain/onboarding.ts"));
 const { inlineHtmlIsSafe } = await import(repo("domain/meeting.ts"));
 const { loadMigrations, migrate } = await import(repo("server/db/migrate.ts"));
@@ -84,6 +87,16 @@ const flag = (name: string) => args.includes(`--${name}`);
 const sourceRoot = option("source");
 const targetPath = option("to");
 const dryRun = flag("dry-run");
+/* How many of the roster are offered in the demo chooser. The corpus's own
+   "Demo persona: No" is always honoured as an exclusion; everyone else is
+   ranked by how much they were actually given to explore and only the top
+   `maxDesignated` are selected — plus whoever `--always-designate` names,
+   which is not subject to the ranking or the cap. */
+const maxDesignated = Number(option("max-designated") ?? 30);
+const alwaysDesignate = (option("always-designate") ?? "Cris")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 if (!sourceRoot || (!dryRun && !targetPath)) {
   fail(
     "usage: npx tsx scripts/demo-content/import-data-play.mts --source <corpus dir> (--to <builder.db> | --dry-run)",
@@ -524,6 +537,7 @@ const counts = {
   goals: 0,
   goalUpdates: 0,
   reachOut: 0,
+  calendarEntries: 0,
   skippedRecords: 0,
 };
 
@@ -553,6 +567,7 @@ const meetings = createMeetingRepository(db);
 const goals = createGoalsRepository(db);
 const escalations = createEscalationRepository(db);
 const reachOut = createReachOutRepository(db);
+const calendar = createCalendarRepository(db);
 
 const backdate = (table: string, id: string, isoDateTime: string, idColumn = "id") => {
   db.prepare(`UPDATE "${table}" SET created_at = ?, updated_at = ? WHERE "${idColumn}" = ?`).run(
@@ -679,10 +694,8 @@ const run = db.transaction(() => {
       organization.setGroupMembership(groupId, entry.personId!, true);
     }
 
-    if (entry.demoPersona !== "No") {
-      demoIdentities.insert({ personId: entry.personId!, kind: "designated" });
-      counts.designated++;
-    }
+    /* Designated identities are chosen after all content is imported, by how
+       much of it there turns out to be — see "who is selectable", below. */
   }
 
   /* ------------------------------------------------------------ content */
@@ -908,6 +921,108 @@ const run = db.transaction(() => {
       counts.comments++;
     }
     writeEscalations(record, "reach-out-report", inserted.id, authorId, at);
+  }
+
+  const CALENDAR_CATEGORY: Record<string, string> = {
+    "prayer & fasting": "prayer-fasting",
+    chat: "chat",
+    lifegroup: "lifegroup",
+    potbless: "potbless",
+    victuals: "victuals",
+    seed: "seed",
+    mentorship: "mentorship",
+    "ministry meeting": "ministry-meeting",
+    service: "service",
+    celebration: "celebration",
+    other: "other",
+  };
+  const WEEKDAY_INDEX: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  };
+
+  function importCalendarEntry(file: string, record: ParsedRecord) {
+    const owner = ownerOf(file);
+    if (!owner?.personId) return void counts.skippedRecords++;
+
+    const categoryRaw = (field(record, "Category") ?? "Other").trim().toLowerCase();
+    const category = CALENDAR_CATEGORY[categoryRaw];
+    if (!category) {
+      warn(`calendar "${record.heading}" (${file}): unrecognised category "${categoryRaw}"`);
+      return void counts.skippedRecords++;
+    }
+
+    const ministryName = field(record, "Ministry");
+    const ministry = ministryName ? ministryByName.get(ministryName.toLowerCase()) : undefined;
+    if (ministryName && !ministry) {
+      warn(`calendar "${record.heading}" (${file}): unknown ministry "${ministryName}"`);
+    }
+    const organizerId = ministry?.leadId ?? owner.personId;
+
+    const repeatsRaw = field(record, "Repeats");
+    let recurrence:
+      { frequency: string; weekday?: number; from: string; until?: string } | undefined;
+    if (repeatsRaw) {
+      const from = field(record, "From");
+      if (!from) {
+        warn(`calendar "${record.heading}" (${file}): "Repeats" with no "From" date; skipped`);
+        return void counts.skippedRecords++;
+      }
+      const until = field(record, "Until");
+      const on = /^(daily|monthly|yearly)$/i.exec(repeatsRaw.trim());
+      const weekly = /^(weekly|fortnightly)\s+on\s+(\w+)$/i.exec(repeatsRaw.trim());
+      if (on) {
+        recurrence = { frequency: on[1]!.toLowerCase(), from, ...(until ? { until } : {}) };
+      } else if (weekly) {
+        const weekday = WEEKDAY_INDEX[weekly[2]!.toLowerCase()];
+        if (weekday === undefined) {
+          warn(
+            `calendar "${record.heading}" (${file}): unrecognised weekday in "Repeats: ${repeatsRaw}"`,
+          );
+          return void counts.skippedRecords++;
+        }
+        recurrence = {
+          frequency: weekly[1]!.toLowerCase(),
+          weekday,
+          from,
+          ...(until ? { until } : {}),
+        };
+      } else {
+        warn(`calendar "${record.heading}" (${file}): unrecognised "Repeats: ${repeatsRaw}"`);
+        return void counts.skippedRecords++;
+      }
+    }
+
+    const date = recurrence ? undefined : (record.headingDate ?? field(record, "Date"));
+    if (!recurrence && !date) {
+      warn(`calendar "${record.heading}" (${file}) has neither "Repeats" nor "Date"; skipped`);
+      return void counts.skippedRecords++;
+    }
+
+    const timeRaw = field(record, "Time");
+    const [startTime, endTime] = timeRaw ? timeRaw.split(/[–-]/).map((t) => t.trim()) : [];
+    const note = record.bodyBlocks.map((b) => b.html).join("\n");
+
+    calendar.insertEntry({
+      title: record.heading,
+      ...(date ? { date } : {}),
+      ...(recurrence ? { recurrence: recurrence as never } : {}),
+      ...(startTime ? { startTime } : {}),
+      ...(endTime ? { endTime } : {}),
+      category: category as never,
+      ...(ministry ? { ministryId: ministry.id } : {}),
+      ...(field(record, "Location") ? { location: field(record, "Location") } : {}),
+      ...(note.trim() ? { note } : {}),
+      organizerId,
+      createdBy: owner.personId,
+      source: "church",
+    });
+    counts.calendarEntries++;
   }
 
   function lifegroupSections(record: ParsedRecord): {
@@ -1185,6 +1300,9 @@ const run = db.transaction(() => {
 
     const goalsPath = join(base, "2026-goals.md");
     if (existsSync(goalsPath)) importGoals(goalsPath);
+    /* A ministry's own goals, filed under its head's folder rather than the
+       personal 2026-goals.md — same record shape, same importer. */
+    for (const file of findFiles(join(base, "content", "ministry-goals"))) importGoals(file);
 
     for (const file of findFiles(join(base, "content"))) {
       const parsed = parseFile(file);
@@ -1197,9 +1315,10 @@ const run = db.transaction(() => {
           else if (section === "Lifegroup Gathering") importLifegroupGathering(file, record);
           else if (section === "Meeting Notes") importMeetingNote(file, record);
           else if (section === "Reach-Out") importReachOut(file, record);
-          else if (section === "Goals" || section === "Calendar" || section === "Form") {
-            /* Goals are read from 2026-goals.md directly, above; Calendar and Form have no
-               authored content yet in this corpus. */
+          else if (section === "Calendar") importCalendarEntry(file, record);
+          else if (section === "Goals" || section === "Form") {
+            /* Goals (personal and ministry) are read directly, above; Form has
+               no authored content yet in this corpus. */
           } else {
             warn(`"${record.heading}" (${file}): unrecognised Oikonomia section "${section}"`);
             counts.skippedRecords++;
@@ -1213,6 +1332,55 @@ const run = db.transaction(() => {
       }
     }
   }
+
+  /* --------------------------------------------------- 6. who is selectable */
+
+  /*
+   * With every report, reflection, gathering, meeting, goal and reach-out
+   * now written, "substantial content" is something that can actually be
+   * counted rather than guessed from a profile field. `Demo persona: No`
+   * is still honoured as an exclusion — that is a curatorial decision the
+   * corpus made on purpose — but Featured and Available no longer decide
+   * the chooser by themselves: the ones with the most to explore do,
+   * bounded at `maxDesignated`, plus whoever `alwaysDesignate` names
+   * regardless of where they rank.
+   */
+  const richnessOf = (personId: string): number =>
+    (
+      db
+        .prepare(
+          `SELECT
+             (SELECT COUNT(*) FROM leadership_report WHERE author_id = ?) * 3 +
+             (SELECT COUNT(*) FROM gathering WHERE primary_leader_id = ?) * 2 +
+             (SELECT COUNT(*) FROM meeting_note WHERE facilitator_id = ?) +
+             (SELECT COUNT(*) FROM goal WHERE owner_id = ?) +
+             (SELECT COUNT(*) FROM reach_out_report WHERE author_id = ?) +
+             (SELECT COUNT(*) FROM comment WHERE author_id = ?) AS n`,
+        )
+        .get(personId, personId, personId, personId, personId, personId) as { n: number }
+    ).n;
+
+  const eligible = roster
+    .filter((entry) => entry.personId && entry.demoPersona !== "No")
+    .map((entry) => ({ entry, richness: richnessOf(entry.personId!) }))
+    .sort((a, b) => b.richness - a.richness);
+
+  const forcedNames = new Set(alwaysDesignate.map((n) => n.toLowerCase()));
+  const forced = eligible.filter(({ entry }) => forcedNames.has(entry.name.toLowerCase()));
+  for (const name of alwaysDesignate) {
+    if (!forced.some(({ entry }) => entry.name.toLowerCase() === name.toLowerCase())) {
+      warn(`--always-designate names "${name}", which is not an eligible roster member`);
+    }
+  }
+  const ranked = eligible.filter(({ entry }) => !forcedNames.has(entry.name.toLowerCase()));
+  const selected = [...forced, ...ranked.slice(0, Math.max(0, maxDesignated))].sort((a, b) =>
+    a.entry.name.localeCompare(b.entry.name),
+  );
+
+  selected.forEach(({ entry }, index) => {
+    demoIdentities.insert({ personId: entry.personId!, kind: "designated", displayOrder: index });
+    counts.designated++;
+  });
 });
 
 try {

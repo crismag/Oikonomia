@@ -121,7 +121,7 @@ The report body.
 `,
     });
 
-    const result = runImport(["--source", source, "--dry-run"]);
+    const result = runImport(["--source", source, "--dry-run", "--always-designate", ""]);
 
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
@@ -256,7 +256,7 @@ I need to listen before answering.
 `,
     });
 
-    const result = runImport(["--source", source, "--dry-run"]);
+    const result = runImport(["--source", source, "--dry-run", "--always-designate", ""]);
 
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
