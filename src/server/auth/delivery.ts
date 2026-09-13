@@ -38,17 +38,25 @@ export interface DeliveryAdapter {
 }
 
 /**
- * Writes the message to the server's own output.
+ * Writes the message to the server's own output — in development.
  *
- * Deliberately loud. A link printed in a log is a credential sitting in a log,
- * which is acceptable while nobody's real data is here and unacceptable the
- * moment it is — so it says which of those it is assuming.
+ * A link printed in a log is a credential sitting in a log. For a developer
+ * that is the point: it is how they sign in without a mail server. In a
+ * production build it is a way into somebody's account for anyone who can read
+ * the log, and on a public installation anyone can ask for a link to be
+ * issued. So a production process says that a message was not sent, and never
+ * what it said or who it was for.
  */
 export class ConsoleDelivery implements DeliveryAdapter {
   readonly id = "console";
   readonly reachesRecipients = false;
 
   send(message: { to: string; subject: string; body: string }): Promise<void> {
+    if (process.env["NODE_ENV"] === "production") {
+      console.warn(`Oikonomia did not send "${message.subject}": no mail provider is configured.`);
+      return Promise.resolve();
+    }
+
     console.info(
       [
         "",

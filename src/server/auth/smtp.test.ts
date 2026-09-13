@@ -1,6 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { canDeliver, ConsoleDelivery, delivery, forgetDelivery } from "./delivery";
+import {
+  canDeliver,
+  ConsoleDelivery,
+  delivery,
+  forgetDelivery,
+  magicLinkMessage,
+} from "./delivery";
 import { SmtpDelivery, smtpConfigured, smtpSettings } from "./smtp";
 
 /**
@@ -77,6 +83,66 @@ describe("reading SMTP settings", () => {
     expect(
       settingsFrom({ OIKONOMIA_SMTP_HOST: "  ", OIKONOMIA_MAIL_FROM: "a@b.org" }),
     ).toBeUndefined();
+  });
+});
+
+describe("the console, when there is no mail provider", () => {
+  const TOKEN = "tok_9f8e7d6c5b4a-secret";
+
+  /** Everything written to any console method while `work` runs. */
+  const captured = async (work: () => Promise<void>): Promise<string> => {
+    const lines: string[] = [];
+    const methods = ["log", "info", "warn", "error", "debug"] as const;
+    const spies = methods.map((method) =>
+      vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(" "));
+      }),
+    );
+    try {
+      await work();
+    } finally {
+      spies.forEach((spy) => spy.mockRestore());
+    }
+    return lines.join("\n");
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  /* A public installation lets anybody ask for a link to be issued; the log is
+     then the only place it exists, and a log is not a secret. */
+  it.each([
+    ["a sign-in link", () => magicLinkMessage(TOKEN)],
+    [
+      "a password reset",
+      () => ({
+        subject: "Reset your Oikonomia password",
+        body: `https://oikonomia.example/login?reset=${TOKEN}`,
+      }),
+    ],
+  ])("never prints %s in a production process", async (_label, build) => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OIKONOMIA_URL", "https://oikonomia.example");
+
+    const output = await captured(() =>
+      new ConsoleDelivery().send({ to: "someone@example.org", ...build() }),
+    );
+
+    expect(output).not.toContain(TOKEN);
+    expect(output).not.toContain("/login?");
+    expect(output).not.toContain("someone@example.org");
+    expect(output).toMatch(/did not send/);
+  });
+
+  it("still shows a developer the link, because that is how they sign in", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+
+    const output = await captured(() =>
+      new ConsoleDelivery().send({ to: "dev@example.org", ...magicLinkMessage(TOKEN) }),
+    );
+
+    expect(output).toContain(TOKEN);
   });
 });
 

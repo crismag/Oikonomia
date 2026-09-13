@@ -109,7 +109,15 @@ export function createConfigurationRepository(db: Db) {
       };
     },
 
-    /** Write an override, replacing any earlier one for the same thing. */
+    /**
+     * Write an override, replacing any earlier one for the same thing.
+     *
+     * The conflict target is the expression key from migration 034, not the
+     * table's original constraint: that one contains a NULL on every row, and
+     * NULLs never conflict, so naming it inserted a duplicate on every save.
+     * `is_addition` is left as it was, so editing an added option keeps it
+     * added.
+     */
     set(input: {
       namespace: string;
       optionId?: string | undefined;
@@ -123,7 +131,7 @@ export function createConfigurationRepository(db: Db) {
         `INSERT INTO configuration_setting
            (id, namespace, option_id, field, value, is_addition, updated_at, updated_by)
          VALUES (@id, @namespace, @optionId, @field, @value, @addition, @at, @actor)
-         ON CONFLICT (namespace, option_id, field) DO UPDATE SET
+         ON CONFLICT (namespace, IFNULL(option_id, ''), IFNULL(field, '')) DO UPDATE SET
            value = excluded.value,
            updated_at = excluded.updated_at,
            updated_by = excluded.updated_by`,

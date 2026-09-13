@@ -172,7 +172,7 @@ export const fetchSession = createServerFn({ method: "GET" })
   .handler(async (): Promise<Result<SessionSnapshot>> => {
     const { ApiError, repo, service, viewer } = await serverParts();
     try {
-      const organization = service.all();
+      const organization = service.visibleTo(viewer);
       return {
         data: {
           viewer: viewer

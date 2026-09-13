@@ -28,8 +28,14 @@ database inside it would go with it.
 ## Migrations
 
 A migration is a `.sql` file in `src/server/db/migrations/`, named
-`NNN_description.sql`. There are **33**. They run in numeric order, exactly
+`NNN_description.sql`. There are **34**. They run in numeric order, exactly
 once each, inside a transaction, and are recorded in `schema_migrations`.
+
+A uniqueness rule must not rely on a nullable column: SQL treats NULLs as
+distinct, so `UNIQUE (a, b)` with `b` NULL never matches and an `ON CONFLICT`
+upsert silently becomes an insert. `configuration_setting` did exactly that
+until 034 keyed it on `IFNULL(option_id, '')` and `IFNULL(field, '')` with an
+expression index, which the repository's upsert names as its conflict target.
 
 Ordering is by the numeric prefix, never by filename sort or modification time,
 and two migrations claiming the same version is an error — which is exactly

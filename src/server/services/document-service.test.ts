@@ -75,6 +75,17 @@ describe("registering a resource", () => {
     expect(() => service.register(maria, doc({ url: "not a url" }))).toThrow(ApiError);
   });
 
+  /* An address is opened by everybody else who can see the record. One that
+     runs script instead is stored cross-site scripting. */
+  it.each(["javascript:alert(document.cookie)", "data:text/html,<script>alert(1)</script>"])(
+    "refuses an address that is not a web address: %s",
+    (url) => {
+      expect(() => service.register(maria, doc({ url }))).toThrow(ApiError);
+      const registered = service.register(maria, doc());
+      expect(() => service.update(maria, registered.id, { url })).toThrow(ApiError);
+    },
+  );
+
   /**
    * Invariant 8: storage differences must not leak into the user-facing model.
    * The origin is read off the address and used as a supporting line; it never

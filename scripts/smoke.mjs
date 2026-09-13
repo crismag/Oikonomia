@@ -197,6 +197,56 @@ try {
     );
   }
 
+  /*
+   * The session call answers before anybody signs in — it is how the shell
+   * finds out whether anybody has. It must not answer with the directory.
+   *
+   * Asked of the built server, because this is where the leak lived: a
+   * handler that returned every person, with email and access role, to any
+   * browser. The function's id is build-specific, so it is read from the
+   * build's own resolver.
+   */
+  {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { default: Database } = await import("better-sqlite3");
+    const EMAIL = "directory-probe@smoke.example";
+
+    const writer = new Database(database);
+    writer
+      .prepare(
+        `INSERT INTO person (id, name, initials, role, access_role, email, created_at, active)
+         VALUES ('per-smoke-probe', 'Directory Probe', 'DP', '', 'admin', ?, ?, 1)`,
+      )
+      .run(EMAIL, new Date().toISOString());
+    writer.close();
+
+    const resolver = readdirSync(".output/server").find((file) =>
+      file.includes("server-fn-resolver"),
+    );
+    const source = resolver ? readFileSync(join(".output/server", resolver), "utf8") : "";
+    const id =
+      /"([a-f0-9]{64})":\s*\{\s*functionName:\s*"fetchSession_createServerFn_handler",\s*importer:\s*\(\)\s*=>\s*import\("\.\/_ssr\/organization-api-/.exec(
+        source,
+      )?.[1];
+    check("the build names the organisation session call", Boolean(id));
+
+    if (id) {
+      const anonymous = await fetch(`${BASE}/_serverFn/${id}`, {
+        headers: { "x-tsr-serverfn": "true", "sec-fetch-site": "same-origin" },
+      });
+      const body = await anonymous.text();
+      check(
+        "the session call answers a visitor who is not signed in",
+        anonymous.status === 200 && body.includes("setupRequired"),
+        `got ${anonymous.status}`,
+      );
+      check(
+        "and shows that visitor nobody from the directory",
+        !body.includes(EMAIL) && !body.includes("Directory Probe"),
+      );
+    }
+  }
+
   /* 4. The pieces a browser needs, served by the same process. */
   const shell = await login.text();
   const asset = /\/assets\/[^"']+\.js/.exec(shell)?.[0];

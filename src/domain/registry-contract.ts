@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { documentEntityTypes } from "./registry";
+import { webAddress } from "./web-address";
 
 /**
  * What the registry accepts.
@@ -32,7 +33,7 @@ export const registerDocument = z.object({
     .optional()
     .transform((v) => (v ? v : undefined)),
   kind: z.string().trim().min(1).max(60).default("Document"),
-  url: z.string().trim().url("That does not look like a web address."),
+  url: webAddress("That does not look like a web address."),
   tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
   associations: z
     .array(
@@ -65,7 +66,7 @@ export const updateDocument = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   description: z.string().trim().max(2000).optional(),
   kind: z.string().trim().min(1).max(60).optional(),
-  url: z.string().trim().url("That does not look like a web address.").optional(),
+  url: webAddress("That does not look like a web address.").optional(),
   tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
 });
 

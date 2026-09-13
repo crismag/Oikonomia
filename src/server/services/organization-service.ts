@@ -183,17 +183,31 @@ export function createOrganizationService(repo: OrganizationRepository) {
     }
   };
 
+  const everything = (): Organization => ({
+    campuses: repo.campuses(),
+    people: repo.people(),
+    ministries: repo.ministries(),
+    venues: repo.venues(),
+    groups: repo.groups(),
+  });
+
   return {
-    /** Everything the rest of the product needs to name people and places. */
-    all(): Organization {
-      return {
-        campuses: repo.campuses(),
-        people: repo.people(),
-        ministries: repo.ministries(),
-        venues: repo.venues(),
-        groups: repo.groups(),
-      };
+    /**
+     * What the session call may show this browser.
+     *
+     * Everything, to somebody signed in. Nothing, to nobody: the call is made
+     * before sign-in so the shell can find out whether anybody is signed in,
+     * and answering it with the directory handed every visitor the church's
+     * names, email addresses and access roles. The sign-in and setup screens
+     * need none of it.
+     */
+    visibleTo(viewer: Viewer | undefined): Organization {
+      if (!viewer) return { campuses: [], people: [], ministries: [], venues: [], groups: [] };
+      return everything();
     },
+
+    /** Everything the rest of the product needs to name people and places. */
+    all: everything,
 
     /**
      * Create the first person, and only the first.

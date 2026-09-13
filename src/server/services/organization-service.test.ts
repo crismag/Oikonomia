@@ -52,6 +52,32 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+describe("what the session call shows a browser", () => {
+  beforeEach(() => {
+    const campus = repo.insertCampus({ name: "Northside" });
+    repo.insertPerson({
+      name: "Solène Marchetti",
+      email: "solene@example.org",
+      accessRole: "admin",
+      campusId: campus.id,
+    });
+    repo.insertMinistry({ name: "Hospitality", campusId: campus.id });
+  });
+
+  it("shows nobody who is not signed in any of the directory", () => {
+    const anonymous = service.visibleTo(undefined);
+    expect(anonymous).toEqual({ campuses: [], people: [], ministries: [], venues: [], groups: [] });
+    expect(JSON.stringify(anonymous)).not.toContain("solene@example.org");
+  });
+
+  it("shows somebody signed in the whole organisation", () => {
+    const seen = service.visibleTo(leader);
+    expect(seen.people.map((person) => person.email)).toContain("solene@example.org");
+    expect(seen.campuses).toHaveLength(1);
+    expect(seen.ministries).toHaveLength(1);
+  });
+});
+
 describe("only an administrator may name a body of responsibility", () => {
   it("refuses a leader who tries to create one", () => {
     expect(() => service.addGroup(leader, { name: "Elders" })).toThrow(ApiError);

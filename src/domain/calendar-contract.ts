@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { webAddress } from "./web-address";
+
 /**
  * What the calendar accepts.
  *
@@ -75,7 +77,7 @@ const entryFields = {
   category: z.enum(scheduleCategories).default("other"),
   ministryId: z.string().min(1).optional(),
   location: z.string().trim().max(200).optional(),
-  meetingUrl: z.string().trim().url("That does not look like a link.").optional(),
+  meetingUrl: webAddress("That does not look like a link.").optional(),
   note: z.string().trim().max(4000).optional(),
   reminders: z.array(z.enum(reminderOffsets)).optional(),
   tags: z.array(z.string().trim().min(1)).optional(),
