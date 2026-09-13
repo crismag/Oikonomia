@@ -116,6 +116,7 @@ dependency audit.
 | `OIKONOMIA_DEMO_MODE`                                     | A public demonstration — see [Demo Mode](#demo-mode)           | An ordinary installation. Only `true`/`false`; anything else serves 503         |
 | `OIKONOMIA_DEMO_DB`                                       | Demo Mode's own live database — never `OIKONOMIA_DB`           | Demo Mode **refuses to open any database** in production (`/healthz` 503)       |
 | `OIKONOMIA_DEMO_BASELINE`                                 | The curated baseline a demonstration is reset to               | A demo reset refuses                                                            |
+| `OIKONOMIA_REQUIRE_DEMO_MODE`                             | Pins a deployment to always be a demonstration — see below     | No such pin. Only `true`/`false`; anything else serves 503                      |
 
 **`OIKONOMIA_URL` is read from configuration, never from the request's `Host`
 header.** A host header is something the client sends, and a sign-in link built
@@ -211,6 +212,26 @@ OIKONOMIA_MAINTENANCE_TOKEN=…
 
 Backups follow the database into `data/artifacts/` unless `OIKONOMIA_ARTIFACTS`
 says otherwise.
+
+> **`oikosdemo.crishub.com` is a Demo-only deployment.** It must always run
+> with `OIKONOMIA_DEMO_MODE=true`, and its `.env` additionally sets
+> `OIKONOMIA_REQUIRE_DEMO_MODE=true` — see "Pinning a deployment to always be a
+> demonstration", above. If its Demo configuration is ever unavailable or
+> invalid, the deployment must remain unavailable (503) rather than operate
+> against the normal database. Its private file therefore holds:
+>
+> ```text
+> OIKONOMIA_URL=https://oikosdemo.crishub.com
+> OIKONOMIA_DEMO_MODE=true
+> OIKONOMIA_REQUIRE_DEMO_MODE=true
+> OIKONOMIA_DB=/home/<user>/domains/oikosdemo.crishub.com/private/oikonomia/data/oikonomia.db
+> OIKONOMIA_DEMO_DB=/home/<user>/domains/oikosdemo.crishub.com/private/oikonomia/data/oikonomia-demo.db
+> OIKONOMIA_DEMO_BASELINE=/home/<user>/domains/oikosdemo.crishub.com/private/oikonomia/data/oikonomia-demo-baseline.db
+> OIKONOMIA_MAINTENANCE_TOKEN=…
+> ```
+>
+> `OIKONOMIA_DB` names the file the same-file checks compare the other two
+> against; Demo Mode never opens it for a request.
 
 `.output/server.js` loads the file before anything else runs. A variable set in
 the environment wins over the file, so hPanel can still override one value. A
@@ -335,6 +356,40 @@ which must be three different files:
 
 Separate files keep a mistake from pointing a reset at a church's data. They do
 not make it safe to swap files: see the reset below.
+
+### Pinning a deployment to always be a demonstration
+
+`OIKONOMIA_DEMO_MODE=true` is a switch a deployment turns on. Nothing stops
+it being left off by mistake — a template missing a line, a `.env` copied from
+the wrong deployment, a hosting panel's override cleared during a redeploy —
+and for most deployments that is tolerable: they fall back to being an
+ordinary installation, which is what they are meant to be sometimes anyway.
+
+**`https://oikosdemo.crishub.com/` is not one of those.** It is specifically
+and permanently the public Oikonomia demonstration, and must never run as an
+ordinary installation — not even for one request, not even while its
+configuration is being changed. `OIKONOMIA_REQUIRE_DEMO_MODE=true` is the pin
+for that: set once, in the private environment file only an operator can
+write. Never derived from the hostname, a `Host` header, a cookie or the
+database — `assertDeploymentProfile` (`src/server/installation/policy.ts`)
+reads only the process environment — it requires:
+
+- `OIKONOMIA_DEMO_MODE=true`;
+- `OIKONOMIA_DEMO_DB` set, and distinct from `OIKONOMIA_DB` and from the
+  baseline (the same rule the database is opened under);
+- `OIKONOMIA_DEMO_BASELINE` set.
+
+Checked at the very top of `src/server.ts`, the same gate that already refuses
+to serve an installation whose `OIKONOMIA_DEMO_MODE` cannot be read — before
+`/healthz`, before every other response. **There is no fallback to
+`OIKONOMIA_DB`**: a deployment pinned this way that is missing any of the
+above serves nothing, 503, with the reason in the log, rather than quietly
+becoming an ordinary installation.
+
+`OIKONOMIA_DB` stays configured on such a deployment — set to the file the
+same-file checks above compare `OIKONOMIA_DEMO_DB` and the baseline against —
+but Demo Mode never opens it for a request. It exists in the environment as a
+protected identity, not as a database this deployment ever serves from.
 
 ### Building a Demo baseline
 

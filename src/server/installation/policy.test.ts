@@ -1,14 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SERVER_FUNCTIONS } from "./operations";
 import {
   InstallationConfigurationError,
   MAINTENANCE_TASKS,
+  assertDeploymentProfile,
   currentInstallation,
   decideRouteRequest,
   decideServerFunction,
   installationView,
   parseDemoMode,
+  parseRequireDemoMode,
   refusal,
 } from "./policy";
 
@@ -55,6 +60,100 @@ describe("reading OIKONOMIA_DEMO_MODE", () => {
     expect(currentInstallation()).toEqual({ demoMode: true });
     vi.stubEnv("OIKONOMIA_DEMO_MODE", "maybe");
     expect(() => currentInstallation()).toThrow(InstallationConfigurationError);
+  });
+});
+
+/**
+ * A deployment pinned to always be a demonstration — oikosdemo.crishub.com's
+ * own configuration, never derived from its hostname or a request: only from
+ * the private environment file this reads.
+ */
+describe("OIKONOMIA_REQUIRE_DEMO_MODE", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "oikonomia-require-demo-"));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  /* Built fresh per test, after beforeEach has set `dir` — a module-level
+     object would resolve its paths against an empty `dir` at collection time.
+     NODE_ENV: production, so liveDatabasePath never falls back to a
+     development default; the profile is checked exactly as it would run. */
+  const valid = () => ({
+    NODE_ENV: "production",
+    OIKONOMIA_REQUIRE_DEMO_MODE: "true",
+    OIKONOMIA_DEMO_MODE: "true",
+    OIKONOMIA_DB: join(dir, "oikonomia.db"),
+    OIKONOMIA_DEMO_DB: join(dir, "oikonomia-demo.db"),
+    OIKONOMIA_DEMO_BASELINE: join(dir, "oikonomia-demo-baseline.db"),
+  });
+
+  it("reads unset as false, and refuses anything but true/false", () => {
+    expect(parseRequireDemoMode(undefined)).toBe(false);
+    expect(parseRequireDemoMode("true")).toBe(true);
+    expect(parseRequireDemoMode("false")).toBe(false);
+    expect(() => parseRequireDemoMode("yes")).toThrow(InstallationConfigurationError);
+    expect(() => parseRequireDemoMode("yes")).toThrow(/OIKONOMIA_REQUIRE_DEMO_MODE/);
+  });
+
+  it("imposes nothing when unset or false, whatever else is configured", () => {
+    expect(() => assertDeploymentProfile({})).not.toThrow();
+    expect(() =>
+      assertDeploymentProfile({
+        OIKONOMIA_REQUIRE_DEMO_MODE: "false",
+        OIKONOMIA_DEMO_MODE: "false",
+      }),
+    ).not.toThrow();
+  });
+
+  it("passes a fully and correctly configured demonstration", () => {
+    expect(() => assertDeploymentProfile(valid())).not.toThrow();
+  });
+
+  it("refuses when Demo Mode itself is off", () => {
+    expect(() => assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_MODE: "false" })).toThrow(
+      /OIKONOMIA_DEMO_MODE=true/,
+    );
+    expect(() => assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_MODE: undefined })).toThrow(
+      InstallationConfigurationError,
+    );
+  });
+
+  it("refuses when the baseline is not configured", () => {
+    expect(() =>
+      assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_BASELINE: undefined }),
+    ).toThrow(/OIKONOMIA_DEMO_BASELINE/);
+    expect(() => assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_BASELINE: "  " })).toThrow(
+      InstallationConfigurationError,
+    );
+  });
+
+  it("refuses when the demonstration's own database is not configured — no fallback to OIKONOMIA_DB", () => {
+    expect(() => assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_DB: undefined })).toThrow(
+      /OIKONOMIA_REQUIRE_DEMO_MODE=true: OIKONOMIA_DEMO_DB/,
+    );
+  });
+
+  it("refuses when the demonstration's database is the ordinary database", () => {
+    expect(() =>
+      assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_DB: valid().OIKONOMIA_DB }),
+    ).toThrow(/same file as OIKONOMIA_DB/);
+  });
+
+  it("refuses when the demonstration's database is its own baseline", () => {
+    expect(() =>
+      assertDeploymentProfile({ ...valid(), OIKONOMIA_DEMO_DB: valid().OIKONOMIA_DEMO_BASELINE }),
+    ).toThrow(/same file as OIKONOMIA_DEMO_BASELINE/);
+  });
+
+  it("refuses a malformed OIKONOMIA_REQUIRE_DEMO_MODE before checking anything else", () => {
+    expect(() =>
+      assertDeploymentProfile({ ...valid(), OIKONOMIA_REQUIRE_DEMO_MODE: "enabled" }),
+    ).toThrow(/OIKONOMIA_REQUIRE_DEMO_MODE must be/);
   });
 });
 

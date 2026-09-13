@@ -3,7 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { withSecurityHeaders } from "./server/http/security-headers";
-import { currentInstallation } from "./server/installation/policy";
+import { assertDeploymentProfile, currentInstallation } from "./server/installation/policy";
 
 /** Logged once per process, not once per request. */
 let reportedMisconfiguration = false;
@@ -58,9 +58,13 @@ export default {
     /* An installation whose policy cannot be read serves nothing — not even
        /healthz — because a demonstration that is silently not one, or a
        church installation that silently is, is worse than an outage that
-       names its cause. */
+       names its cause. A deployment pinned to always be a demonstration
+       (OIKONOMIA_REQUIRE_DEMO_MODE=true) is held to the same rule: missing or
+       wrong Demo configuration serves nothing, rather than quietly falling
+       back to an ordinary installation. */
     try {
       currentInstallation();
+      assertDeploymentProfile();
     } catch (error) {
       if (!reportedMisconfiguration) console.error(error);
       reportedMisconfiguration = true;

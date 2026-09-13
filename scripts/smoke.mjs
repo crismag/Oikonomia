@@ -1056,6 +1056,71 @@ try {
     } else {
       check("starts, to report OIKONOMIA_DEMO_MODE=yes", false, misconfigured.text);
     }
+
+    /*
+     * A deployment pinned to always be a demonstration
+     * (OIKONOMIA_REQUIRE_DEMO_MODE=true — oikosdemo.crishub.com's own
+     * configuration) cannot boot as an ordinary installation, whatever the
+     * rest of its environment says — including a perfectly ordinary one.
+     */
+    const pinned = (env) =>
+      start({ ...installation("true"), OIKONOMIA_REQUIRE_DEMO_MODE: "true", ...env });
+
+    const pinnedButOrdinary = pinned({ OIKONOMIA_DEMO_MODE: "false" });
+    if (await waitForServer()) {
+      const health = await fetch(`${BASE}/healthz`);
+      check(
+        "OIKONOMIA_REQUIRE_DEMO_MODE=true, Demo Mode off: the deployment cannot boot as an ordinary installation",
+        health.status === 503 && /OIKONOMIA_REQUIRE_DEMO_MODE=true/.test(pinnedButOrdinary.text),
+        `got ${health.status}`,
+      );
+      await stop();
+    } else {
+      check("starts, to report the pinned-but-ordinary refusal", false, pinnedButOrdinary.text);
+    }
+
+    const pinnedNoBaseline = pinned({ OIKONOMIA_DEMO_BASELINE: undefined });
+    if (await waitForServer()) {
+      const health = await fetch(`${BASE}/healthz`);
+      check(
+        "OIKONOMIA_REQUIRE_DEMO_MODE=true, no baseline configured: refuses rather than serving",
+        health.status === 503 && /OIKONOMIA_DEMO_BASELINE/.test(pinnedNoBaseline.text),
+        `got ${health.status}`,
+      );
+      await stop();
+    } else {
+      check("starts, to report the pinned-no-baseline refusal", false, pinnedNoBaseline.text);
+    }
+
+    const pinnedNoDemoDb = pinned({ OIKONOMIA_DEMO_DB: undefined });
+    if (await waitForServer()) {
+      const health = await fetch(`${BASE}/healthz`);
+      check(
+        "OIKONOMIA_REQUIRE_DEMO_MODE=true, no dedicated Demo database: refuses, no fallback to OIKONOMIA_DB",
+        health.status === 503 && /OIKONOMIA_DEMO_DB/.test(pinnedNoDemoDb.text),
+        `got ${health.status}`,
+      );
+      await stop();
+    } else {
+      check("starts, to report the pinned-no-demo-db refusal", false, pinnedNoDemoDb.text);
+    }
+
+    const pinnedCorrect = pinned({});
+    if (await waitForServer()) {
+      const health = await fetch(`${BASE}/healthz`);
+      check(
+        "OIKONOMIA_REQUIRE_DEMO_MODE=true, fully configured: boots and serves as a demonstration",
+        health.status === 200,
+        `got ${health.status}`,
+      );
+      await stop();
+    } else {
+      check(
+        "starts when the pinned deployment is fully and correctly configured",
+        false,
+        pinnedCorrect.text,
+      );
+    }
   }
 } finally {
   server?.kill("SIGKILL");

@@ -2,6 +2,7 @@ import type { InstallationRestriction, InstallationView } from "@/domain/install
 import type { ApiErrorBody } from "@/lib/api-envelope";
 import { text } from "@/config/messages";
 
+import { liveDatabasePath } from "../db/database-paths";
 import { SERVER_FUNCTIONS, type DenialReason } from "./operations";
 
 /**
@@ -58,6 +59,67 @@ export function parseDemoMode(raw: string | undefined): boolean {
 /** Read from the environment on every call: a process that changes it is believed. */
 export function currentInstallation(): Installation {
   return { demoMode: parseDemoMode(process.env["OIKONOMIA_DEMO_MODE"]) };
+}
+
+/** Strictly: unset, `true` or `false` — the same reading `OIKONOMIA_DEMO_MODE` gets. */
+export function parseRequireDemoMode(raw: string | undefined): boolean {
+  if (raw === undefined) return false;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  throw new InstallationConfigurationError(
+    `OIKONOMIA_REQUIRE_DEMO_MODE must be "true" or "false" (or unset); got ${JSON.stringify(raw)}.`,
+  );
+}
+
+/**
+ * A deployment pinned to run only as a public demonstration.
+ *
+ * `OIKONOMIA_DEMO_MODE` is a switch — meant to be turned on for a
+ * demonstration and left off for a church's own installation, but nothing
+ * stops it being unset by an omission: a template missing a line, a `.env`
+ * copied from the wrong deployment, a hosting panel's override cleared during
+ * a redeploy. For most deployments that failure mode is tolerable — it falls
+ * back to an ordinary installation, which is what most deployments are meant
+ * to be. **A deployment that must never be an ordinary installation** needs
+ * the opposite failure mode.
+ *
+ * `OIKONOMIA_REQUIRE_DEMO_MODE=true` is that pin: set once, in the private
+ * environment file only an operator can write — never derived from a
+ * request, a `Host` header, or the database, none of which this function
+ * reads — it requires `OIKONOMIA_DEMO_MODE=true` and a dedicated, distinct
+ * `OIKONOMIA_DEMO_DB` and `OIKONOMIA_DEMO_BASELINE`. Anything short of that
+ * throws, and `src/server.ts` calls this at the same gate that already
+ * refuses to serve an installation whose policy cannot be read — before
+ * `/healthz`, before every other response. There is no fallback to
+ * `OIKONOMIA_DB`: a deployment pinned this way that is missing any of them
+ * serves nothing rather than quietly becoming an ordinary installation.
+ */
+export function assertDeploymentProfile(
+  env: Record<string, string | undefined> = process.env,
+): void {
+  if (!parseRequireDemoMode(env["OIKONOMIA_REQUIRE_DEMO_MODE"])) return;
+
+  if (!parseDemoMode(env["OIKONOMIA_DEMO_MODE"])) {
+    throw new InstallationConfigurationError(
+      "OIKONOMIA_REQUIRE_DEMO_MODE=true requires OIKONOMIA_DEMO_MODE=true. This deployment is " +
+        "pinned to run only as a public demonstration, never as an ordinary installation.",
+    );
+  }
+  if (!env["OIKONOMIA_DEMO_BASELINE"]?.trim()) {
+    throw new InstallationConfigurationError(
+      "OIKONOMIA_REQUIRE_DEMO_MODE=true requires OIKONOMIA_DEMO_BASELINE to be set.",
+    );
+  }
+  try {
+    /* Resolves OIKONOMIA_DEMO_DB and throws if it is unset, or not distinct
+       from OIKONOMIA_DB or the baseline — the same rule the database itself
+       is opened under, checked here before anything is opened. */
+    liveDatabasePath(true, env);
+  } catch (error) {
+    throw new InstallationConfigurationError(
+      `OIKONOMIA_REQUIRE_DEMO_MODE=true: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 export type Decision =
