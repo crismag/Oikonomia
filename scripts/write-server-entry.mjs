@@ -17,6 +17,9 @@
  * `"type": "module"`), loadable by `require()` and by `node` alike, and doing
  * nothing but hand over to the real bundle with a dynamic `import()`.
  *
+ * Before handing over it loads `OIKONOMIA_ENV_FILE`, when set: the built server
+ * reads no `.env` of its own, and a host's panel is a poor place for secrets.
+ *
  * It runs after `vite build` because Nitro empties `.output/` at the start of
  * every build — the entry is regenerated with the bundle it points at, and can
  * never outlive it.
@@ -48,6 +51,30 @@ writeFileSync(
 // server bundle, which listens on PORT (or NITRO_PORT) on every interface
 // unless HOST (or NITRO_HOST) says otherwise.
 "use strict";
+
+// Everything this process creates — the database, its -wal and -shm files,
+// exports and backups — is readable by this account alone. The host's default
+// would leave a church's records readable by every other account on the
+// machine that can reach the directory.
+if (process.platform !== "win32") process.umask(0o077);
+
+// Settings and secrets kept in a private file outside the application
+// directory, named by OIKONOMIA_ENV_FILE. A variable already in the environment
+// wins over the file. A file that was named and cannot be read stops the
+// server: running without its settings would fail later and less clearly.
+const envFile = process.env.OIKONOMIA_ENV_FILE && process.env.OIKONOMIA_ENV_FILE.trim();
+if (envFile) {
+  const fs = require("node:fs");
+  try {
+    if (process.platform !== "win32" && (fs.statSync(envFile).mode & 0o077) !== 0) {
+      console.warn(\`OIKONOMIA_ENV_FILE (\${envFile}) is readable by other users; chmod 400 it.\`);
+    }
+    process.loadEnvFile(envFile);
+  } catch (error) {
+    console.error(\`Oikonomia could not read OIKONOMIA_ENV_FILE (\${envFile}): \${error.code || error.message}\`);
+    process.exit(1);
+  }
+}
 
 // The bundle was compiled for production; its dependencies should agree.
 if (!process.env.NODE_ENV) process.env.NODE_ENV = "production";

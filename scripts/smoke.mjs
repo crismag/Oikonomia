@@ -19,7 +19,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -71,8 +71,11 @@ try {
   /* NODE_ENV is left to the entry: a host may not set it. */
   const { NODE_ENV: _ignored, ...inherited } = process.env;
   const start = (env) => {
+    /* `undefined` removes a variable, so a check can prove where a value came from. */
+    const merged = { ...inherited, PORT: String(PORT), ...env };
+    for (const key of Object.keys(merged)) if (merged[key] === undefined) delete merged[key];
     server = spawn(process.execPath, [ENTRY], {
-      env: { ...inherited, PORT: String(PORT), ...env },
+      env: merged,
       stdio: ["ignore", "pipe", "pipe"],
     });
     const captured = { text: "" };
@@ -181,6 +184,19 @@ try {
     db.close();
   }
 
+  /* What the server writes is this account's alone. */
+  if (process.platform !== "win32") {
+    const { statSync } = await import("node:fs");
+    const modes = [database, `${database}-wal`, `${database}-shm`]
+      .filter((file) => existsSync(file))
+      .map((file) => `${file.slice(dir.length + 1)}=${(statSync(file).mode & 0o777).toString(8)}`);
+    check(
+      "the database files it created are readable by this account only",
+      modes.length > 0 && modes.every((entry) => entry.endsWith("=600")),
+      modes.join(" "),
+    );
+  }
+
   /* 4. The pieces a browser needs, served by the same process. */
   const shell = await login.text();
   const asset = /\/assets\/[^"']+\.js/.exec(shell)?.[0];
@@ -265,6 +281,68 @@ try {
   } else {
     check("starts without OIKONOMIA_DB so it can say what is missing", false, unconfigured.text);
   }
+
+  /* 7. Settings from a private file named by OIKONOMIA_ENV_FILE, the way a
+        host's panel supplies one variable and the secrets stay on disk. */
+  server.kill("SIGTERM");
+  await new Promise((resolve) => server.once("exit", resolve));
+
+  const SECRET = "smoke-secret-value-never-logged";
+  const envFile = join(dir, "private.env");
+  writeFileSync(
+    envFile,
+    [
+      `OIKONOMIA_DB=${database}`,
+      `OIKONOMIA_URL=https://from-file.example`,
+      `OIKONOMIA_MAINTENANCE_TOKEN=${SECRET}`,
+    ].join("\n") + "\n",
+    { mode: 0o600 },
+  );
+
+  /* OIKONOMIA_URL is also set in the environment, which must win. */
+  const fromFile = start({
+    OIKONOMIA_ENV_FILE: envFile,
+    OIKONOMIA_DB: undefined,
+    OIKONOMIA_URL: PUBLIC_URL,
+    OIKONOMIA_MAINTENANCE_TOKEN: undefined,
+  });
+  if (await waitForServer()) {
+    const healthy = await fetch(BASE + "/healthz");
+    check(
+      "OIKONOMIA_ENV_FILE supplies the database location",
+      healthy.status === 200,
+      `got ${healthy.status}`,
+    );
+    const token = await fetch(BASE + "/maintenance/run?task=nothing", {
+      method: "POST",
+      headers: { authorization: `Bearer ${SECRET}` },
+    });
+    check(
+      "and the secrets in it",
+      token.status === 400,
+      `got ${token.status} (401 means the token was not read)`,
+    );
+    const envWins = await csrf(PUBLIC_URL);
+    const fileLoses = await csrf("https://from-file.example");
+    check(
+      "a variable set in the environment wins over the file",
+      envWins.status !== 403 && fileLoses.status === 403,
+      `environment origin ${envWins.status}, file origin ${fileLoses.status}`,
+    );
+    check("the file's values are never logged", !fromFile.text.includes(SECRET));
+  } else {
+    check("starts with OIKONOMIA_ENV_FILE", false, fromFile.text);
+  }
+  server.kill("SIGTERM");
+  await new Promise((resolve) => server.once("exit", resolve));
+
+  const missing = start({ OIKONOMIA_ENV_FILE: join(dir, "missing.env") });
+  const code = await new Promise((resolve) => server.once("exit", resolve));
+  check(
+    "a named OIKONOMIA_ENV_FILE that cannot be read stops the server",
+    code !== 0 && /could not read OIKONOMIA_ENV_FILE/.test(missing.text),
+    `exit ${code}: ${missing.text.slice(0, 200)}`,
+  );
 } finally {
   server?.kill("SIGKILL");
   rmSync(dir, { recursive: true, force: true });

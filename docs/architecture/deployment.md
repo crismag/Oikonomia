@@ -38,7 +38,8 @@ in the application directory.
 
 The server listens on `PORT` (or `NITRO_PORT`; 3000 if neither) on every
 interface, unless `HOST`/`NITRO_HOST` names one. It reads the process
-environment only — **a `.env` file is not loaded by the built server.**
+environment, plus the private file `OIKONOMIA_ENV_FILE` names — **a `.env` in
+the working directory is not loaded by the built server.**
 
 `SIGTERM` stops it. Nothing runs in the background that a stop could interrupt
 (see [Scheduling](#scheduling)); SQLite's write-ahead log makes an abrupt stop
@@ -71,8 +72,10 @@ that does not exist yet and checks that it serves pages and built assets, sends
 its security headers, opens the database, applies every migration, holds no
 sample data, answers unknown paths with a 404, accepts server functions from
 the configured `https` origin while reached over `http` (as behind a proxy),
-refuses them from any other origin, stops on `SIGTERM`, and refuses to open a
-database when `OIKONOMIA_DB` is unset. This exists because a build can
+refuses them from any other origin, stops on `SIGTERM`, refuses to open a
+database when `OIKONOMIA_DB` is unset, and reads settings and secrets from
+`OIKONOMIA_ENV_FILE` without logging them, with the environment taking
+precedence and an unreadable file stopping the server. This exists because a build can
 succeed while being unusable: migrations were once not carried into the bundle,
 and every page of the deployed application said _"Oikonomia could not be
 reached"_ while tests, typecheck, lint and the build were all green.
@@ -84,20 +87,21 @@ dependency audit.
 
 `.env.example` lists every setting and holds no values.
 
-| Variable                                                  | Switches on                                        | Without it                                                                      |
-| --------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `OIKONOMIA_URL`                                           | Link building, `Secure` cookies, HSTS, CSRF origin | Local development assumed; **refuses in production**                            |
-| `OIKONOMIA_DB`                                            | Database file — **outside the app directory**      | `.data/oikonomia.db` in development; **refuses in production** (`/healthz` 503) |
-| `OIKONOMIA_ARTIFACTS`                                     | Where exports and backups are written              | `artifacts/` beside the database                                                |
-| `PORT` / `NITRO_PORT`                                     | Listen port                                        | 3000                                                                            |
-| `HOST` / `NITRO_HOST`                                     | Listen interface                                   | Every interface                                                                 |
-| `OIKONOMIA_SMTP_HOST`, `OIKONOMIA_MAIL_FROM`              | Magic links, password resets, invitations          | Those controls are removed and the screen says why                              |
-| `OIKONOMIA_SMTP_PORT` / `_SECURE` / `_USER` / `_PASSWORD` | SMTP details                                       | 587, STARTTLS, no credentials                                                   |
-| `GOOGLE_CLIENT_ID` / `_SECRET`                            | Google sign-in                                     | The screen does not offer Google                                                |
-| `OIKONOMIA_BACKUP_DIR`                                    | A second backup destination                        | Every backup is on this machine, and the panel says so                          |
-| `OIKONOMIA_BACKUP_OFFSITE`                                | Declares that directory leaves this machine        | Treated as a second local copy                                                  |
-| `OIKONOMIA_MAINTENANCE_TOKEN`                             | Scheduled maintenance                              | **The endpoint is off, not open**                                               |
-| `OIKONOMIA_ALERT_TO`                                      | Email on a failed scheduled task                   | Only cron's exit code reports it                                                |
+| Variable                                                  | Switches on                                                    | Without it                                                                      |
+| --------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `OIKONOMIA_ENV_FILE`                                      | A private file the built server loads every other setting from | Settings come from the environment only                                         |
+| `OIKONOMIA_URL`                                           | Link building, `Secure` cookies, HSTS, CSRF origin             | Local development assumed; **refuses in production**                            |
+| `OIKONOMIA_DB`                                            | Database file — **outside the app directory**                  | `.data/oikonomia.db` in development; **refuses in production** (`/healthz` 503) |
+| `OIKONOMIA_ARTIFACTS`                                     | Where exports and backups are written                          | `artifacts/` beside the database                                                |
+| `PORT` / `NITRO_PORT`                                     | Listen port                                                    | 3000                                                                            |
+| `HOST` / `NITRO_HOST`                                     | Listen interface                                               | Every interface                                                                 |
+| `OIKONOMIA_SMTP_HOST`, `OIKONOMIA_MAIL_FROM`              | Magic links, password resets, invitations                      | Those controls are removed and the screen says why                              |
+| `OIKONOMIA_SMTP_PORT` / `_SECURE` / `_USER` / `_PASSWORD` | SMTP details                                                   | 587, STARTTLS, no credentials                                                   |
+| `GOOGLE_CLIENT_ID` / `_SECRET`                            | Google sign-in                                                 | The screen does not offer Google                                                |
+| `OIKONOMIA_BACKUP_DIR`                                    | A second backup destination                                    | Every backup is on this machine, and the panel says so                          |
+| `OIKONOMIA_BACKUP_OFFSITE`                                | Declares that directory leaves this machine                    | Treated as a second local copy                                                  |
+| `OIKONOMIA_MAINTENANCE_TOKEN`                             | Scheduled maintenance                                          | **The endpoint is off, not open**                                               |
+| `OIKONOMIA_ALERT_TO`                                      | Email on a failed scheduled task                               | Only cron's exit code reports it                                                |
 
 **`OIKONOMIA_URL` is read from configuration, never from the request's `Host`
 header.** A host header is something the client sends, and a sign-in link built
@@ -138,35 +142,94 @@ request's own URL would refuse every call from a browser that does not send
 
 ## Hostinger (Node.js Web App)
 
-| Field            | Value                                                                   |
-| ---------------- | ----------------------------------------------------------------------- |
-| Framework preset | Other — or Express if Other is not offered. Not Vite: that means static |
-| Node version     | 22.x (`engines` in `package.json`)                                      |
-| Package manager  | npm                                                                     |
-| Root directory   | repository root (`./`)                                                  |
-| Build command    | `npm run build`                                                         |
-| Output directory | empty if the form allows; otherwise `.output`                           |
-| Entry file       | `.output/server.js` (relative to the root directory)                    |
+| Field            | Value                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Framework preset | **Other.** Not Express/Fastify/Hono (they install without building) nor Vite (static only) |
+| Node version     | 22.x (`engines` in `package.json`)                                                         |
+| Package manager  | npm                                                                                        |
+| Root directory   | repository root (`./`)                                                                     |
+| Build command    | `npm run build`                                                                            |
+| Output directory | empty if the form allows; otherwise `.output`                                              |
+| Entry file       | `.output/server.js` (relative to the root directory)                                       |
 
-Environment variables are set in hPanel, not in a `.env` file. Set at least
-`OIKONOMIA_URL` (the public `https://` address) and `OIKONOMIA_DB`.
+Hostinger runs the entry through LiteSpeed's Passenger (`lsnode`), which may
+start more than one process.
 
 **Hostinger overwrites `hbuilds/` and `public_html` on every deployment.** The
-database must be outside both — for example
-`/home/<user>/oikonomia-data/oikonomia.db` — or the first redeploy deletes the
-church's records. Backups follow the database unless `OIKONOMIA_ARTIFACTS`
+database must be outside both, or the first redeploy deletes the church's
+records.
+
+### Private data: settings, secrets, database, backups
+
+Everything the installation owns lives in one directory beside `public_html` —
+never served by the web server, never replaced by a deploy:
+
+```text
+/home/<user>/domains/<domain>/private/          500  dr-x------
+└── oikonomia/                                  500  dr-x------
+    ├── .env                                    400  -r--------   settings and secrets
+    └── data/                                   700  drwx------
+        ├── oikonomia.db (+ -wal, -shm)         600  -rw-------
+        └── artifacts/                          700  drwx------   exports and backups
+```
+
+These are the least that work. The application runs as the account itself, so
+nobody else needs any access. `private/` and `oikonomia/` are only traversed
+and read; the `.env` is only read; `data/` must be writable, because SQLite
+creates its `-wal` and `-shm` files beside the database. `.output/server.js`
+sets `umask 077`, so every file the application creates later — the log files
+SQLite adds, each backup — is owner-only without anyone remembering to
+`chmod` it.
+
+hPanel holds a single variable:
+
+```text
+OIKONOMIA_ENV_FILE=/home/<user>/domains/<domain>/private/oikonomia/.env
+```
+
+and the file holds the rest, in `KEY=value` form:
+
+```text
+OIKONOMIA_URL=https://<domain>
+OIKONOMIA_DB=/home/<user>/domains/<domain>/private/oikonomia/data/oikonomia.db
+OIKONOMIA_MAINTENANCE_TOKEN=…
+```
+
+Backups follow the database into `data/artifacts/` unless `OIKONOMIA_ARTIFACTS`
 says otherwise.
 
-Run **one** instance. SQLite serializes writers, but two processes starting
-together against an empty database can race to apply the same migration; the
-loser fails that request and succeeds on the next.
+`.output/server.js` loads the file before anything else runs. A variable set in
+the environment wins over the file, so hPanel can still override one value. A
+file that is named but unreadable **stops the server** with the path in the
+runtime log, and one readable by other users logs a warning. Changing the file
+needs a restart, not a redeploy. `npm run auth:set-password` reads the same
+variable.
+
+To edit the `.env`, lift the protection for the edit and put it back:
+
+```bash
+cd ~/domains/<domain>/private
+chmod u+w . oikonomia oikonomia/.env   # editors write a temporary file beside it
+nano oikonomia/.env
+chmod 400 oikonomia/.env && chmod 500 oikonomia .
+```
+
+Deleting the domain in hPanel deletes `private/` with it — database included.
+An off-machine copy (`OIKONOMIA_BACKUP_DIR`) is what survives that.
+
+Two processes starting together against an empty database can race to apply
+the same migration; the loser fails that request and succeeds on the next.
 
 Scheduled maintenance uses hPanel's cron jobs against the public address, since
-the application's internal port is not fixed:
+the application's internal port is not fixed. The job reads the token from the
+same file:
 
 ```cron
-0 2 * * *  curl -fsS -X POST -H "Authorization: Bearer $TOKEN" https://your-host/maintenance/run?task=backup
+0 2 * * *  set -a; . /home/<user>/domains/<domain>/private/oikonomia/.env; set +a; curl -fsS -X POST -H "Authorization: Bearer $OIKONOMIA_MAINTENANCE_TOKEN" "$OIKONOMIA_URL/maintenance/run?task=backup"
 ```
+
+Shell `.` and Node read the same simple `KEY=value` lines alike; keep values
+free of `$` and backticks, which the shell would expand.
 
 After deploying: `curl -fsS https://your-host/healthz` must answer
 `{"ok":true,…}`, and the first visit must land on `/setup`.

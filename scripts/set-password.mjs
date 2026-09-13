@@ -30,6 +30,11 @@ if (password.length < 12) {
   process.exit(1);
 }
 
+/* The same private settings file the server reads, so OIKONOMIA_DB need not be
+   typed again on the command line. */
+const envFile = process.env.OIKONOMIA_ENV_FILE?.trim();
+if (envFile) process.loadEnvFile(envFile);
+
 const path = process.env.OIKONOMIA_DB ?? join(process.cwd(), ".data", "oikonomia.db");
 /* An account can only exist in a database that does; a wrong or missing
    OIKONOMIA_DB must not quietly create an empty one somewhere else. */
