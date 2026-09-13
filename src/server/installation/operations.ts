@@ -314,6 +314,10 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/reports-api.ts#commentOnReport": { method: "POST", demo: "allowed" },
   "src/lib/reports-api.ts#removeReport": { method: "POST", demo: "allowed" },
 
+  /* starred-api.ts */
+  "src/lib/starred-api.ts#fetchStarred": { method: "GET", demo: "read" },
+  "src/lib/starred-api.ts#setStarred": { method: "POST", demo: "allowed" },
+
   /* team-overview-api.ts */
   "src/lib/team-overview-api.ts#fetchTeamOverview": { method: "GET", demo: "read" },
 

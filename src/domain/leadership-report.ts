@@ -1,5 +1,6 @@
 import { resolveAccess } from "./access";
 import { newBlockId } from "./meeting";
+import { monthLabel, weekLabel, weekOf } from "./schedule";
 import { accessStrategies, config } from "@/config";
 import type { AccessStrategy, StatusBehavior } from "@/config";
 import type {
@@ -610,6 +611,7 @@ export interface ReportFilter {
   /** Where it was written. A dimension of the list, never of access. */
   contextType?: LeadershipReport["contextType"] | undefined;
   category?: string | undefined;
+  sort?: ReportSortKey | undefined;
 }
 
 /**
@@ -639,7 +641,132 @@ export function filterReports(
   /* Searching a list is still searching: a confidential report is not found
      by typing part of its title, even in a list that legitimately holds it. */
   if (filter.query) out = searchReports(out, filter.query, nameOf, person);
-  return [...out].sort(byUpdated);
+  return sortReports(out, filter.sort);
+}
+
+/* ---------------------------------------------------------- sort and group */
+
+export type ReportSortKey = "updated" | "date" | "title" | "type" | "status";
+
+export const reportSortLabel: Record<ReportSortKey, string> = {
+  updated: "Last updated",
+  date: "Reporting date",
+  title: "Title (A–Z)",
+  type: "Report type",
+  status: "Status",
+};
+
+export const reportSortKeys = Object.keys(reportSortLabel) as ReportSortKey[];
+
+function dateOf(report: LeadershipReport): string {
+  return report.publishedAt ?? report.updatedAt;
+}
+
+/** The comparison a sort key means, always falling back to recency so ties read the same way twice. */
+function compareBy(sort: ReportSortKey): (a: LeadershipReport, b: LeadershipReport) => number {
+  switch (sort) {
+    case "date":
+      return (a, b) => dateOf(b).localeCompare(dateOf(a)) || byUpdated(a, b);
+    case "title":
+      return (a, b) =>
+        (a.title || "Untitled report").localeCompare(b.title || "Untitled report") ||
+        byUpdated(a, b);
+    case "type":
+      return (a, b) =>
+        reportTypeLabel(a.reportType).localeCompare(reportTypeLabel(b.reportType)) ||
+        byUpdated(a, b);
+    case "status":
+      return (a, b) =>
+        (reportStatusLabel[a.status] ?? a.status).localeCompare(
+          reportStatusLabel[b.status] ?? b.status,
+        ) || byUpdated(a, b);
+    case "updated":
+    default:
+      return byUpdated;
+  }
+}
+
+/** `reports`, ordered by the reader's chosen dimension rather than a fixed one. */
+export function sortReports(
+  reports: LeadershipReport[],
+  sort: ReportSortKey = "updated",
+): LeadershipReport[] {
+  return [...reports].sort(compareBy(sort));
+}
+
+export type ReportGroupKey = "none" | "type" | "status" | "category" | "week" | "month";
+
+export const reportGroupLabel: Record<ReportGroupKey, string> = {
+  none: "No grouping",
+  type: "Report type",
+  status: "Status",
+  category: "Category",
+  week: "Week",
+  month: "Month",
+};
+
+export const reportGroupKeys = Object.keys(reportGroupLabel) as ReportGroupKey[];
+
+export interface ReportGroup {
+  key: string;
+  label: string;
+  reports: LeadershipReport[];
+}
+
+/**
+ * `reports` split into named groups, in the order they should be read.
+ *
+ * Grouping never reorders within a group — it is layered over whatever sort
+ * the reader chose, not a replacement for it. `week`/`month` groups sort most
+ * recent first, because that is how the other sort keys already read; `type`,
+ * `status` and `category` groups sort alphabetically, because there is no
+ * other order a reader would expect from a word.
+ */
+export function groupReports(reports: LeadershipReport[], group: ReportGroupKey): ReportGroup[] {
+  if (group === "none") {
+    return reports.length > 0 ? [{ key: "", label: "", reports }] : [];
+  }
+
+  const buckets = new Map<string, ReportGroup>();
+  for (const report of reports) {
+    const { key, label } = groupKeyOf(report, group);
+    const existing = buckets.get(key);
+    if (existing) existing.reports.push(report);
+    else buckets.set(key, { key, label, reports: [report] });
+  }
+
+  const alphabetical = group === "type" || group === "status" || group === "category";
+  return [...buckets.values()].sort((a, b) =>
+    alphabetical ? a.label.localeCompare(b.label) : b.key.localeCompare(a.key),
+  );
+}
+
+function groupKeyOf(
+  report: LeadershipReport,
+  group: ReportGroupKey,
+): { key: string; label: string } {
+  switch (group) {
+    case "type":
+      return { key: report.reportType, label: reportTypeLabel(report.reportType) };
+    case "status":
+      return { key: report.status, label: reportStatusLabel[report.status] ?? report.status };
+    case "category": {
+      const category = report.category ?? "general";
+      return { key: category, label: category === "general" ? "General" : category };
+    }
+    case "week": {
+      const monday = weekOf(dateOf(report).slice(0, 10));
+      return { key: monday, label: `Week of ${weekLabel(monday)}` };
+    }
+    case "month": {
+      const iso = dateOf(report).slice(0, 10);
+      const monthStart = `${iso.slice(0, 7)}-01`;
+      return { key: monthStart, label: monthLabel(monthStart) };
+    }
+    case "none":
+    default:
+      return { key: "", label: "" };
+  }
 }
 
 /* ------------------------------------------------------------------ people */

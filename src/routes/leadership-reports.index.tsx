@@ -37,12 +37,20 @@ import {
 } from "@/domain/documents";
 import {
   filterReports,
+  groupReports,
+  reportGroupKeys,
+  reportGroupLabel,
+  reportSortKeys,
+  reportSortLabel,
   reportStatusLabel,
   isRestricted,
   reportTypeLabel,
   knownReportTypes,
   visibilityLabel,
+  type ReportGroupKey,
+  type ReportSortKey,
 } from "@/domain/leadership-report";
+import { StarButton, starredFirst, useStarred } from "@/components/oikonomia/starred";
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { errorMessage } from "@/lib/calendar-client";
 import { paginate } from "@/domain/pagination";
@@ -80,6 +88,8 @@ type SearchState = {
   tag?: string;
   /** Where the report was written. A dimension of the list, not of access. */
   source?: string;
+  sort?: ReportSortKey;
+  group?: ReportGroupKey;
   page?: number;
 };
 
@@ -98,6 +108,12 @@ export const Route = createFileRoute("/leadership-reports/")({
     const visibility = visibilities.includes(search["visibility"] as ReportVisibility)
       ? (search["visibility"] as ReportVisibility)
       : undefined;
+    const sort = reportSortKeys.includes(search["sort"] as ReportSortKey)
+      ? (search["sort"] as ReportSortKey)
+      : undefined;
+    const group = reportGroupKeys.includes(search["group"] as ReportGroupKey)
+      ? (search["group"] as ReportGroupKey)
+      : undefined;
 
     return {
       ...(tabs.includes(search["tab"] as Tab) && search["tab"] !== "mine"
@@ -110,6 +126,8 @@ export const Route = createFileRoute("/leadership-reports/")({
       ...(str("ministry") ? { ministry: str("ministry")! } : {}),
       ...(str("tag") ? { tag: str("tag")! } : {}),
       ...(str("source") ? { source: str("source")! } : {}),
+      ...(sort ? { sort } : {}),
+      ...(group ? { group } : {}),
       ...(Number.isFinite(page) && page > 1 ? { page: Math.floor(page) } : {}),
     };
   },
@@ -221,6 +239,9 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
   const ministryId = state.ministry ?? null;
   const tag = state.tag ?? null;
   const source = state.source ?? null;
+  const sort = state.sort ?? "updated";
+  const group = state.group ?? "none";
+  const starred = useStarred();
 
   const setQuery = (v: string) => patch({ q: v || undefined });
   const setStatus = (v: ReportStatus | null) => patch({ status: v ?? undefined });
@@ -228,6 +249,8 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
   const setVisibility = (v: ReportVisibility | null) => patch({ visibility: v ?? undefined });
   const setMinistryId = (v: string | null) => patch({ ministry: v ?? undefined });
   const setTag = (v: string | null) => patch({ tag: v ?? undefined });
+  const setSort = (v: ReportSortKey | null) => patch({ sort: v ?? undefined });
+  const setGroup = (v: ReportGroupKey | null) => patch({ group: v ?? undefined });
 
   /* An empty list and an unreachable one look identical, and only one of them
      means "there is nothing here". */
@@ -255,12 +278,30 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
       ...(tag ? { tag } : {}),
       ...(source ? { contextType: source as LeadershipReport["contextType"] } : {}),
       query,
+      sort,
     },
     nameOf,
     person,
   );
 
-  const page = paginate(visible, state.page ?? 1);
+  /*
+   * A star is a private override of order, applied last: it moves an item to
+   * the top of whichever group it lands in without changing what "grouped" or
+   * "sorted" means for anyone else, and without hiding anything.
+   */
+  const isStarred = (report: LeadershipReport) => starred.isStarred("leadership-report", report.id);
+  const groups =
+    group === "none"
+      ? [{ key: "", label: "", reports: starredFirst(visible, isStarred) }]
+      : groupReports(visible, group).map((g) => ({
+          ...g,
+          reports: starredFirst(g.reports, isStarred),
+        }));
+
+  /* Grouping shows every matching report at once — a reader comparing weeks or
+     types needs the whole shape of the list, not a slice of it — so paging
+     applies only to the ungrouped, flat view. */
+  const page = group === "none" ? paginate(groups[0]!.reports, state.page ?? 1) : null;
 
   /* Tags counted from what this viewer may see, never from every report. */
   const tags = [...new Set(scoped.flatMap((r) => r.tags))].sort();
@@ -357,6 +398,13 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
         />
       </div>
 
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
+        <SortAndGroup sort={sort} setSort={setSort} group={group} setGroup={setGroup} />
+        <p className="text-[12px] text-muted-foreground">
+          {visible.length} {visible.length === 1 ? "report" : "reports"}
+        </p>
+      </div>
+
       {tags.length > 0 ? (
         <div className="-mx-4 mb-3 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <div className="flex items-center gap-1.5">
@@ -380,25 +428,47 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
         </div>
       ) : null}
 
-      {page.items.length > 0 ? (
-        <>
-          <ul className="overflow-hidden rounded-lg border border-border bg-surface">
-            {page.items.map((report) => (
-              <ReportRow key={report.id} report={report} />
+      {visible.length > 0 ? (
+        page ? (
+          <>
+            <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+              {page.items.map((report) => (
+                <ReportRow key={report.id} report={report} starred={starred} />
+              ))}
+            </ul>
+            <Pagination
+              window={page}
+              onPage={(n) =>
+                navigate({
+                  to: "/leadership-reports",
+                  search: clean({ ...state, page: n > 1 ? n : undefined }),
+                  replace: true,
+                })
+              }
+              noun="report"
+            />
+          </>
+        ) : (
+          <div className="space-y-4">
+            {groups.map((g) => (
+              <div key={g.key}>
+                {g.label ? (
+                  <h3 className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {g.label}
+                    <span className="ml-1.5 font-normal normal-case tracking-normal">
+                      ({g.reports.length})
+                    </span>
+                  </h3>
+                ) : null}
+                <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+                  {g.reports.map((report) => (
+                    <ReportRow key={report.id} report={report} starred={starred} />
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
-          <Pagination
-            window={page}
-            onPage={(n) =>
-              navigate({
-                to: "/leadership-reports",
-                search: clean({ ...state, page: n > 1 ? n : undefined }),
-                replace: true,
-              })
-            }
-            noun="report"
-          />
-        </>
+          </div>
+        )
       ) : (
         <div className="rounded-lg border border-border bg-surface">
           {filtering ? (
@@ -440,7 +510,13 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
  * restriction mark is noticeable without turning the page into a security
  * dashboard: ordinary leadership reports carry no mark at all.
  */
-function ReportRow({ report }: { report: LeadershipReport }) {
+function ReportRow({
+  report,
+  starred,
+}: {
+  report: LeadershipReport;
+  starred: ReturnType<typeof useStarred>;
+}) {
   const { ministries } = useOrganization();
   const { person } = useViewer();
   const comments = report.comments.length;
@@ -457,6 +533,11 @@ function ReportRow({ report }: { report: LeadershipReport }) {
         className="block px-4 py-3"
       >
         <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <StarButton
+            starred={starred.isStarred("leadership-report", report.id)}
+            onToggle={() => starred.toggle("leadership-report", report.id)}
+            label={report.title || "report"}
+          />
           <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
             {report.title || "Untitled report"}
           </span>
@@ -613,6 +694,38 @@ function Select<T extends string>({
         ))}
       </select>
     </label>
+  );
+}
+
+/** How the list is ordered: a reader's choice, not a filter — nothing here narrows the set. */
+function SortAndGroup({
+  sort,
+  setSort,
+  group,
+  setGroup,
+}: {
+  sort: ReportSortKey;
+  setSort: (v: ReportSortKey | null) => void;
+  group: ReportGroupKey;
+  setGroup: (v: ReportGroupKey | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Select
+        label="Sort by"
+        value={sort}
+        onChange={(v) => setSort(v)}
+        options={reportSortKeys}
+        render={(s) => reportSortLabel[s]}
+      />
+      <Select
+        label="Group by"
+        value={group}
+        onChange={(v) => setGroup(v)}
+        options={reportGroupKeys}
+        render={(g) => reportGroupLabel[g]}
+      />
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   accessStrategyOf,
   canDiscover,
   filterReports,
+  groupReports,
   hasTemplate,
   knownReportTypes,
   knownType,
@@ -22,6 +23,7 @@ import {
   searchReports,
   searchableBy,
   sharedWithMe,
+  sortReports,
   initialStatus,
   planTransition,
   statusBehavior,
@@ -1090,5 +1092,78 @@ describe("where a new report starts", () => {
     ]);
 
     expect(initialStatus()).toBe("scratch-33907");
+  });
+});
+
+describe("ordering a list a reader chose, not one the data happened to have", () => {
+  const reports = [
+    report({ id: "r-old", title: "Zebra report", reportType: "general", updatedAt: "2026-01-01" }),
+    report({
+      id: "r-mid",
+      title: "Middle report",
+      reportType: "camp-debrief",
+      status: "published",
+      updatedAt: "2026-06-01",
+    }),
+    report({ id: "r-new", title: "Apple report", reportType: "general", updatedAt: "2026-09-01" }),
+  ];
+
+  it("defaults to most recently updated first", () => {
+    expect(sortReports(reports).map((r) => r.id)).toEqual(["r-new", "r-mid", "r-old"]);
+  });
+
+  it("sorts by reporting date, using publishedAt over updatedAt when both exist", () => {
+    const dated = [
+      /* Published back in August, but touched again (a typo fix) in September. */
+      report({ id: "a", updatedAt: "2026-09-15", publishedAt: "2026-08-01" }),
+      report({ id: "b", updatedAt: "2026-09-01" }),
+    ];
+    expect(sortReports(dated, "date").map((r) => r.id)).toEqual(["b", "a"]);
+  });
+
+  it("sorts by title alphabetically", () => {
+    expect(sortReports(reports, "title").map((r) => r.id)).toEqual(["r-new", "r-mid", "r-old"]);
+  });
+
+  it("sorts untitled reports without throwing", () => {
+    const untitled = [report({ id: "a", title: "" }), report({ id: "b", title: "Named" })];
+    expect(sortReports(untitled, "title").map((r) => r.id)).toEqual(["b", "a"]);
+  });
+
+  it("does not mutate the array it was given", () => {
+    const original = [...reports];
+    sortReports(reports, "title");
+    expect(reports).toEqual(original);
+  });
+
+  it("groups by type, alphabetically by label, and keeps every report", () => {
+    const groups = groupReports(reports, "type");
+    expect(groups.map((g) => g.reports.length).reduce((a, b) => a + b, 0)).toBe(reports.length);
+    const sortedLabels = [...groups.map((g) => g.label)].sort((a, b) => a.localeCompare(b));
+    expect(groups.map((g) => g.label)).toEqual(sortedLabels);
+  });
+
+  it("groups by status", () => {
+    const groups = groupReports(reports, "status");
+    const draftGroup = groups.find((g) => g.key === "draft");
+    expect(draftGroup?.reports.map((r) => r.id).sort()).toEqual(["r-new", "r-old"]);
+  });
+
+  it("returns one ungrouped bucket for 'none', empty input yielding no groups", () => {
+    expect(groupReports(reports, "none")).toHaveLength(1);
+    expect(groupReports(reports, "none")[0]!.reports).toHaveLength(reports.length);
+    expect(groupReports([], "none")).toEqual([]);
+  });
+
+  it("groups by week, most recent week first", () => {
+    const groups = groupReports(reports, "week");
+    expect(groups.length).toBeGreaterThan(1);
+    const keys = groups.map((g) => g.key);
+    expect([...keys].sort().reverse()).toEqual(keys);
+  });
+
+  it("filterReports honours the requested sort instead of always defaulting to recency", () => {
+    const byTitle = filterReports(reports, { sort: "title" }, () => "");
+    expect(byTitle.map((r) => r.id)).toEqual(["r-new", "r-mid", "r-old"]);
   });
 });

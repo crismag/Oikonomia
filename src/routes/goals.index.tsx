@@ -25,6 +25,7 @@ import {
   needsAttention,
 } from "@/domain/goals";
 import { useViewer } from "@/domain/session";
+import { StarButton, useStarred } from "@/components/oikonomia/starred";
 import type { Goal, GoalStatus } from "@/domain/types";
 
 export const Route = createFileRoute("/goals/")({
@@ -69,6 +70,8 @@ function GoalsIndex() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<GoalStatus | null>(null);
   const [ministryId, setMinistryId] = useState<string | null>(null);
+  const [starredOnly, setStarredOnly] = useState(false);
+  const starred = useStarred();
 
   /*
    * A goal the viewer cannot read never arrives here — the service filtered it
@@ -82,11 +85,13 @@ function GoalsIndex() {
   const visible = readable.filter((goal) => {
     if (status && goal.status !== status) return false;
     if (ministryId && goal.ministryId !== ministryId) return false;
+    if (starredOnly && !starred.isStarred("goal", goal.id)) return false;
     if (!q) return true;
     return (
       goal.title.toLowerCase().includes(q) || (goal.description ?? "").toLowerCase().includes(q)
     );
   });
+  const starredCount = readable.filter((goal) => starred.isStarred("goal", goal.id)).length;
 
   const counts = goalCounts(readable);
   const attention = needsAttention(readable);
@@ -202,6 +207,15 @@ function GoalsIndex() {
               </FilterChip>
             ))
           : null}
+        {starredCount > 0 ? (
+          <FilterChip
+            active={starredOnly}
+            onClick={() => setStarredOnly((v) => !v)}
+            count={starredCount}
+          >
+            Starred
+          </FilterChip>
+        ) : null}
       </ListToolbar>
 
       {store.status === "error" ? (
@@ -215,7 +229,12 @@ function GoalsIndex() {
           {visible.length > 0 ? (
             <ol className="divide-y divide-border">
               {visible.map((goal) => (
-                <GoalRow key={goal.id} goal={goal} latest={latestUpdate(updates, goal.id)?.text} />
+                <GoalRow
+                  key={goal.id}
+                  goal={goal}
+                  latest={latestUpdate(updates, goal.id)?.text}
+                  starred={starred}
+                />
               ))}
             </ol>
           ) : (
@@ -230,7 +249,15 @@ function GoalsIndex() {
 }
 
 /** One numbered row. Stacks on narrow screens rather than scrolling sideways. */
-function GoalRow({ goal, latest }: { goal: Goal; latest?: string | undefined }) {
+function GoalRow({
+  goal,
+  latest,
+  starred,
+}: {
+  goal: Goal;
+  latest?: string | undefined;
+  starred: ReturnType<typeof useStarred>;
+}) {
   return (
     <li className="row-quiet">
       <Link
@@ -277,6 +304,11 @@ function GoalRow({ goal, latest }: { goal: Goal; latest?: string | undefined }) 
           ) : null}
         </span>
 
+        <StarButton
+          starred={starred.isStarred("goal", goal.id)}
+          onToggle={() => starred.toggle("goal", goal.id)}
+          label={goal.title}
+        />
         <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground/50" aria-hidden />
       </Link>
     </li>

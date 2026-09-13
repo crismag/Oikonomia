@@ -43,6 +43,7 @@ import {
 } from "@/domain/reach-out";
 import { toISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
+import { StarButton, starredFirst, useStarred } from "@/components/oikonomia/starred";
 import type { BinderDocument, DocumentOrigin, ReachOutReport } from "@/domain/types";
 
 type Tab = "reports" | "documents";
@@ -129,7 +130,10 @@ function Reports() {
     ask({ page: 1, pageSize: PAGE_SIZE, ...(query.trim() ? { search: query.trim() } : {}) });
   }, [ask, query]);
 
-  const visible = reportsNewestFirst(store.reports);
+  const starred = useStarred();
+  const visible = starredFirst(reportsNewestFirst(store.reports), (r) =>
+    starred.isStarred("reach-out-report", r.id),
+  );
   const [failure, setFailure] = useState<unknown>(null);
 
   /* Open the report only once it exists — §20. */
@@ -190,7 +194,7 @@ function Reports() {
         <>
           <ul className="overflow-hidden rounded-lg border border-border bg-surface">
             {visible.map((report) => (
-              <ReportRow key={report.id} report={report} />
+              <ReportRow key={report.id} report={report} starred={starred} />
             ))}
           </ul>
           <Pagination
@@ -212,7 +216,13 @@ function Reports() {
   );
 }
 
-function ReportRow({ report }: { report: ReachOutReport }) {
+function ReportRow({
+  report,
+  starred,
+}: {
+  report: ReachOutReport;
+  starred: ReturnType<typeof useStarred>;
+}) {
   const comments = commentCount(report);
   const others = laterContributors(report);
 
@@ -220,6 +230,11 @@ function ReportRow({ report }: { report: ReachOutReport }) {
     <li className="row-quiet border-b border-border last:border-b-0">
       <Link to="/reach-out/$reportId" params={{ reportId: report.id }} className="block px-4 py-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <StarButton
+            starred={starred.isStarred("reach-out-report", report.id)}
+            onToggle={() => starred.toggle("reach-out-report", report.id)}
+            label={displayTitle(report)}
+          />
           <span className="text-[12px] tabular-nums text-muted-foreground">
             {shortDateLabel(report.reportDate)}
           </span>
