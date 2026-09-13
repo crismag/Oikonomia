@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, Mail, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InstallationNotice, useInstallationRestricted } from "./installation-notice";
 import { Section } from "./section";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "./organization-provider";
@@ -436,6 +437,10 @@ function MinistryEditor({
 export function OrganizationAdmin() {
   const organization = useOrganization();
   const write = useOrganizationWrite();
+  /* People themselves — who exists, their name, email and access role — are
+     identity. Where they belong (memberships, assignments) is not, and stays
+     editable in the sections around this one. */
+  const identityRestricted = useInstallationRestricted("identity");
 
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
@@ -522,6 +527,7 @@ export function OrganizationAdmin() {
       </Section>
 
       <Section title="People" meta={`${organization.people.length}`}>
+        <InstallationNotice restriction="identity" />
         <ul className="max-h-72 divide-y divide-border overflow-y-auto">
           {organization.people.map((person) => (
             <li key={person.id} className="flex items-center gap-3 px-4 py-2.5">
@@ -558,7 +564,12 @@ export function OrganizationAdmin() {
                         .join(" · ")}
                     </span>
                   </span>
-                  <Button type="button" variant="ghost" onClick={() => setEditingPerson(person.id)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={identityRestricted}
+                    onClick={() => setEditingPerson(person.id)}
+                  >
                     Edit
                   </Button>
                   {/* Deactivating is not deleting: a report they wrote is
@@ -567,7 +578,7 @@ export function OrganizationAdmin() {
                   <Button
                     type="button"
                     variant="ghost"
-                    disabled={write.busy}
+                    disabled={write.busy || identityRestricted}
                     onClick={() =>
                       write.run(() =>
                         updatePerson({
@@ -630,7 +641,7 @@ export function OrganizationAdmin() {
             <Button
               type="button"
               variant="secondary"
-              disabled={write.busy || !personName.trim()}
+              disabled={write.busy || identityRestricted || !personName.trim()}
               onClick={() =>
                 write.run(
                   () =>

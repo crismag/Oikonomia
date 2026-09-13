@@ -11,6 +11,7 @@ import {
 
 import { createServerAuth, type AuthAdapter } from "@/lib/auth-adapter";
 import { mayEnter, noMethods, type AuthMethods, type AuthSession } from "@/domain/auth";
+import { ORDINARY_INSTALLATION, type InstallationView } from "@/domain/installation";
 
 /**
  * One place that knows who is signed in.
@@ -32,6 +33,11 @@ interface AuthContextValue {
   mayEnter: boolean;
   /** What this installation actually supports. */
   methods: AuthMethods;
+  /**
+   * What this installation's own policy switches off, and whether it is a
+   * public demonstration. For drawing controls honestly; the server enforces.
+   */
+  installation: InstallationView;
   adapter: AuthAdapter;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -77,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: session.status === "loading",
       mayEnter: mayEnter(session),
       methods: session.methods ?? noMethods,
+      installation: session.installation ?? ORDINARY_INSTALLATION,
       adapter: adapter.current,
       refresh,
       signOut,

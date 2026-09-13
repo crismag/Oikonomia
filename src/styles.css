@@ -72,6 +72,9 @@
 
 :root {
   --radius: 0.5rem;
+  /* The public demonstration's bar, above everything; 0 everywhere else. Set
+     by components/oikonomia/demo-header.tsx, read by every sticky element. */
+  --demo-bar: 0px;
 
   --background: oklch(0.976 0.003 247);
   --foreground: oklch(0.24 0.018 255);

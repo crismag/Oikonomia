@@ -3,6 +3,7 @@ import { useState } from "react";
 import { AlertTriangle, Check, Download, HardDrive, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InstallationNotice, useInstallationRestricted } from "./installation-notice";
 import { Section } from "./section";
 import { PersonName } from "./person";
 import {
@@ -37,6 +38,7 @@ import { cn } from "@/lib/utils";
  */
 export function DataManagement() {
   const queryClient = useQueryClient();
+  const restricted = useInstallationRestricted("data");
   const [failure, setFailure] = useState<string | null>(null);
   const [packageText, setPackageText] = useState("");
   const [checked, setChecked] = useState<string | null>(null);
@@ -74,6 +76,7 @@ export function DataManagement() {
 
   return (
     <div className="space-y-4">
+      <InstallationNotice restriction="data" className="rounded-md border" />
       {failure ? (
         <p role="alert" className="text-[13px] text-status-overdue">
           {failure}
@@ -130,7 +133,7 @@ export function DataManagement() {
           <Button
             type="button"
             variant="secondary"
-            disabled={busy}
+            disabled={busy || restricted}
             onClick={() => run(() => runBackup({ data: undefined }))}
           >
             <HardDrive className="size-3.5" aria-hidden />
@@ -140,7 +143,7 @@ export function DataManagement() {
             <Button
               type="button"
               variant="secondary"
-              disabled={busy}
+              disabled={busy || restricted}
               onClick={() =>
                 run(() => verifyBackup({ data: { jobId: status.lastSuccessfulBackup!.id } }))
               }
@@ -152,7 +155,7 @@ export function DataManagement() {
           <Button
             type="button"
             variant="ghost"
-            disabled={busy}
+            disabled={busy || restricted}
             onClick={() => run(() => runRetention({ data: undefined }))}
           >
             Apply retention now
@@ -171,7 +174,7 @@ export function DataManagement() {
               key={format}
               type="button"
               variant="secondary"
-              disabled={busy}
+              disabled={busy || restricted}
               onClick={() => run(() => runExport({ data: { scope: { type: "site" }, format } }))}
             >
               <Download className="size-3.5" aria-hidden />
@@ -198,7 +201,7 @@ export function DataManagement() {
           <Button
             type="button"
             variant="secondary"
-            disabled={busy || !packageText.trim()}
+            disabled={busy || restricted || !packageText.trim()}
             onClick={() => {
               setChecked(null);
               setFailure(null);

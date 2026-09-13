@@ -31,7 +31,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const organization = useOrganization();
 
   if (OUTSIDE_THE_APPLICATION.some((route) => pathname.startsWith(route))) {
-    return <div className="min-h-screen w-full bg-background">{children}</div>;
+    return (
+      <div className="min-h-[calc(100vh-var(--demo-bar))] w-full bg-background">{children}</div>
+    );
   }
 
   /*
@@ -99,12 +101,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ViewerContext.Provider value={viewer}>
       <ModuleProviders>
-        <div className="flex min-h-screen w-full bg-background">
+        <div className="flex min-h-[calc(100vh-var(--demo-bar))] w-full bg-background">
           {/* Desktop / tablet rail — collapses to icons, never disappears */}
           <aside
             data-print="hide"
             className={cn(
-              "sticky top-0 hidden h-screen shrink-0 border-r border-sidebar-border transition-[width] duration-200 lg:block",
+              "sticky top-[var(--demo-bar)] hidden h-[calc(100vh-var(--demo-bar))] shrink-0 border-r border-sidebar-border transition-[width] duration-200 lg:block",
               collapsed ? "w-14" : "w-60",
             )}
           >

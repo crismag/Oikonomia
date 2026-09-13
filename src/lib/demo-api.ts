@@ -28,7 +28,8 @@ async function serverParts() {
     { createDemoIdentityRepository },
     { createAuthService },
     { createDemoEntryService },
-    { SESSION_COOKIE, cookieValue, sessionCookie },
+    { SESSION_COOKIE, cookieValue, sessionCookie, viewerFor },
+    { config },
     { getRequest, setResponseHeader },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -41,6 +42,7 @@ async function serverParts() {
     import("@/server/services/auth-service"),
     import("@/server/demo/demo-entry-service"),
     import("@/server/auth/principal"),
+    import("@/config"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -63,7 +65,9 @@ async function serverParts() {
       organization,
       auth: createAuthService(accounts, organization),
       transaction: (work) => db.transaction(work)(),
+      timeZone: config.site.timezone,
     }),
+    viewerPersonId: () => viewerFor(request, db)?.person.id,
     context: { ...(currentToken ? { currentToken } : {}), ...(userAgent ? { userAgent } : {}) },
     signIn: (token: string) => setResponseHeader("Set-Cookie", sessionCookie(token)),
   };
@@ -91,7 +95,9 @@ async function withDemo<T>(
 /** What the demonstration's sign-in screen offers, if this is one. */
 export const fetchDemoEntry = createServerFn({ method: "GET" })
   .validator(() => ({}))
-  .handler(() => withDemo(({ service }): DemoEntry => service.entry()));
+  .handler(() =>
+    withDemo(({ service, viewerPersonId }): DemoEntry => service.entry(viewerPersonId())),
+  );
 
 /** Explore as one of the people the demonstration offers. */
 export const enterDemoAs = createServerFn({ method: "POST" })

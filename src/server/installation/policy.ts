@@ -1,3 +1,4 @@
+import type { InstallationRestriction, InstallationView } from "@/domain/installation";
 import type { ApiErrorBody } from "@/lib/api-envelope";
 import { text } from "@/config/messages";
 
@@ -142,6 +143,25 @@ export function decideRouteRequest(installation: Installation, url: URL): Decisi
   const task = MAINTENANCE_TASKS[url.searchParams.get("task") ?? ""];
   if (task?.demo === "allowed") return ALLOW;
   return { allowed: false, because: task?.because ?? "unclassified" };
+}
+
+/**
+ * What the browser is told about this installation's policy.
+ *
+ * Exactly the reasons the tables deny for — derived, not listed again, so a
+ * screen's "disabled here" and the server's refusal cannot drift apart. Nothing
+ * else: no environment names, paths or settings.
+ */
+export function installationView(installation: Installation): InstallationView {
+  if (!installation.demoMode) return { demo: false, restricted: [] };
+
+  const reasons = new Set<InstallationRestriction>();
+  for (const table of [SERVER_FUNCTIONS, ROUTE_HANDLERS, MAINTENANCE_TASKS]) {
+    for (const entry of Object.values(table)) {
+      if (entry.demo === "denied" && entry.because) reasons.add(entry.because);
+    }
+  }
+  return { demo: true, restricted: [...reasons].sort() };
 }
 
 /** The refusal, in the envelope every caller already understands. */

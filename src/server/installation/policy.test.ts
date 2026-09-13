@@ -7,6 +7,7 @@ import {
   currentInstallation,
   decideRouteRequest,
   decideServerFunction,
+  installationView,
   parseDemoMode,
   refusal,
 } from "./policy";
@@ -221,6 +222,32 @@ describe("with Demo Mode on", () => {
         because: "unclassified",
       });
     }
+  });
+});
+
+describe("what the browser is told", () => {
+  it("is nothing on an ordinary installation", () => {
+    expect(installationView(OFF)).toEqual({ demo: false, restricted: [] });
+  });
+
+  it("is exactly the reasons operations are denied for, in Demo Mode", () => {
+    const denied = new Set(
+      Object.values(SERVER_FUNCTIONS)
+        .filter((policy) => policy.demo === "denied")
+        .map((policy) => policy.because),
+    );
+    expect(installationView(ON)).toEqual({ demo: true, restricted: [...denied].sort() });
+    expect(installationView(ON).restricted).toEqual([
+      "authentication",
+      "configuration",
+      "data",
+      "identity",
+      "sessions",
+    ]);
+  });
+
+  it("carries nothing but the flag and the reasons", () => {
+    expect(Object.keys(installationView(ON)).sort()).toEqual(["demo", "restricted"]);
   });
 });
 

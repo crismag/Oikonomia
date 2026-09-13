@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, History, Plus, RotateCcw, Settings2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InstallationNotice, useInstallationRestricted } from "./installation-notice";
 import { Section } from "./section";
 import { capabilities } from "@/domain/capabilities";
 import { PersonName } from "./person";
@@ -42,6 +43,7 @@ type AdminPayload = import("@/server/services/configuration-service").AdminConfi
 export function ConfigurationAdmin() {
   const queryClient = useQueryClient();
   const confirm = useConfirm();
+  const restricted = useInstallationRestricted("configuration");
   const [showHistory, setShowHistory] = useState(false);
 
   const query = useQuery<AdminPayload>({
@@ -89,9 +91,13 @@ export function ConfigurationAdmin() {
   }
 
   const save = (work: () => Promise<unknown>) => void mutation.mutateAsync(work).catch(() => {});
+  /* Where this installation refuses every change, every control that makes
+     one is as good as busy: shown, and not pressable. */
+  const busy = mutation.isPending || restricted;
 
   return (
     <div className="space-y-4">
+      <InstallationNotice restriction="configuration" className="rounded-md border" />
       <Section title="What may be changed here" className="bg-surface-muted">
         <p className="px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
           What things are called, whether they are offered, and — where a list says so — which of
@@ -115,7 +121,7 @@ export function ConfigurationAdmin() {
         <NamespaceEditor
           key={namespace.namespace}
           namespace={namespace}
-          busy={mutation.isPending}
+          busy={busy}
           onSave={save}
           onReset={async (optionId, label) => {
             if (await confirm("common.reset.confirm", { label })) {
@@ -143,7 +149,7 @@ export function ConfigurationAdmin() {
                 key={field}
                 field={field}
                 value={value}
-                busy={mutation.isPending}
+                busy={busy}
                 onSave={(next) =>
                   save(() =>
                     setConfigurationValue({
@@ -164,7 +170,7 @@ export function ConfigurationAdmin() {
               key={field}
               field={field}
               value={value}
-              busy={mutation.isPending}
+              busy={busy}
               onSave={(next) =>
                 save(() =>
                   setConfigurationValue({
@@ -340,7 +346,7 @@ function NamespaceEditor({
       meta={`${namespace.options.length}`}
       action={
         namespace.addable && !adding ? (
-          <Button type="button" variant="secondary" onClick={() => setAdding(true)}>
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => setAdding(true)}>
             <Plus className="size-3.5" aria-hidden />
             Add
           </Button>
@@ -407,6 +413,7 @@ function NamespaceEditor({
                 <Button
                   type="button"
                   variant="ghost"
+                  disabled={busy}
                   onClick={() => {
                     setEditing(option.id);
                     setDraft(option.label);
@@ -417,6 +424,7 @@ function NamespaceEditor({
                 <Button
                   type="button"
                   variant="ghost"
+                  disabled={busy}
                   onClick={() => onDeactivate(option.id, option.label, option.active)}
                 >
                   {option.active ? "Deactivate" : "Reactivate"}
@@ -425,6 +433,7 @@ function NamespaceEditor({
                   <Button
                     type="button"
                     variant="ghost"
+                    disabled={busy}
                     onClick={() => onReset(option.id, option.label)}
                   >
                     <RotateCcw className="size-3.5" aria-hidden />

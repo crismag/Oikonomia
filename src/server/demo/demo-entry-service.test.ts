@@ -52,6 +52,8 @@ const serviceFor = (demoMode: boolean) => {
     organization,
     auth: createAuthService(accounts, organization),
     transaction: (work) => db.transaction(work)(),
+    timeZone: "America/Toronto",
+    now: () => new Date("2026-09-13T14:30:00Z"),
   });
 };
 
@@ -104,6 +106,7 @@ describe("with Demo Mode off, a demonstration's data opens nothing", () => {
       demo: false,
       identities: [],
       visitorsWelcome: false,
+      refresh: null,
     });
   });
 
@@ -125,7 +128,7 @@ describe("with Demo Mode off, a demonstration's data opens nothing", () => {
 describe("with Demo Mode on and a database that designates nobody", () => {
   it("offers no identities and no visiting", () => {
     personWithAccount("Real Church Member", "admin");
-    expect(serviceFor(true).entry()).toEqual({
+    expect(serviceFor(true).entry()).toMatchObject({
       demo: true,
       identities: [],
       visitorsWelcome: false,
@@ -164,12 +167,34 @@ describe("with Demo Mode on and designated identities", () => {
     });
     /* Nothing the screen does not need: no email, account, or person id. */
     expect(Object.keys(entry.identities[0]!).sort()).toEqual([
+      "current",
       "id",
       "initials",
       "name",
       "role",
       "title",
     ]);
+  });
+
+  it("marks who the asking browser is exploring as, and nobody else", () => {
+    const first = designate("First Offered", 1);
+    designate("Second Offered", 2);
+    const service = serviceFor(true);
+
+    expect(service.entry().identities.map((option) => option.current)).toEqual([false, false]);
+    expect(service.entry(first.person.id).identities.map((option) => option.current)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  /* 10:30 in Toronto on the clock the test fixes: the next refresh is noon there. */
+  it("says when the demonstration next refreshes, in the church's timezone", () => {
+    designate("Pilar Ndiaye");
+    expect(serviceFor(true).entry().refresh).toEqual({
+      at: "2026-09-13T16:00:00.000Z",
+      timeZone: "America/Toronto",
+    });
   });
 
   it("opens an ordinary session that the ordinary request path resolves", () => {

@@ -1,3 +1,5 @@
+import type { InstallationView } from "./installation";
+
 /**
  * Identity, kept apart from access.
  *
@@ -88,6 +90,8 @@ export interface AuthSession {
   message?: string;
   /** What this installation supports. Absent while the session is unknown. */
   methods?: AuthMethods;
+  /** What this installation's own policy switches off. Absent while unknown. */
+  installation?: InstallationView;
 }
 
 /* ------------------------------------------------------------ what to say */

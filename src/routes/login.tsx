@@ -89,7 +89,7 @@ function LoginPage() {
   });
 
   if (demo.isPending) {
-    return <main className="min-h-screen" aria-busy="true" />;
+    return <main className="min-h-[calc(100vh-var(--demo-bar))]" aria-busy="true" />;
   }
   if (demo.data?.demo) return <DemoEntryPanel entry={demo.data} />;
   return <OrdinarySignIn />;

@@ -332,6 +332,28 @@ session, so everything after the entrance is the real application.
   application cannot reliably tell one visitor from another.
 - **Switching** from the chooser ends that browser's previous session first.
 
+### What a visitor sees
+
+A thin bar above every page — sign-in included — says it is a demo, whose
+eyes the visitor is looking through (with a menu to switch), and how long until
+the next refresh. _About this demo_ explains what is shared, what is switched
+off and what disappears. The bar can be collapsed; that choice is remembered in
+the browser and changes nothing else.
+
+- **The refresh time is the site's clock.** Refreshes fall at 00:00, 06:00,
+  12:00 and 18:00 in `site.timezone` (Administration → Site settings), and the
+  countdown is computed on the server from it. An unrecognised timezone counts
+  as UTC rather than failing the page. This slice only _shows_ the schedule;
+  nothing resets yet.
+- **Switched-off controls stay visible.** Where a page offers something the
+  installation refuses — people's identity, sessions, configuration, data
+  management — its controls are disabled beside a short note saying why. The
+  browser learns what is switched off from the session (`installation`), which
+  the server derives from the same policy table it enforces; the disabled
+  buttons are courtesy only, and the server refuses the operation regardless.
+- **An ordinary installation draws none of it.** No bar, no notes, and the
+  layout offset (`--demo-bar`) stays `0px`.
+
 ## Backups
 
 ```bash

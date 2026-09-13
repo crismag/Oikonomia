@@ -24,7 +24,7 @@ export function AuthPanel({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center px-4 py-10 sm:px-6">
+    <main className="mx-auto flex min-h-[calc(100vh-var(--demo-bar))] w-full max-w-[420px] flex-col justify-center px-4 py-10 sm:px-6">
       <div className="mb-6 text-center">
         <span className="mx-auto grid size-9 place-items-center rounded-md bg-primary font-display text-[17px] text-primary-foreground">
           O

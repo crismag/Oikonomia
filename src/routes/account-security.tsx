@@ -5,6 +5,10 @@ import { Check, Laptop, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Page, PageHeader } from "@/components/oikonomia/page";
+import {
+  InstallationNotice,
+  useInstallationRestricted,
+} from "@/components/oikonomia/installation-notice";
 import { Section } from "@/components/oikonomia/section";
 import { useAuth } from "@/components/oikonomia/auth-provider";
 import { notify } from "@/config/messages/handlers";
@@ -43,6 +47,7 @@ export const Route = createFileRoute("/account-security")({
  */
 function AccountSecurityPage() {
   const { methods: installation } = useAuth();
+  const sessionsRestricted = useInstallationRestricted("sessions");
   const queryClient = useQueryClient();
 
   const overview = useQuery({
@@ -146,6 +151,7 @@ function AccountSecurityPage() {
           title="Where you are signed in"
           meta={data ? String(data.sessions.length) : undefined}
         >
+          <InstallationNotice restriction="sessions" />
           {overview.isPending ? (
             <p className="px-4 py-3 text-[13px] text-muted-foreground">Checking your sessions…</p>
           ) : !data ? (
@@ -179,7 +185,7 @@ function AccountSecurityPage() {
                         type="button"
                         variant="ghost"
                         className="mt-1.5"
-                        disabled={endOne.isPending}
+                        disabled={endOne.isPending || sessionsRestricted}
                         onClick={() => endOne.mutate(session.id)}
                       >
                         Sign out this device
@@ -193,7 +199,7 @@ function AccountSecurityPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  disabled={others.length === 0 || signOutOthers.isPending}
+                  disabled={others.length === 0 || signOutOthers.isPending || sessionsRestricted}
                   busy={signOutOthers.isPending}
                   onClick={() => signOutOthers.mutate()}
                 >

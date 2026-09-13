@@ -498,6 +498,34 @@ try {
       );
       return response.text();
     };
+    /*
+     * What the browser is told about the installation, with no session at all.
+     * Read out of the serialised reply by shape — the object whose keys are
+     * exactly `demo` and `restricted` — because the whole reply carries nodes
+     * seroval will not decode outside the application's own plugins.
+     */
+    const installationSeen = async () => {
+      const response = await fetch(`${BASE}/_serverFn/${idOf("fetchSession", "auth-api")}`, {
+        headers: { "x-tsr-serverfn": "true", "sec-fetch-site": "same-origin" },
+      });
+      const find = (node) => {
+        if (!node || typeof node !== "object") return undefined;
+        const keys = node.p?.k;
+        if (Array.isArray(keys) && keys.join() === "demo,restricted") {
+          const [demo, restricted] = node.p.v;
+          return {
+            demo: demo.t === 2 ? demo.s === 2 : undefined,
+            restricted: (restricted.a ?? []).map((item) => item.s),
+          };
+        }
+        for (const child of Object.values(node)) {
+          const found = find(child);
+          if (found) return found;
+        }
+        return undefined;
+      };
+      return find(JSON.parse(await response.text()));
+    };
     const siteName = () => {
       const reader = new Database(database, { readonly: true });
       const row = reader
@@ -545,6 +573,12 @@ try {
         "demo-api",
         { identityId: "demo-smoke-designate" },
         "",
+      );
+      const offView = await installationSeen();
+      check(
+        "Demo Mode off: the browser is told this is an ordinary installation",
+        offView?.demo === false && offView.restricted.length === 0,
+        JSON.stringify(offView),
       );
       check(
         "Demo Mode off: a designated demo identity cannot be entered",
@@ -617,6 +651,16 @@ try {
         `status ${goal.status}`,
       );
 
+      /* What the header and the disabled controls are drawn from. */
+      const onView = await installationSeen();
+      check(
+        "Demo Mode on: the browser is told it is a demonstration, and what is switched off",
+        onView?.demo === true &&
+          ["authentication", "configuration", "data", "identity", "sessions"].every((group) =>
+            onView.restricted.includes(group),
+          ),
+        JSON.stringify(onView),
+      );
       /* The demonstration's entrance, from a browser with no session. */
       const entered = await call(
         "enterDemoAs",

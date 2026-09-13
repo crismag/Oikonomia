@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { AppShell } from "@/components/oikonomia/app-shell";
+import { DemoHeader } from "@/components/oikonomia/demo-header";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmProvider } from "@/config";
 import { OrganizationProvider } from "@/components/oikonomia/organization-provider";
@@ -138,6 +139,8 @@ function RootComponent() {
         <AuthProvider>
           <OrganizationProvider>
             <SessionProvider>
+              {/* Only on a public demonstration; nothing on an ordinary installation. */}
+              <DemoHeader />
               <AppShell>
                 {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                 <Outlet />

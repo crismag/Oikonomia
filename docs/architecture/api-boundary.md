@@ -107,6 +107,12 @@ server functions, route handlers and maintenance tasks from source and fails
 when one has no decision — so adding a mutation means deciding, in the same
 change, whether a public demonstration may run it.
 
+The browser is told the outcome, never the table: `fetchSession` carries
+`installation: { demo, restricted }`, where `restricted` is the set of reasons
+(`authentication`, `sessions`, `identity`, `configuration`, `data`) that deny
+something. The UI uses it to draw the demo bar and to disable controls with a
+note — nothing the browser holds can switch the policy on or off.
+
 ## Cross-site protection
 
 Server-function POSTs are refused unless the request carries what a real

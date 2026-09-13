@@ -74,17 +74,19 @@ export function createServerAuth(): AuthAdapter {
           google: view.googleConfigured,
           emailDelivery: view.emailDeliveryConfigured,
         };
+        const installation = view.installation;
         return view.person
           ? {
               status: "authenticated",
               methods,
+              installation,
               user: {
                 id: view.accountId ?? "",
                 displayName: view.person.name,
                 email: view.email ?? "",
               },
             }
-          : { status: "unauthenticated", methods };
+          : { status: "unauthenticated", methods, installation };
       } catch {
         /* Not knowing is not the same as being signed out, but it is the safe
            answer: the application shows the way in rather than a workspace. */

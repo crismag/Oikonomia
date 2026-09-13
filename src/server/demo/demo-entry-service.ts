@@ -7,6 +7,7 @@ import type { DemoIdentityRepository } from "../repositories/demo-identity-repos
 import type { OrganizationRepository } from "../repositories/organization-repository";
 import type { SignedIn } from "../services/auth-service";
 import { config } from "@/config";
+import { nextRefreshAt, usableTimeZone } from "@/domain/refresh-schedule";
 import { LEAST_PRIVILEGED } from "@/domain/roles";
 
 /**
@@ -76,6 +77,8 @@ export interface DemoIdentityOption {
   title: string;
   /** Their access role, as this installation names it. */
   role: string;
+  /** Whether this is who the asking browser is already exploring as. */
+  current: boolean;
 }
 
 export interface DemoEntry {
@@ -84,6 +87,11 @@ export interface DemoEntry {
   identities: DemoIdentityOption[];
   /** Whether trying it as yourself is possible right now. */
   visitorsWelcome: boolean;
+  /**
+   * When the demonstration next returns to its original data, and the
+   * timezone that time is kept in. Null on an ordinary installation.
+   */
+  refresh: { at: string; timeZone: string } | null;
 }
 
 export function createDemoEntryService(parts: {
@@ -97,6 +105,9 @@ export function createDemoEntryService(parts: {
   };
   /** Runs its argument in one database transaction. */
   transaction: <T>(work: () => T) => T;
+  /** The church's timezone, in which refreshes happen on the hour. */
+  timeZone: string;
+  now?: () => Date;
 }) {
   const { identities, accounts, organization, auth } = parts;
 
@@ -110,7 +121,7 @@ export function createDemoEntryService(parts: {
     return { person, account };
   };
 
-  const offered = (): DemoIdentityOption[] =>
+  const offered = (viewerPersonId: string | undefined): DemoIdentityOption[] =>
     identities.designated().flatMap((identity) => {
       const found = enterable(identity.personId);
       if (!found) return [];
@@ -122,6 +133,7 @@ export function createDemoEntryService(parts: {
           initials: person.initials,
           title: person.role,
           role: config.label("people.roles", person.accessRole),
+          current: person.id === viewerPersonId,
         },
       ];
     });
@@ -143,14 +155,21 @@ export function createDemoEntryService(parts: {
 
   return {
     /** What the sign-in screen offers. Nothing at all on an ordinary installation. */
-    entry(): DemoEntry {
-      if (!parts.demoMode) return { demo: false, identities: [], visitorsWelcome: false };
-      const options = offered();
+    entry(viewerPersonId?: string): DemoEntry {
+      if (!parts.demoMode) {
+        return { demo: false, identities: [], visitorsWelcome: false, refresh: null };
+      }
+      const options = offered(viewerPersonId);
+      const timeZone = usableTimeZone(parts.timeZone);
       return {
         demo: true,
         identities: options,
         visitorsWelcome:
           identities.count("designated") > 0 && identities.count("visitor") < VISITOR_LIMIT,
+        refresh: {
+          at: nextRefreshAt((parts.now ?? (() => new Date()))(), timeZone).toISOString(),
+          timeZone,
+        },
       };
     },
 

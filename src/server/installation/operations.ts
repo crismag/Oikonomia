@@ -38,9 +38,12 @@
  * It only removes operations from an installation altogether.
  */
 
+import type { InstallationRestriction } from "@/domain/installation";
+
 export type DemoPolicy = "read" | "allowed" | "denied";
 
-export type DenialReason = "authentication" | "sessions" | "identity" | "configuration" | "data";
+/** Named once, in the domain, because the browser is told them too. */
+export type DenialReason = InstallationRestriction;
 
 export interface ServerFunctionPolicy {
   /** As declared in source; the classification test holds the two together. */

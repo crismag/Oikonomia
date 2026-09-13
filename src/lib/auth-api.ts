@@ -29,6 +29,8 @@ export interface SessionView {
   emailDeliveryConfigured: boolean;
   /** Whether Google sign-in is configured here. */
   googleConfigured: boolean;
+  /** What this installation's own policy has switched off, for everyone. */
+  installation: import("@/domain/installation").InstallationView;
 }
 
 async function serverParts() {
@@ -89,10 +91,16 @@ export const fetchSession = createServerFn({ method: "GET" })
   .validator(() => ({}))
   .handler(() =>
     withAuth(async ({ db, request }): Promise<SessionView> => {
-      const [{ viewerFor }, { canDeliver }, { googleConfigured }] = await Promise.all([
+      const [
+        { viewerFor },
+        { canDeliver },
+        { googleConfigured },
+        { currentInstallation, installationView },
+      ] = await Promise.all([
         import("@/server/auth/principal"),
         import("@/server/auth/delivery"),
         import("@/server/auth/google"),
+        import("@/server/installation/policy"),
       ]);
 
       const viewer = viewerFor(request, db);
@@ -105,6 +113,7 @@ export const fetchSession = createServerFn({ method: "GET" })
         ...(account?.email ? { email: account.email } : {}),
         emailDeliveryConfigured: canDeliver(),
         googleConfigured: googleConfigured(),
+        installation: installationView(currentInstallation()),
       };
     }),
   );
