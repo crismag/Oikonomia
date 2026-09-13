@@ -538,6 +538,7 @@ const counts = {
   goalUpdates: 0,
   reachOut: 0,
   calendarEntries: 0,
+  agendaWeeksDeferred: 0,
   skippedRecords: 0,
 };
 
@@ -1316,7 +1317,13 @@ const run = db.transaction(() => {
           else if (section === "Meeting Notes") importMeetingNote(file, record);
           else if (section === "Reach-Out") importReachOut(file, record);
           else if (section === "Calendar") importCalendarEntry(file, record);
-          else if (section === "Goals" || section === "Form") {
+          else if (section === "Agenda") {
+            /* Recognised, deliberately not imported: agenda_item has no owner
+               yet (created_by is never written and agendaInRange is not
+               filtered by viewer), so every leader's weeks would land in one
+               shared binder. Import these once the agenda is per-leader. */
+            counts.agendaWeeksDeferred++;
+          } else if (section === "Goals" || section === "Form") {
             /* Goals (personal and ministry) are read directly, above; Form has
                no authored content yet in this corpus. */
           } else {
