@@ -49,6 +49,38 @@ export function DemoInformation({
         </DialogHeader>
 
         <div className="space-y-4 text-[13px] leading-relaxed">
+          <Part title="Demo content disclaimer">
+            <p>
+              This demonstration contains curated and fictionalized content created solely to
+              showcase the features and workflows of the application. It is not intended to
+              represent a complete or historically accurate account of biblical events,
+              conversations, timelines, or personal records.
+            </p>
+            <p className="mt-2">
+              Biblical characters, relationships, circumstances, and events may be used as the
+              foundation for the demonstration. Where possible, these are inspired by or consistent
+              with their recorded experiences in Scripture. However, the reports, schedules, meeting
+              notes, reflections, conversations, ministry records, and other application entries may
+              be imagined, adapted, expanded, or placed into a modern context to demonstrate how the
+              application can be used.
+            </p>
+            <p className="mt-2">
+              For example, a biblical event may provide the basis for a leadership concern, personal
+              reflection, ministry report, or mentoring conversation even though no such document or
+              conversation is recorded in Scripture.
+            </p>
+            <p className="mt-2">
+              These creative additions should therefore not be treated as biblical quotations,
+              historical facts, theological claims, or additions to the biblical record.
+            </p>
+            <p className="mt-2">
+              The purpose of this content is to provide realistic, engaging sample data for
+              demonstrating the application&rsquo;s planning, reporting, collaboration, and
+              leadership-management features while drawing meaningful inspiration from biblical
+              people and their experiences.
+            </p>
+          </Part>
+
           <Part title="Exploring as">
             {viewer ? (
               <p>
