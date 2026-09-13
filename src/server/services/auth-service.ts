@@ -427,6 +427,30 @@ export function createAuthService(
 
     /* ---------------------------------------------------------- session */
 
+    /**
+     * A session for an account whose identity was established some other way.
+     *
+     * For an entry path that is not a credential — a public demonstration's
+     * chosen identity — so it gets exactly the session every other sign-in
+     * gets: the same lifetime, the same `auth_event`, and the same refusal of
+     * an account that is not active or whose person has been deactivated.
+     * Deciding *whether* somebody may enter that way is the caller's job; this
+     * only refuses what no way in may open.
+     */
+    beginSessionFor(accountId: string, method: string, userAgent?: string): SignedIn {
+      const account = accounts.find(accountId);
+      if (!usable(account)) {
+        accounts.record({
+          accountId,
+          action: "auth.login.failed",
+          method,
+          result: "refused",
+        });
+        throw ApiError.unauthenticated("That account cannot be signed in to.");
+      }
+      return beginSession(account, method, userAgent);
+    },
+
     signOut(token: string, accountId?: string): void {
       accounts.revokeSession(token);
       accounts.record({ ...(accountId ? { accountId } : {}), action: "auth.logout" });

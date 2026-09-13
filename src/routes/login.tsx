@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { ArrowLeft, Eye, EyeOff, Mail, ShieldAlert } from "lucide-react";
@@ -9,6 +10,9 @@ import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { useSession } from "@/domain/session";
 import { AuthPanel, AuthField } from "@/components/oikonomia/auth-panel";
 import { AuthError } from "@/lib/auth-adapter";
+import { DemoEntryPanel } from "@/components/oikonomia/demo-entry";
+import { unwrap, withTimeout } from "@/lib/calendar-client";
+import { fetchDemoEntry } from "@/lib/demo-api";
 import {
   landingFor,
   linkProblemMessage,
@@ -66,7 +70,32 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
+/**
+ * A public demonstration has an entrance instead of a sign-in form.
+ *
+ * Asked of the server on every visit: whether this installation is a
+ * demonstration is the installation's to say, never the browser's. Until it has
+ * answered, nothing is shown — a sign-in form that flashes up and is replaced
+ * would invite somebody to type a password into a demonstration. If the answer
+ * cannot be had, the ordinary sign-in is shown; on a demonstration every one of
+ * its operations is refused by the server anyway.
+ */
 function LoginPage() {
+  const demo = useQuery({
+    queryKey: ["demo-entry"],
+    queryFn: async () => unwrap(await withTimeout(fetchDemoEntry({ data: undefined }))),
+    staleTime: 0,
+    retry: false,
+  });
+
+  if (demo.isPending) {
+    return <main className="min-h-screen" aria-busy="true" />;
+  }
+  if (demo.data?.demo) return <DemoEntryPanel entry={demo.data} />;
+  return <OrdinarySignIn />;
+}
+
+function OrdinarySignIn() {
   const { step = "sign-in", next, reset: resetToken } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const auth = useAuth();

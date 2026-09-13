@@ -171,6 +171,13 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   },
   "src/lib/data-management-api.ts#fetchDataAudit": { method: "GET", demo: "read" },
 
+  /* demo-api.ts — the demonstration's own entrance. Allowed here because a
+     demonstration is what they exist for; on an ordinary installation the
+     policy steps aside and the entry service refuses them itself. */
+  "src/lib/demo-api.ts#fetchDemoEntry": { method: "GET", demo: "read" },
+  "src/lib/demo-api.ts#enterDemoAs": { method: "POST", demo: "allowed" },
+  "src/lib/demo-api.ts#createDemoVisitor": { method: "POST", demo: "allowed" },
+
   /* documents-api.ts */
   "src/lib/documents-api.ts#searchDocuments": { method: "GET", demo: "read" },
   "src/lib/documents-api.ts#fetchDocumentFilters": { method: "GET", demo: "read" },

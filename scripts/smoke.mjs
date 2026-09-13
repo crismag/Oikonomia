@@ -437,6 +437,26 @@ try {
         now.toISOString(),
         new Date(now.getTime() + 3_600_000).toISOString(),
       );
+    /* One identity the database designates for a demonstration. With the flag
+       off it must open nothing; with it on it is the way in. */
+    writer
+      .prepare(
+        `INSERT INTO person (id, name, initials, role, access_role, created_at, active)
+         VALUES ('per-smoke-demo', 'Demo Designate', 'DD', 'Deacon', 'leader', ?, 1)`,
+      )
+      .run(now.toISOString());
+    writer
+      .prepare(
+        `INSERT INTO account (id, person_id, email, email_verified, status, created_at)
+         VALUES ('acc-smoke-demo', 'per-smoke-demo', NULL, 0, 'active', ?)`,
+      )
+      .run(now.toISOString());
+    writer
+      .prepare(
+        `INSERT INTO demo_identity (id, person_id, kind, display_order, created_at)
+         VALUES ('demo-smoke-designate', 'per-smoke-demo', 'designated', 1, ?)`,
+      )
+      .run(now.toISOString());
     writer.close();
 
     const resolver = readdirSync(".output/server").find((f) => f.includes("server-fn-resolver"));
@@ -446,7 +466,7 @@ try {
         `"([a-f0-9]{64})":\\s*\\{\\s*functionName:\\s*"${name}_createServerFn_handler",\\s*importer:\\s*\\(\\)\\s*=>\\s*import\\("\\./_ssr/${api}-`,
       ).exec(resolverSource)?.[1];
 
-    const call = async (name, api, data) => {
+    const call = async (name, api, data, cookie = `oikonomia_session=${sessionToken}`) => {
       const id = idOf(name, api);
       if (!id) return { status: 0, body: `no ${name} in the build` };
       const response = await fetch(`${BASE}/_serverFn/${id}`, {
@@ -455,11 +475,28 @@ try {
           "content-type": "application/json",
           "x-tsr-serverfn": "true",
           "sec-fetch-site": "same-origin",
-          cookie: `oikonomia_session=${sessionToken}`,
+          ...(cookie ? { cookie } : {}),
         },
         body: JSON.stringify(toJSON({ data })),
       });
-      return { status: response.status, body: await response.text() };
+      const issued = /oikonomia_session=([^;]+)/.exec(
+        response.headers.get("set-cookie") ?? "",
+      )?.[1];
+      return { status: response.status, body: await response.text(), issued };
+    };
+    /* Who the organisation session call says a cookie belongs to. */
+    const sessionBody = async (token) => {
+      const response = await fetch(
+        `${BASE}/_serverFn/${idOf("fetchSession", "organization-api")}`,
+        {
+          headers: {
+            "x-tsr-serverfn": "true",
+            "sec-fetch-site": "same-origin",
+            cookie: `oikonomia_session=${token}`,
+          },
+        },
+      );
+      return response.text();
     };
     const siteName = () => {
       const reader = new Database(database, { readonly: true });
@@ -503,6 +540,17 @@ try {
         field: "name",
         value: "Changed with Demo Mode off",
       });
+      const offEntry = await call(
+        "enterDemoAs",
+        "demo-api",
+        { identityId: "demo-smoke-designate" },
+        "",
+      );
+      check(
+        "Demo Mode off: a designated demo identity cannot be entered",
+        offEntry.body.includes("disabled-by-installation") && !offEntry.issued,
+        `status ${offEntry.status}`,
+      );
       check(
         "Demo Mode off: an administrator can change configuration",
         siteName() === "Changed with Demo Mode off",
@@ -567,6 +615,71 @@ try {
         !goal.body.includes("disabled-by-installation") &&
           goalsTitled("Written with Demo Mode on") === 1,
         `status ${goal.status}`,
+      );
+
+      /* The demonstration's entrance, from a browser with no session. */
+      const entered = await call(
+        "enterDemoAs",
+        "demo-api",
+        { identityId: "demo-smoke-designate" },
+        "",
+      );
+      check(
+        "Demo Mode on: a designated identity opens an ordinary session",
+        Boolean(entered.issued) && (await sessionBody(entered.issued)).includes("Demo Designate"),
+        `status ${entered.status}`,
+      );
+
+      const notDesignated = await call(
+        "enterDemoAs",
+        "demo-api",
+        { identityId: "per-smoke-probe" },
+        "",
+      );
+      check(
+        "Demo Mode on: a person who is not designated cannot be entered",
+        !notDesignated.issued && notDesignated.body.includes("not-found"),
+        `status ${notDesignated.status}`,
+      );
+
+      const visitor = await call("createDemoVisitor", "demo-api", { name: "Smoke Visitor" }, "");
+      const visitorRow = (() => {
+        const reader = new Database(database, { readonly: true });
+        const row = reader
+          .prepare(
+            `SELECT person.id, person.email, account.status,
+                    (SELECT COUNT(*) FROM account_credential WHERE account_id = account.id) AS credentials,
+                    (SELECT COUNT(*) FROM onboarding_state WHERE person_id = person.id) AS onboarded
+               FROM demo_identity
+               JOIN person ON person.id = demo_identity.person_id
+               JOIN account ON account.person_id = person.id
+              WHERE demo_identity.kind = 'visitor' AND person.name = 'Smoke Visitor'`,
+          )
+          .get();
+        reader.close();
+        return row;
+      })();
+      check(
+        "Demo Mode on: a visitor gets a session and a credential-less account, and has onboarding ahead",
+        Boolean(visitor.issued) &&
+          (await sessionBody(visitor.issued)).includes("Smoke Visitor") &&
+          visitorRow?.status === "active" &&
+          visitorRow?.email === null &&
+          visitorRow?.credentials === 0 &&
+          visitorRow?.onboarded === 0,
+        `status ${visitor.status}, ${JSON.stringify(visitorRow)}`,
+      );
+
+      const switched = await call(
+        "enterDemoAs",
+        "demo-api",
+        { identityId: "demo-smoke-designate" },
+        `oikonomia_session=${visitor.issued}`,
+      );
+      check(
+        "Demo Mode on: switching identity ends the browser's previous session",
+        Boolean(switched.issued) && !(await sessionBody(visitor.issued)).includes("Smoke Visitor"),
+        `status ${switched.status}`,
       );
 
       const sessionId = idOf("fetchSession", "organization-api");

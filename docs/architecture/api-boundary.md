@@ -122,7 +122,7 @@ run.
 
 | Route                     | Method | Answers                                                 |
 | ------------------------- | ------ | ------------------------------------------------------- |
-| `/healthz`                | GET    | `{"ok":true,"migrations":34,"schemaVersion":34}`        |
+| `/healthz`                | GET    | `{"ok":true,"migrations":35,"schemaVersion":35}`        |
 | `/maintenance/run?task=…` | POST   | `backup`, `retention` or `sweep`, behind a bearer token |
 
 `/healthz` exists because **no ordinary route touches persistence** — every one

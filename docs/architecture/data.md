@@ -28,7 +28,7 @@ database inside it would go with it.
 ## Migrations
 
 A migration is a `.sql` file in `src/server/db/migrations/`, named
-`NNN_description.sql`. There are **34**. They run in numeric order, exactly
+`NNN_description.sql`. There are **35**. They run in numeric order, exactly
 once each, inside a transaction, and are recorded in `schema_migrations`.
 
 A uniqueness rule must not rely on a nullable column: SQL treats NULLs as

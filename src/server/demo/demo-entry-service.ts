@@ -1,0 +1,205 @@
+import { z } from "zod";
+
+import { ApiError } from "../api/response";
+import { parse } from "../api/validation";
+import type { AccountRepository } from "../repositories/account-repository";
+import type { DemoIdentityRepository } from "../repositories/demo-identity-repository";
+import type { OrganizationRepository } from "../repositories/organization-repository";
+import type { SignedIn } from "../services/auth-service";
+import { config } from "@/config";
+import { LEAST_PRIVILEGED } from "@/domain/roles";
+
+/**
+ * Entering a public demonstration.
+ *
+ * Nobody signs in to a demonstration with a password. They choose one of the
+ * identities its data offers, or they try Oikonomia as themselves with only a
+ * name. Either way the result is an ordinary session for an ordinary account,
+ * so everything after the entrance is the real application: the same
+ * authorization, the same records, the same onboarding.
+ *
+ * ## Two gates, both required
+ *
+ * - the installation is in Demo Mode (`OIKONOMIA_DEMO_MODE=true`), and
+ * - its database designates at least one identity (`demo_identity`).
+ *
+ * A church's database with the flag set by mistake designates nobody, so
+ * nobody can enter it this way. A demonstration's database running without the
+ * flag offers nothing. Neither gate alone opens anything.
+ *
+ * ## What cannot be chosen
+ *
+ * Only an identity the data designates. A person id, an account id, a
+ * visitor's identity — none of them is accepted, so knowing somebody's id is
+ * not a way in.
+ */
+
+/**
+ * How many people may try the demonstration as themselves before it is reset.
+ *
+ * A reset replaces the database, visitors included, so this is a limit per
+ * reset. It is not protection against a determined abuser — this application
+ * has no reliable way to tell one visitor from another — only a ceiling on
+ * how much a single period can accumulate.
+ */
+export const VISITOR_LIMIT = 200;
+
+export const VISITOR_NAME_MAX = 60;
+
+const visitorInput = z.object({
+  name: z
+    .string({ message: "Tell us what to call you." })
+    /* Control characters and line breaks have no place in a name shown to
+       other visitors. */
+    .transform((value) =>
+      value
+        .replace(/\p{Cc}+/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .pipe(
+      z
+        .string()
+        .min(1, "Tell us what to call you.")
+        .max(VISITOR_NAME_MAX, `Keep it to ${VISITOR_NAME_MAX} characters.`),
+    ),
+});
+
+const entryInput = z.object({ identityId: z.string().min(1).max(200) });
+
+export interface DemoIdentityOption {
+  /** The demo identity's id — the only thing `enter` accepts. */
+  id: string;
+  name: string;
+  initials: string;
+  /** What this person is called in the church, if anything. */
+  title: string;
+  /** Their access role, as this installation names it. */
+  role: string;
+}
+
+export interface DemoEntry {
+  /** Whether this installation is a demonstration at all. */
+  demo: boolean;
+  identities: DemoIdentityOption[];
+  /** Whether trying it as yourself is possible right now. */
+  visitorsWelcome: boolean;
+}
+
+export function createDemoEntryService(parts: {
+  demoMode: boolean;
+  identities: DemoIdentityRepository;
+  accounts: AccountRepository;
+  organization: OrganizationRepository;
+  auth: {
+    beginSessionFor(accountId: string, method: string, userAgent?: string): SignedIn;
+    signOut(token: string): void;
+  };
+  /** Runs its argument in one database transaction. */
+  transaction: <T>(work: () => T) => T;
+}) {
+  const { identities, accounts, organization, auth } = parts;
+
+  /** An identity's account, if both it and its person can be entered. */
+  const enterable = (personId: string) => {
+    const person = organization.findPerson(personId);
+    const account = accounts.findByPerson(personId);
+    if (!person || person.active === false || !account || account.status !== "active") {
+      return undefined;
+    }
+    return { person, account };
+  };
+
+  const offered = (): DemoIdentityOption[] =>
+    identities.designated().flatMap((identity) => {
+      const found = enterable(identity.personId);
+      if (!found) return [];
+      const { person } = found;
+      return [
+        {
+          id: identity.id,
+          name: person.name,
+          initials: person.initials,
+          title: person.role,
+          role: config.label("people.roles", person.accessRole),
+        },
+      ];
+    });
+
+  /** Both gates. Anything else is not a demonstration. */
+  const requireDemonstration = (): void => {
+    if (!parts.demoMode) {
+      throw ApiError.disabledByInstallation("This installation is not a demonstration.");
+    }
+    if (identities.count("designated") === 0) {
+      throw ApiError.notFound("A demonstration identity");
+    }
+  };
+
+  /** The browser's previous session ends, so switching does not pile sessions up. */
+  const leavePrevious = (currentToken: string | undefined) => {
+    if (currentToken) auth.signOut(currentToken);
+  };
+
+  return {
+    /** What the sign-in screen offers. Nothing at all on an ordinary installation. */
+    entry(): DemoEntry {
+      if (!parts.demoMode) return { demo: false, identities: [], visitorsWelcome: false };
+      const options = offered();
+      return {
+        demo: true,
+        identities: options,
+        visitorsWelcome:
+          identities.count("designated") > 0 && identities.count("visitor") < VISITOR_LIMIT,
+      };
+    },
+
+    /** Explore as one of the identities the demonstration offers. */
+    enter(input: unknown, context: { currentToken?: string; userAgent?: string }): SignedIn {
+      requireDemonstration();
+      const { identityId } = parse(entryInput, input);
+
+      const identity = identities.find(identityId);
+      /* Designated only: a visitor's identity belongs to whoever created it. */
+      const found = identity?.kind === "designated" ? enterable(identity.personId) : undefined;
+      if (!found) throw ApiError.notFound("That demonstration identity");
+
+      leavePrevious(context.currentToken);
+      return auth.beginSessionFor(found.account.id, "demo", context.userAgent);
+    },
+
+    /**
+     * Try Oikonomia as yourself.
+     *
+     * An ordinary person with the least-privileged role, no email, and an
+     * active account with no credential — reachable only through this entrance,
+     * because nothing else signs in to an account that has no password, no
+     * Google identity and no address. They start where any new person starts:
+     * onboarding.
+     */
+    createVisitor(
+      input: unknown,
+      context: { currentToken?: string; userAgent?: string },
+    ): SignedIn {
+      requireDemonstration();
+      const { name } = parse(visitorInput, input);
+
+      const account = parts.transaction(() => {
+        if (identities.count("visitor") >= VISITOR_LIMIT) {
+          throw ApiError.conflict(
+            "The demo has as many visitors as it can take until it next refreshes. Choose one of the people above instead.",
+          );
+        }
+        const person = organization.insertPerson({ name, accessRole: LEAST_PRIVILEGED });
+        const created = accounts.create({ personId: person.id, status: "active" });
+        identities.insert({ personId: person.id, kind: "visitor" });
+        return created;
+      });
+
+      leavePrevious(context.currentToken);
+      return auth.beginSessionFor(account.id, "demo-visitor", context.userAgent);
+    },
+  };
+}
+
+export type DemoEntryService = ReturnType<typeof createDemoEntryService>;

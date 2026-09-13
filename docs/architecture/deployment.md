@@ -310,6 +310,28 @@ Both must print `x-robots-tag: noindex, nofollow`. If they print nothing, the
 edge is removing it — report it rather than working around it in the
 application.
 
+### Entering a demonstration
+
+`/login` offers a chooser instead of a sign-in form: the people the database
+designates, and _Try it as yourself_ with only a name. Either opens an ordinary
+session, so everything after the entrance is the real application.
+
+- **Who is offered is data.** A person is offered when `demo_identity` has a
+  `designated` row for them and they have an active account (migration 035).
+  The demonstration's baseline database supplies these rows — and should give
+  designated people a completed onboarding. Nothing in code names anybody.
+- **Two gates.** Entering needs `OIKONOMIA_DEMO_MODE=true` **and** at least one
+  designated row. A church's database with the flag set by mistake designates
+  nobody, so nothing opens; a demonstration's database without the flag
+  offers nothing. Only a designated identity's id is accepted — never a person,
+  account or visitor id.
+- **Visitors** get an ordinary person with the least-privileged role, no email,
+  and an active account with no credential — reachable through this entrance
+  only — marked `visitor`, and start in normal onboarding. At most **200** exist
+  at once; a reset removes them. This is a ceiling, not abuse protection: the
+  application cannot reliably tell one visitor from another.
+- **Switching** from the chooser ends that browser's previous session first.
+
 ## Backups
 
 ```bash
