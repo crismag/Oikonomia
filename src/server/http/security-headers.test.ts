@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { contentSecurityPolicy, securityHeaders, withSecurityHeaders } from "./security-headers";
 
@@ -86,5 +86,53 @@ describe("applying them to a response", () => {
     const out = withSecurityHeaders(new Response("body", { status: 404 }));
     expect(out.status).toBe(404);
     expect(await out.text()).toBe("body");
+  });
+});
+
+/**
+ * A public demonstration asks not to be indexed; a church's own installation
+ * does not. Same build, decided by the installation's environment.
+ */
+describe("asking search engines not to index", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("is a header only when asked for", () => {
+    expect(securityHeaders({ ...production, noindex: true })["X-Robots-Tag"]).toBe(
+      "noindex, nofollow",
+    );
+    expect(securityHeaders(production)["X-Robots-Tag"]).toBeUndefined();
+    expect(securityHeaders({ ...production, noindex: false })["X-Robots-Tag"]).toBeUndefined();
+  });
+
+  it("is on every response of an installation in Demo Mode, whatever kind", () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "true");
+    const responses = [
+      new Response("<!doctype html>", { headers: { "content-type": "text/html" } }),
+      new Response('{"ok":true}', { headers: { "content-type": "application/json" } }),
+      new Response(null, { status: 302, headers: { location: "/login" } }),
+      new Response("error", { status: 500 }),
+    ];
+    for (const response of responses) {
+      expect(withSecurityHeaders(response).headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+    }
+  });
+
+  it("is absent from an ordinary installation, set or unset", () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "false");
+    expect(withSecurityHeaders(new Response("page")).headers.get("X-Robots-Tag")).toBeNull();
+
+    delete process.env["OIKONOMIA_DEMO_MODE"];
+    expect(withSecurityHeaders(new Response("page")).headers.get("X-Robots-Tag")).toBeNull();
+  });
+
+  /* Such an installation serves only its error page; the header must not be
+     the thing that throws. */
+  it("is sent, and does not throw, when the installation's policy cannot be read", () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "yes");
+    const out = withSecurityHeaders(new Response("unavailable", { status: 503 }));
+    expect(out.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+    expect(out.headers.get("X-Content-Type-Options")).toBe("nosniff");
   });
 });

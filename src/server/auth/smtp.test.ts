@@ -6,6 +6,7 @@ import {
   delivery,
   forgetDelivery,
   magicLinkMessage,
+  useDelivery,
 } from "./delivery";
 import { SmtpDelivery, smtpConfigured, smtpSettings } from "./smtp";
 
@@ -143,6 +144,93 @@ describe("the console, when there is no mail provider", () => {
     );
 
     expect(output).toContain(TOKEN);
+  });
+});
+
+/**
+ * A public demonstration sends no mail — decided where mail actually leaves.
+ *
+ * The operations that send mail are refused before they run (the installation
+ * policy). These tests call the delivery layer directly, as a path nobody has
+ * written yet would, and hold that it still sends nothing and says nothing
+ * about the message.
+ */
+describe("delivery in Demo Mode", () => {
+  const TOKEN = "tok_demo_4f3e2d1c-secret";
+  const message = () => ({ to: "visitor@example.org", ...magicLinkMessage(TOKEN) });
+
+  const everythingPrinted = async (work: () => Promise<void>) => {
+    const lines: string[] = [];
+    const spies = (["log", "info", "warn", "error", "debug"] as const).map((method) =>
+      vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+        lines.push(args.map(String).join(" "));
+      }),
+    );
+    try {
+      await work();
+    } finally {
+      spies.forEach((spy) => spy.mockRestore());
+    }
+    return lines.join("\n");
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("never uses a configured SMTP provider", async () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "true");
+    vi.stubEnv("OIKONOMIA_URL", "https://demo.example");
+    vi.stubEnv("OIKONOMIA_SMTP_HOST", "smtp.example.org");
+    vi.stubEnv("OIKONOMIA_MAIL_FROM", "Oikonomia <no-reply@example.org>");
+    forgetDelivery();
+    const smtpSend = vi.spyOn(SmtpDelivery.prototype, "send");
+
+    await expect(delivery().send(message())).resolves.toBeUndefined();
+
+    expect(smtpSend).not.toHaveBeenCalled();
+    expect(delivery()).not.toBeInstanceOf(SmtpDelivery);
+    expect(canDeliver()).toBe(false);
+  });
+
+  it("never uses an adapter installed explicitly, either", async () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "true");
+    vi.stubEnv("OIKONOMIA_URL", "https://demo.example");
+    const installed = { id: "provider", reachesRecipients: true, send: vi.fn(async () => {}) };
+    useDelivery(installed);
+
+    await delivery().send(message());
+
+    expect(installed.send).not.toHaveBeenCalled();
+    expect(canDeliver()).toBe(false);
+  });
+
+  it("prints nothing about the message: no recipient, body, link or token", async () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "true");
+    vi.stubEnv("OIKONOMIA_URL", "https://demo.example");
+    /* Development would otherwise print the whole message. */
+    vi.stubEnv("NODE_ENV", "development");
+    forgetDelivery();
+
+    const output = await everythingPrinted(() => delivery().send(message()));
+
+    expect(output).not.toContain("visitor@example.org");
+    expect(output).not.toContain(TOKEN);
+    expect(output).not.toContain("/login?");
+    expect(output).not.toContain("Somebody asked to sign in");
+    expect(output).toMatch(/suppressed by installation policy/);
+  });
+
+  it("goes back to the configured provider when Demo Mode is off", async () => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "false");
+    const installed = { id: "provider", reachesRecipients: true, send: vi.fn(async () => {}) };
+    useDelivery(installed);
+
+    await delivery().send(message());
+
+    expect(installed.send).toHaveBeenCalledOnce();
+    expect(canDeliver()).toBe(true);
   });
 });
 

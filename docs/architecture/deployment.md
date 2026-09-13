@@ -113,6 +113,7 @@ dependency audit.
 | `OIKONOMIA_BACKUP_OFFSITE`                                | Declares that directory leaves this machine                    | Treated as a second local copy                                                  |
 | `OIKONOMIA_MAINTENANCE_TOKEN`                             | Scheduled maintenance                                          | **The endpoint is off, not open**                                               |
 | `OIKONOMIA_ALERT_TO`                                      | Email on a failed scheduled task                               | Only cron's exit code reports it                                                |
+| `OIKONOMIA_DEMO_MODE`                                     | A public demonstration — see [Demo Mode](#demo-mode)           | An ordinary installation. Only `true`/`false`; anything else serves 503         |
 
 **`OIKONOMIA_URL` is read from configuration, never from the request's `Host`
 header.** A host header is something the client sends, and a sign-in link built
@@ -258,7 +259,13 @@ place everything passes through:
 
 `Content-Security-Policy`, `Strict-Transport-Security` (HTTPS only),
 `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
-`Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
+`Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and
+`X-Robots-Tag: noindex, nofollow` in [Demo Mode](#demo-mode) only.
+
+Static files (`/assets/*`, `robots.txt`, `favicon.ico`) are served by Nitro
+before `src/server.ts` runs, so they carry none of these. Everything a browser
+renders or a crawler indexes — pages, error pages, `/healthz`, server-function
+responses, refusals — does.
 
 **What the CSP does and does not do**, stated precisely because overstating it
 is a reason not to look at the real defences: the framework streams an inline
@@ -272,6 +279,36 @@ the caveat.
 
 No policy is sent in development: Vite needs `eval` and a websocket, and a
 policy loosened until it permits those is not the policy production runs.
+
+## Demo Mode
+
+`OIKONOMIA_DEMO_MODE=true` makes an installation a public demonstration: the
+same build, with operations that belong to a real installation removed
+(see `docs/architecture/api-boundary.md`, _Installation policy_). What it also
+guarantees at the boundaries where things leave the server:
+
+- **No email is sent.** Delivery itself is suppressed — ahead of any SMTP
+  settings — and nothing about a message (recipient, body, link) is logged.
+  SMTP credentials may be left out of a demonstration's environment entirely.
+- **No Google sign-in.** Google counts as unconfigured even if credentials are
+  present, so sign-in cannot start and no authorization code is ever exchanged
+  with Google; `/auth/google/*` also answer `403`.
+- **Not indexed.** Every application response carries
+  `X-Robots-Tag: noindex, nofollow`. `robots.txt` is unchanged, because a
+  church's own installation shares it.
+
+**Verify the header survives the hosting edge after deploying.** Hostinger's
+LiteSpeed has been seen replacing `Content-Security-Policy`, and a header the
+application sends is not proof of one the public receives:
+
+```bash
+curl -sI https://your-host/ | grep -i '^x-robots-tag'
+curl -sI https://your-host/login | grep -i '^x-robots-tag'
+```
+
+Both must print `x-robots-tag: noindex, nofollow`. If they print nothing, the
+edge is removing it — report it rather than working around it in the
+application.
 
 ## Backups
 

@@ -27,6 +27,7 @@
  * code decides that twice.
  */
 
+import { currentInstallation } from "../installation/policy";
 import { siteUrl } from "./site-url";
 import { SmtpDelivery, smtpSettings } from "./smtp";
 
@@ -75,6 +76,25 @@ export class ConsoleDelivery implements DeliveryAdapter {
   }
 }
 
+/**
+ * Delivery an installation policy has switched off.
+ *
+ * Sends nothing and prints nothing about the message: not who it was for, what
+ * it said, or the link inside it. On a public demonstration anybody can cause
+ * a message to be composed, and the log is not the place for it to go instead.
+ */
+export class SuppressedDelivery implements DeliveryAdapter {
+  readonly id = "suppressed";
+  readonly reachesRecipients = false;
+
+  send(): Promise<void> {
+    console.warn("Email delivery suppressed by installation policy.");
+    return Promise.resolve();
+  }
+}
+
+const suppressed = new SuppressedDelivery();
+
 let adapter: DeliveryAdapter | undefined;
 
 /**
@@ -84,8 +104,15 @@ let adapter: DeliveryAdapter | undefined;
  * process that sets its own environment — a test, a script — is not stuck with
  * a decision made before it ran. SMTP when it is configured; the console
  * otherwise, which says on screen that nothing was sent.
+ *
+ * **Demo Mode comes first, and is asked every time.** The operations that send
+ * mail are already refused before they run, but this is where mail actually
+ * leaves, so it refuses too — ahead of SMTP settings, and ahead of any adapter
+ * installed with `useDelivery()`. A path added later that reaches delivery
+ * without passing the operation policy still sends nothing.
  */
 export function delivery(): DeliveryAdapter {
+  if (currentInstallation().demoMode) return suppressed;
   if (adapter) return adapter;
 
   const settings = smtpSettings();

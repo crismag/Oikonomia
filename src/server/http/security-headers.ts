@@ -1,4 +1,5 @@
 import { deploymentIsHttps } from "../auth/site-url";
+import { currentInstallation } from "../installation/policy";
 
 /**
  * The headers a browser is told to enforce.
@@ -79,6 +80,8 @@ export function contentSecurityPolicy(https: boolean): string {
 export function securityHeaders(options: {
   https: boolean;
   development: boolean;
+  /** A public demonstration, whose invented records must not be indexed as a real church's. */
+  noindex?: boolean;
 }): Record<string, string> {
   const headers: Record<string, string> = {
     "X-Content-Type-Options": "nosniff",
@@ -101,7 +104,30 @@ export function securityHeaders(options: {
     headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains";
   }
 
+  if (options.noindex) {
+    /* A header rather than robots.txt or a meta tag: the same build serves a
+       church's own installation, which must stay findable, and a header is
+       decided per installation at runtime. It also covers what a meta tag
+       cannot — /healthz, error pages, anything that is not a page. */
+    headers["X-Robots-Tag"] = "noindex, nofollow";
+  }
+
   return headers;
+}
+
+/**
+ * Whether this installation asks not to be indexed: a public demonstration.
+ *
+ * An installation whose policy cannot be read is answered as if it were one —
+ * it serves only an error page, and asking a search engine to skip that costs
+ * nothing.
+ */
+function noindex(): boolean {
+  try {
+    return currentInstallation().demoMode;
+  } catch {
+    return true;
+  }
 }
 
 /**
@@ -114,6 +140,7 @@ export function withSecurityHeaders(response: Response): Response {
   const headers = securityHeaders({
     https: deploymentIsHttps(),
     development: process.env["NODE_ENV"] !== "production",
+    noindex: noindex(),
   });
 
   for (const [name, value] of Object.entries(headers)) {

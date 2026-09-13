@@ -100,6 +100,12 @@ try {
   check("sends X-Content-Type-Options", login.headers.get("x-content-type-options") === "nosniff");
   check("sends a Content-Security-Policy", Boolean(login.headers.get("content-security-policy")));
   check("cannot be framed", login.headers.get("x-frame-options") === "DENY");
+  /* A church's own installation stays findable: the demonstration's header is not here. */
+  check(
+    "an ordinary installation does not ask not to be indexed",
+    login.headers.get("x-robots-tag") === null,
+    `got ${login.headers.get("x-robots-tag")}`,
+  );
 
   /*
    * 3. The one that matters most.
@@ -595,6 +601,28 @@ try {
         "Demo Mode on: the health check still answers",
         health.status === 200,
         `got ${health.status}`,
+      );
+
+      /* Search engines are asked to skip the demonstration: every page, the
+         error pages and the refusals, not only the front door. */
+      const robots = {};
+      for (const [label, path] of [
+        ["/", "/"],
+        ["/login", "/login"],
+        ["/setup", "/setup"],
+        ["a page", "/people"],
+        ["a 404", "/no-such-page"],
+        ["/healthz", "/healthz"],
+        ["a refusal", "/auth/google/start"],
+      ]) {
+        const response = await fetch(`${BASE}${path}`, { redirect: "manual" });
+        robots[label] = response.headers.get("x-robots-tag");
+      }
+      const unmarked = Object.entries(robots).filter(([, value]) => value !== "noindex, nofollow");
+      check(
+        "Demo Mode on: pages, errors and refusals carry X-Robots-Tag: noindex, nofollow",
+        unmarked.length === 0,
+        unmarked.map(([label, value]) => `${label}: ${value}`).join(", "),
       );
       await stop();
     } else {

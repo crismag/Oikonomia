@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 
+import { currentInstallation } from "../installation/policy";
 import { safeEqual } from "./secrets";
 import { siteUrl, siteUrlConfigured } from "./site-url";
 
@@ -39,6 +40,13 @@ const ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 
 export function googleConfig():
   { clientId: string; clientSecret: string; redirectUri: string } | undefined {
+  /* A public demonstration has no Google sign-in, even with credentials left in
+     its environment. Its routes are already refused before they run; this is
+     the layer every step goes through — the authorization URL, the code
+     exchange that calls Google, and whether the sign-in screen offers it — so
+     none of them can happen by another path. */
+  if (currentInstallation().demoMode) return undefined;
+
   const clientId = process.env["GOOGLE_CLIENT_ID"];
   const clientSecret = process.env["GOOGLE_CLIENT_SECRET"];
   if (!clientId || !clientSecret) return undefined;
