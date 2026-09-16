@@ -14,6 +14,7 @@ import {
 import { useMeetings } from "@/components/oikonomia/meeting-provider";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
 import { AskedOfYou } from "@/components/oikonomia/put-on-week";
+import { ReportsFromMeeting, WriteReportFromMeeting } from "@/components/oikonomia/meeting-report";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { Pagination } from "@/components/oikonomia/pagination";
 import { PersonName } from "@/components/oikonomia/person";
@@ -717,7 +718,7 @@ function Editor({ note }: { note: MeetingNote }) {
           <ArrowLeft className="size-3.5" aria-hidden />
           Meeting Notes
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {/*
            * This used to say "saved as you type" whatever was happening. Now
            * it says what is actually true, because the claim is checkable:
@@ -725,6 +726,7 @@ function Editor({ note }: { note: MeetingNote }) {
            * state of that write (§20).
            */}
           <SaveIndicator />
+          <WriteReportFromMeeting note={note} />
           <Link
             to="/meeting-notes"
             search={{ note: note.id, print: true }}
@@ -921,6 +923,7 @@ function Editor({ note }: { note: MeetingNote }) {
        * something that needs a leader outside the room, it is asked for here.
        */}
       <div className="mt-4 space-y-3">
+        <ReportsFromMeeting noteId={note.id} />
         <AskedOfYou sourceType="meeting-note" sourceId={note.id} />
         <EscalationControl
           sourceType="meeting-note"
@@ -961,14 +964,17 @@ function NoteReader({ note }: { note: MeetingNote }) {
           <ArrowLeft className="size-3.5" aria-hidden />
           Meeting Notes
         </Link>
-        <Link
-          to="/meeting-notes"
-          search={{ note: note.id, print: true }}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Printer className="size-3.5" aria-hidden />
-          Print
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <WriteReportFromMeeting note={note} />
+          <Link
+            to="/meeting-notes"
+            search={{ note: note.id, print: true }}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Printer className="size-3.5" aria-hidden />
+            Print
+          </Link>
+        </div>
       </div>
 
       <header className="mb-3">
@@ -1060,6 +1066,7 @@ function NoteReader({ note }: { note: MeetingNote }) {
       </section>
 
       <div className="mt-4 space-y-3">
+        <ReportsFromMeeting noteId={note.id} />
         <AskedOfYou sourceType="meeting-note" sourceId={note.id} />
         <EscalationControl
           sourceType="meeting-note"

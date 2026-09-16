@@ -35,6 +35,8 @@ The **Actions** panel beside the goal offers what fits its status:
 
 Each of these is also added to the goal's progress, so the history says what happened and when.
 
+If someone else changed the goal after your page loaded — completed it, put it on hold — your action is refused with **This goal was changed somewhere else while you were working.** The page then shows the goal as it now stands, so you can decide again.
+
 ### Asking for help
 
 Progress notes ask nothing of anybody. To ask a leader for guidance, a decision, or help with something blocking the goal, use _Does this need anything from leadership?_ on the goal's page.

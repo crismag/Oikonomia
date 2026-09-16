@@ -13,7 +13,7 @@ import {
   updateGoal,
   type GoalYear,
 } from "@/lib/goals-api";
-import { unwrap, withTimeout } from "@/lib/calendar-client";
+import { isConflict, unwrap, withTimeout } from "@/lib/calendar-client";
 import type { Goal, GoalScope, GoalTarget, GoalUpdate } from "@/domain/types";
 
 /**
@@ -58,13 +58,22 @@ export interface GoalsStore {
     ministryId?: string;
     groupId?: string;
   }) => Promise<void>;
-  editGoal: (id: string, patch: Partial<Goal>) => Promise<void>;
+  /*
+   * Changes to a goal state the version the page loaded (`goal.version`). A
+   * stale one is refused with a conflict and the year is fetched again, so the
+   * person sees what somebody else did instead of overwriting it.
+   */
+  editGoal: (
+    id: string,
+    patch: Partial<Goal>,
+    expectedVersion: number | undefined,
+  ) => Promise<void>;
   removeGoal: (id: string) => Promise<void>;
   addUpdate: (goalId: string, text: string, authorId?: string) => Promise<void>;
-  complete: (goalId: string, note?: string) => Promise<void>;
-  hold: (goalId: string, reason?: string) => Promise<void>;
-  resume: (goalId: string) => Promise<void>;
-  carryForward: (goalId: string, toYear: number) => Promise<void>;
+  complete: (goal: Goal, note?: string) => Promise<void>;
+  hold: (goal: Goal, reason?: string) => Promise<void>;
+  resume: (goal: Goal) => Promise<void>;
+  carryForward: (goal: Goal, toYear: number) => Promise<void>;
 }
 
 const GoalsContext = createContext<GoalsStore | null>(null);
@@ -74,6 +83,9 @@ export function useGoals(): GoalsStore {
   if (!value) throw new Error("useGoals must be used inside GoalsProvider");
   return value;
 }
+
+const versionOf = (version: number | undefined) =>
+  version !== undefined ? { expectedVersion: version } : {};
 
 const EMPTY: GoalYear = { goals: [], updates: [], withheld: 0, years: [] };
 
@@ -103,6 +115,9 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     mutationFn: async (work: () => Promise<unknown>) =>
       unwrap((await withTimeout(work())) as never),
     onSuccess: invalidate,
+    onError: (error) => {
+      if (isConflict(error)) void invalidate();
+    },
     networkMode: "always" as const,
     retry: 0,
   });
@@ -137,16 +152,20 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
       saving: mutation.isPending,
 
       addGoal: (input) => call(() => createGoal({ data: input })),
-      editGoal: (id, patch) => call(() => updateGoal({ data: { id, patch } })),
+      editGoal: (id, patch, expectedVersion) =>
+        call(() => updateGoal({ data: { id, patch, ...versionOf(expectedVersion) } })),
       removeGoal: (id) => call(() => deleteGoal({ data: { id } })),
 
       addUpdate: (goalId, text) => call(() => addGoalUpdate({ data: { goalId, text } })),
 
-      complete: (goalId, note) => call(() => completeGoal({ data: { id: goalId, note } })),
-      hold: (goalId, reason) => call(() => holdGoal({ data: { id: goalId, reason } })),
-      resume: (goalId) => call(() => resumeGoal({ data: { id: goalId } })),
-      carryForward: (goalId, toYear) =>
-        call(() => carryGoalForward({ data: { id: goalId, toYear } })),
+      complete: (goal, note) =>
+        call(() => completeGoal({ data: { id: goal.id, note, ...versionOf(goal.version) } })),
+      hold: (goal, reason) =>
+        call(() => holdGoal({ data: { id: goal.id, reason, ...versionOf(goal.version) } })),
+      resume: (goal) =>
+        call(() => resumeGoal({ data: { id: goal.id, ...versionOf(goal.version) } })),
+      carryForward: (goal, toYear) =>
+        call(() => carryGoalForward({ data: { id: goal.id, toYear, ...versionOf(goal.version) } })),
     }),
     [goals, updates, year, loaded, selected, mutation.isPending, call],
   );

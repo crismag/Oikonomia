@@ -32,6 +32,12 @@ name while choosing where a gathering meets.
 While nobody has claimed a gathering, any leader may fill in its date, time and
 venue — on the row or with **Edit details** — without leading it.
 
+A gathering carries a version, like a report. If two leaders change the same
+gathering, the second save is refused with a sentence saying so, rather than
+quietly putting back what the first leader changed. **Edit details** keeps
+what was typed and offers **Load the current version**; a row on the schedule
+refreshes to what is stored.
+
 **Cancel gathering** takes a gathering that will not happen, or a row added
 twice, off the schedule after a confirmation. It stays listed as **Cancelled**,
 nothing is recorded on it, and it owes nothing on Home or My Progress.

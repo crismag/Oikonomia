@@ -444,6 +444,13 @@ export interface Gathering {
    */
   expectedAttendeeIds?: string[];
   status: GatheringStatus;
+  /**
+   * Increments on every change to when, where, who or stage.
+   *
+   * Several leaders maintain one row, so a save states the version it loaded
+   * and a stale one is refused rather than quietly undoing somebody's change.
+   */
+  version?: number;
   createdBy?: string;
   updatedBy?: string;
 }
@@ -1057,6 +1064,12 @@ export interface Goal {
   links: BinderLink[];
   /** Absent means ordinary organizational visibility. */
   policy?: AudiencePolicy;
+  /**
+   * Increments on every write. A save states the version it loaded, and a
+   * stale one is refused — a ministry's goal is maintained by more than one
+   * person.
+   */
+  version?: number;
 }
 
 /**

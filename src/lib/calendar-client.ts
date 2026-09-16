@@ -53,6 +53,14 @@ export function isDisabledByInstallation(error: unknown): boolean {
   return error instanceof CalendarError && error.code === "disabled-by-installation";
 }
 
+/**
+ * Whether a save was refused because somebody else changed the record first —
+ * which a screen answers by showing the current version, not by retrying.
+ */
+export function isConflict(error: unknown): boolean {
+  return error instanceof CalendarError && error.code === "conflict";
+}
+
 export function fieldErrors(error: unknown): Record<string, string> {
   return error instanceof CalendarError ? (error.fields ?? {}) : {};
 }

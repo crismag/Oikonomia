@@ -140,15 +140,28 @@ export function createLifegroupService(
     isAssignedLeader: leadsGathering(gathering, viewer.person.id),
   });
 
-  function saveStage(viewer: Viewer, gathering: Gathering, status: Gathering["status"]) {
-    const { id, ...rest } = gathering;
-    const saved = repo.saveGathering(id, {
-      ...rest,
-      status,
-      updatedBy: viewer.person.id,
-    } as GatheringValues);
+  /**
+   * Write the row, refusing a stale version when the caller stated one.
+   *
+   * Several leaders maintain one gathering. Without this, a leader who opened
+   * the editor before somebody else settled the venue would put the old venue
+   * back on save, and neither would know.
+   */
+  function commit(id: string, values: GatheringValues, expectedVersion?: number): Gathering {
+    const { version: _version, ...rest } = values as GatheringValues & { version?: number };
+    const saved = repo.saveGathering(id, rest as GatheringValues, expectedVersion);
+    if (saved === "stale") {
+      throw ApiError.conflict(
+        "This gathering was changed somewhere else while you were working. Reopen it to see the current version.",
+      );
+    }
     if (!saved) throw ApiError.notFound("That gathering");
     return published(saved);
+  }
+
+  function saveStage(viewer: Viewer, gathering: Gathering, status: Gathering["status"]) {
+    const { id, ...rest } = gathering;
+    return commit(id, { ...rest, status, updatedBy: viewer.person.id } as GatheringValues);
   }
 
   function readableEntries(viewer: Viewer, gathering: Gathering, entries: LifegroupEntry[]) {
@@ -278,15 +291,13 @@ export function createLifegroupService(
           : undefined;
 
       const { id: _id, ...rest } = gathering;
-      const saved = repo.saveGathering(gatheringId, {
+      return commit(gatheringId, {
         ...rest,
         assignedLeaderIds,
         primaryLeaderId,
         status: statusForLeaders(gathering.status, assignedLeaderIds),
         updatedBy: me,
       } as GatheringValues);
-      if (!saved) throw ApiError.notFound("That gathering");
-      return published(saved);
     },
 
     /**
@@ -294,8 +305,17 @@ export function createLifegroupService(
      *
      * A different right from recording what happened: campus oversight may move
      * a gathering without being able to mark its attendance.
+     *
+     * The caller states the version it loaded. A stale one is refused; an
+     * omitted one is the old last-writer behaviour, kept for callers with no
+     * version to offer and never used by the schedule or the editor.
      */
-    updateGathering(viewer: Viewer, id: string, input: unknown): Gathering {
+    updateGathering(
+      viewer: Viewer,
+      id: string,
+      input: unknown,
+      expectedVersion?: number,
+    ): Gathering {
       const gathering = requireGathering(id);
       if (!canAmendGathering(viewer, gathering)) {
         throw ApiError.forbidden("This gathering is not yours to change.");
@@ -335,14 +355,17 @@ export function createLifegroupService(
 
       const { id: _id, ...rest } = gathering;
       const merged = { ...rest, ...patch } as GatheringValues;
-      const saved = repo.saveGathering(id, {
-        ...merged,
-        /* The stage follows from who is on it, unless it has moved past that. */
-        status: patch.status ?? statusForLeaders(gathering.status, merged.assignedLeaderIds ?? []),
-        updatedBy: viewer.person.id,
-      } as GatheringValues);
-      if (!saved) throw ApiError.notFound("That gathering");
-      return published(saved);
+      return commit(
+        id,
+        {
+          ...merged,
+          /* The stage follows from who is on it, unless it has moved past that. */
+          status:
+            patch.status ?? statusForLeaders(gathering.status, merged.assignedLeaderIds ?? []),
+          updatedBy: viewer.person.id,
+        } as GatheringValues,
+        expectedVersion,
+      );
     },
 
     /**

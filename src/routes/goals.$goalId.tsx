@@ -251,12 +251,12 @@ function GoalDetail() {
                 <GoalActions
                   goal={goal}
                   busy={store.saving}
-                  onComplete={(note) => void attempt(() => complete(goal.id, note))}
-                  onHold={(reason) => void attempt(() => hold(goal.id, reason))}
-                  onResume={() => void attempt(() => resume(goal.id))}
+                  onComplete={(note) => void attempt(() => complete(goal, note))}
+                  onHold={(reason) => void attempt(() => hold(goal, reason))}
+                  onResume={() => void attempt(() => resume(goal))}
                   onCarry={() =>
                     void attempt(async () => {
-                      await carryForward(goal.id, goal.year + 1);
+                      await carryForward(goal, goal.year + 1);
                       /* Only once it exists in the new year. */
                       void navigate({ to: "/goals", search: { year: goal.year + 1 } });
                     })

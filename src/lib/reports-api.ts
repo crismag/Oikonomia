@@ -32,6 +32,7 @@ async function withReports<T>(
     { createOrganizationRepository },
     { createLeadershipReportService },
     { createDataJobRepository },
+    { createMeetingRepository },
     { getRequest },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -42,6 +43,7 @@ async function withReports<T>(
     import("@/server/repositories/organization-repository"),
     import("@/server/services/leadership-report-service"),
     import("@/server/repositories/data-job-repository"),
+    import("@/server/repositories/meeting-repository"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -60,6 +62,7 @@ async function withReports<T>(
           jobs.audit({ actorId, action: "report.confidential.read", metadata: { reportId } }),
         of: (reportId) => jobs.confidentialReadsOf(reportId),
       },
+      { findMeetingNote: (id) => createMeetingRepository(db).findNote(id) },
     );
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {

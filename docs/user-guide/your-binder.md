@@ -124,6 +124,13 @@ tasks given to them to tick, and the request control — rather than an editor
 that would refuse their changes. An action somebody asked of you from a note
 shows there as **Asked of you**.
 
+**Write a report from this meeting**, on the note or the reading page, starts
+a Leadership Report as your Draft, titled after the meeting and linked back
+to it. Nothing is copied from the note, and the report is private to you
+until you choose its audience. The report's **Meeting** link opens the note
+only for people who may already read it; reports from the meeting that you
+may read are listed at the bottom of the note.
+
 Formatting is deliberately small — bold, italic, underline, links, headings,
 lists, quotes, checklists. Notes are documents to read, not pages to design.
 
@@ -228,6 +235,10 @@ from the tab you are looking at, grouped the same way.
 A ministry's own page lists its goals first, then leaders' personal goals that
 relate to it, under each leader's name. Home and My Progress ask you for an
 update on the goals you carry.
+
+A goal carries a version. If someone else completed a goal, put it on hold or
+carried it forward after your page loaded, your action is refused with a
+sentence saying so and the page shows the goal as it now stands.
 
 ## Documents & Forms and Resource Search
 
