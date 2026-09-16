@@ -204,6 +204,7 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/escalation-api.ts#fetchMyRoles": { method: "GET", demo: "read" },
   "src/lib/escalation-api.ts#fetchReadState": { method: "GET", demo: "read" },
   "src/lib/escalation-api.ts#markRead": { method: "POST", demo: "allowed" },
+  "src/lib/escalation-api.ts#markSeen": { method: "POST", demo: "allowed" },
 
   /* forms-api.ts */
   "src/lib/forms-api.ts#fetchForms": { method: "GET", demo: "read" },

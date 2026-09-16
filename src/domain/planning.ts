@@ -169,6 +169,8 @@ export interface MeetingTaskEntry {
   task: MeetingTask;
   contextLabel: string;
   readable: boolean;
+  /** Written into a note this leader wrote themselves, so not news to them. */
+  byYou?: boolean;
 }
 
 export function fromMeetingTask(entry: MeetingTaskEntry): PlanningItem | undefined {

@@ -22,6 +22,15 @@ is always there, and is the main action when the week is quiet.
 A first visit explains this once. The longer walkthrough is in the account
 menu, under Setup & walkthrough.
 
+### The bell
+
+The bell in the top bar shows what is **new for you**: something another leader
+asked of you, or a task somebody gave you in a meeting, that you have not seen
+yet. Opening it marks those as seen — seen is not done, and the work stays in
+the Leadership Inbox and on your week. It also lists what is **past its date**,
+but never counts it: the number on the bell is about news, not about how much
+is outstanding. Nothing is emailed or sent to your phone.
+
 **My Progress** sits beside it: how your leadership responsibilities are going
 this week and this month, as cycles with steps rather than a percentage.
 

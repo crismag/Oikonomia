@@ -311,7 +311,7 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 | Hold | Prerequisite |
 | --- | --- |
 | Merge **Leadership Reports** with **Reports to you** | Explicit decision: what *is* a ministry report? They are different records. |
-| Email reminders / notifications | Loop must stay honest; do not notify people into a queue. In-app overdue is enough first. |
+| Email or push reminders | In-app notices exist (`notices-bell.tsx`, `src/domain/notices.ts`): the bell counts only unseen asks and meeting tasks from someone else; past-due is listed, never counted; opening marks seen via `markSeen`. Do not add email/push or count overdue on the bell without Cris. |
 | Calendar sync (Google) | Real OAuth, not a fake “connected” badge. Demo must stay disconnected. |
 | CSV import / member import | Church setup journey first, or you import into a shapeless org. |
 | File uploads | Contradicts “documents are links”. |
