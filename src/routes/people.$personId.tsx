@@ -15,6 +15,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useLifegroup } from "@/components/oikonomia/lifegroup-provider";
 import { useReports } from "@/components/oikonomia/report-provider";
 import { fetchAssignments } from "@/lib/organization-api";
+import { fetchReachOut, type ReportPage } from "@/lib/reach-out-api";
+import { fetchNotes, type NotePage } from "@/lib/meeting-api";
+import { noteTypeLabel } from "@/domain/meeting";
+import { shortDayLabel } from "@/domain/schedule";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
 import { assignmentSentence, type Assignment } from "@/domain/assignment";
 import { useWorkList } from "@/components/oikonomia/work-provider";
@@ -48,6 +52,7 @@ function PersonDetail() {
   const lifegroupStore = useLifegroup();
   const workList = useWorkList();
   const reports = useReports();
+  const { reachOut, meetingNotes } = useWrittenBy(personId);
 
   /* Whether this person exists is the directory's answer, and the directory is
      loaded rather than compiled in — so it is checked here rather than in a
@@ -267,6 +272,62 @@ function PersonDetail() {
           </Section>
         ) : null}
 
+        {reachOut.length > 0 ? (
+          <Section title="Reach-Out" meta={`${reachOut.length}`}>
+            <ul className="divide-y divide-border">
+              {reachOut.map((report) => (
+                <li key={report.id} className="row-quiet">
+                  <Link
+                    to="/reach-out/$reportId"
+                    params={{ reportId: report.id }}
+                    className="flex items-start gap-3 px-4 py-2.5"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px]">
+                        {report.title || "Untitled report"}
+                      </span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {report.authorId === person.id ? "Wrote it" : "Worked on it"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[12px] text-muted-foreground">
+                      {shortDayLabel(report.reportDate)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+
+        {meetingNotes.length > 0 ? (
+          <Section title="Meeting notes" meta={`${meetingNotes.length}`}>
+            <ul className="divide-y divide-border">
+              {meetingNotes.map((note) => (
+                <li key={note.id} className="row-quiet">
+                  <Link
+                    to="/meeting-notes"
+                    search={{ note: note.id }}
+                    className="flex items-start gap-3 px-4 py-2.5"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px]">
+                        {note.title || "Untitled note"}
+                      </span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {noteTypeLabel[note.noteType]}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[12px] text-muted-foreground">
+                      {shortDayLabel(note.date)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+
         {theyLead.length > 0 ? (
           <Section title="Gatherings they lead" meta={`${theyLead.length}`}>
             <ul className="divide-y divide-border">
@@ -322,6 +383,43 @@ function PersonDetail() {
       </DetailLayout>
     </Page>
   );
+}
+
+/** Enough to recognise the pattern of someone's work; the module lists the rest. */
+const WRITTEN_BY_LIMIT = 6;
+
+/**
+ * Reach-Out and meeting notes this person wrote or worked on.
+ *
+ * Asked of the server by person rather than filtered from the modules' own
+ * lists: those are one page, shaped by whatever the leader last searched, so
+ * filtering them here would quietly miss older work. The server applies the
+ * same rules as the modules' lists — meeting notes only as far as this viewer
+ * may read them, so another leader's personal notes never appear and are not
+ * counted. Newest first, and the keys sit under each module's own so a save
+ * there refreshes this page too.
+ */
+function useWrittenBy(personId: string) {
+  const reachOutQuery = { personId, page: 1, pageSize: WRITTEN_BY_LIMIT };
+  const reachOut = useQuery<ReportPage>({
+    queryKey: ["reach-out", reachOutQuery],
+    queryFn: async () => unwrap(await withTimeout(fetchReachOut({ data: reachOutQuery }))),
+    retry: 1,
+    networkMode: "always",
+  });
+
+  const notesQuery = { personId, page: 1, pageSize: WRITTEN_BY_LIMIT };
+  const meetingNotes = useQuery<NotePage>({
+    queryKey: ["meeting-notes", notesQuery],
+    queryFn: async () => unwrap(await withTimeout(fetchNotes({ data: notesQuery }))),
+    retry: 1,
+    networkMode: "always",
+  });
+
+  return {
+    reachOut: reachOut.data?.reports ?? [],
+    meetingNotes: meetingNotes.data?.notes ?? [],
+  };
 }
 
 /**

@@ -18,7 +18,9 @@ descriptive and grants nothing** — "Bishop" is a word the church uses, not a
 permission.
 
 From a person you can also open the leadership reports they wrote that you may
-already read, the gatherings they lead, and the people who report to them.
+already read, the Reach-Out reports they wrote or worked on, the meeting notes
+they wrote that you may read, the gatherings they lead, and the people who
+report to them. Someone else's personal notes never appear there.
 Nothing on this page widens access: a report whose audience does not include
 you is not listed.
 

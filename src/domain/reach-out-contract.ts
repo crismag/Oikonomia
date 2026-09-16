@@ -41,4 +41,6 @@ export const reportQuery = z.object({
     .trim()
     .optional()
     .transform((v) => (v ? v : undefined)),
+  /** Reports this person wrote first or has since worked on. */
+  personId: z.string().trim().min(1).optional(),
 });

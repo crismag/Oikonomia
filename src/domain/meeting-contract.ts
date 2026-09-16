@@ -156,6 +156,8 @@ export const noteQuery = z.object({
   noteType: z.enum(noteTypes).optional(),
   tag: z.string().trim().min(1).optional(),
   ministryId: z.string().trim().min(1).optional(),
+  /** Notes this person wrote or took down. Narrows what the viewer may read; never widens it. */
+  personId: z.string().trim().min(1).optional(),
 });
 
 export type NoteQuery = z.infer<typeof noteQuery>;

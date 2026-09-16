@@ -62,12 +62,13 @@ export function createReachOutService(repo: ReachOutRepository) {
      */
     list(_viewer: Viewer, input: unknown): { reports: ReachOutReport[]; page: PageMeta } {
       const query = parse(reportQuery, input);
-      const total = repo.count(query.search);
+      const filters = { search: query.search, personId: query.personId };
+      const total = repo.count(filters);
       const { limit, offset, meta } = windowFor(
         { page: query.page ?? 1, pageSize: query.pageSize ?? PAGE_SIZE },
         total,
       );
-      return { reports: repo.list(query.search, limit, offset), page: meta };
+      return { reports: repo.list(filters, limit, offset), page: meta };
     },
 
     get(_viewer: Viewer, id: string): ReachOutReport {

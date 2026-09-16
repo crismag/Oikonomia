@@ -625,6 +625,27 @@ describe("a personal note stays personal", () => {
     expect(service.getNote(maria, mine.id).note).not.toHaveProperty("visibility");
   });
 
+  /**
+   * A person page asks "what did they write?". That question must not become a
+   * way to learn that somebody keeps personal notes: the person filter narrows
+   * what this viewer may already read, and the count is the viewer's count.
+   */
+  it("stays hidden when a list is narrowed to its author", () => {
+    service.createNote(maria, note({ noteType: "personal", title: "Private" }));
+    service.createNote(maria, {
+      ...note({ title: "Leaders Meeting minutes" }),
+      participantIds: [maria.person.id, joel.person.id],
+    });
+    service.createNote(bishop, {
+      ...note({ title: "Bishop's minutes" }),
+      participantIds: [bishop.person.id, joel.person.id],
+    });
+
+    const theirs = service.listNotes(joel, { personId: maria.person.id });
+    expect(theirs.notes.map((n) => n.title)).toEqual(["Leaders Meeting minutes"]);
+    expect(theirs.page.total).toBe(1);
+  });
+
   it("never becomes minutes by being shared", () => {
     const mine = service.createNote(maria, note({ noteType: "personal" }));
     expect(service.getNote(maria, mine.id).note.noteType).toBe("personal");
