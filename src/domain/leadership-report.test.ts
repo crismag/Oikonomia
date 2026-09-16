@@ -32,6 +32,7 @@ import {
   transitionsFrom,
   templateFor,
   withheldCount,
+  reportsToYou,
 } from "./leadership-report";
 import { resolveAccess } from "./access";
 import { applyOverrides, config, resetOverrides } from "@/config";
@@ -1165,5 +1166,26 @@ describe("ordering a list a reader chose, not one the data happened to have", ()
   it("filterReports honours the requested sort instead of always defaulting to recency", () => {
     const byTitle = filterReports(reports, { sort: "title" }, () => "");
     expect(byTitle.map((r) => r.id)).toEqual(["r-new", "r-mid", "r-old"]);
+  });
+});
+
+/**
+ * Reports to you shows a leader's own reports as a shortcut and what reached
+ * them from others — drawn only from what they may already discover.
+ */
+describe("reportsToYou", () => {
+  const list = [
+    report({ id: "mine-old", authorId: "p-me", updatedAt: "2026-08-01T00:00:00Z" }),
+    report({ id: "theirs", authorId: "p-ruth", updatedAt: "2026-09-10T00:00:00Z" }),
+    report({ id: "mine-new", authorId: "p-me", updatedAt: "2026-09-12T00:00:00Z" }),
+    report({ id: "theirs-old", authorId: "p-joel", updatedAt: "2026-07-01T00:00:00Z" }),
+  ];
+
+  it("keeps the viewer's own reports apart, newest first", () => {
+    expect(reportsToYou(list, "p-me").yours.map((r) => r.id)).toEqual(["mine-new", "mine-old"]);
+  });
+
+  it("lists everything else that reached them, newest first, and nothing of theirs", () => {
+    expect(reportsToYou(list, "p-me").shared.map((r) => r.id)).toEqual(["theirs", "theirs-old"]);
   });
 });

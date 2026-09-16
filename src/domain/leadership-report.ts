@@ -941,3 +941,24 @@ export function initialStatus(): string {
   });
   return (start ?? options[0])?.id ?? "draft";
 }
+
+/**
+ * The leadership reports that belong on Reports to you.
+ *
+ * Both lists are drawn from what the service already returned as discoverable,
+ * so neither can show a report the viewer could not open from Leadership
+ * Reports. **Yours** is the viewer's own, most recently touched first — a
+ * shortcut, not a second library. **Shared with you** is everything else that
+ * reached them — by name, through a group, or by its audience — newest first.
+ */
+export function reportsToYou(
+  visible: readonly LeadershipReport[],
+  viewerId: string,
+): { yours: LeadershipReport[]; shared: LeadershipReport[] } {
+  const newest = (a: LeadershipReport, b: LeadershipReport) =>
+    b.updatedAt.localeCompare(a.updatedAt);
+  return {
+    yours: visible.filter((report) => report.authorId === viewerId).sort(newest),
+    shared: visible.filter((report) => report.authorId !== viewerId).sort(newest),
+  };
+}
