@@ -34,15 +34,29 @@ const kinds = [
   "Link",
 ];
 
-export function RegisterDocument({ onDone }: { onDone: () => void }) {
+export function RegisterDocument({
+  onDone,
+  ministryId: fileUnder,
+  from = "link",
+}: {
+  onDone: () => void;
+  /** Opened from a ministry: filed there unless the leader changes it. */
+  ministryId?: string;
+  /**
+   * Where the leader said it lives. Only the wording changes — a Drive
+   * document is registered by its address like any other, and nothing here
+   * connects to Drive.
+   */
+  from?: "link" | "drive";
+}) {
   const { ministries } = useOrganization();
   const registry = useRegistry();
 
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
-  const [kind, setKind] = useState("Document");
+  const [kind, setKind] = useState(from === "drive" ? "Document" : "Link");
   const [description, setDescription] = useState("");
-  const [ministryId, setMinistryId] = useState<string | undefined>(undefined);
+  const [ministryId, setMinistryId] = useState<string | undefined>(fileUnder);
   const [touched, setTouched] = useState(false);
 
   const problems = fieldErrors(registry.saveError);
@@ -71,11 +85,19 @@ export function RegisterDocument({ onDone }: { onDone: () => void }) {
   return (
     <div className="space-y-4 rounded-lg border border-border bg-surface px-5 py-5">
       <div>
-        <h2 className="text-[15px] font-medium">Register a document</h2>
+        <h2 className="text-[15px] font-medium">
+          {from === "drive" ? "Add a document from Drive" : "Register a document"}
+        </h2>
         <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
           The binder records what the document is and where it lives. The document itself stays
           where it is — nothing is copied here, and whoever keeps it still decides who may open it.
         </p>
+        {from === "drive" ? (
+          <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
+            Oikonomia does not connect to Google Drive. Copy the document&apos;s link from Drive and
+            paste it below; Drive&apos;s own sharing still decides who can open it.
+          </p>
+        ) : null}
       </div>
 
       <Field
@@ -103,7 +125,7 @@ export function RegisterDocument({ onDone }: { onDone: () => void }) {
         <input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://docs.google.com/…"
+          placeholder={from === "drive" ? "https://drive.google.com/…" : "https://…"}
           className="w-full rounded-md border border-border bg-surface-muted px-2.5 py-1.5 text-[14px] outline-none placeholder:text-muted-foreground focus:border-border-strong"
         />
         {/* Read off the address and nothing more: the binder has not opened it,

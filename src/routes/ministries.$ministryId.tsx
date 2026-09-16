@@ -25,6 +25,14 @@ import { Page } from "@/components/oikonomia/page";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { Section } from "@/components/oikonomia/section";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { RegisterDocument } from "@/components/oikonomia/register-document";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { goalCounts, goalsForYear, ministryGoals, personalGoalsRelatingTo } from "@/domain/goals";
@@ -673,10 +681,12 @@ type NewItem = {
  * the honest shape of the product. What is not built yet is marked "Soon" and
  * genuinely disabled, so nothing here looks operational that is not.
  *
- * Plan, Report, Announcement and Checklist are real now: they create a document
- * the binder keeps and open it for writing. "Add existing material" is not —
- * registering a link is done from Documents & Forms, and the binder still
- * cannot store an uploaded file.
+ * Plan, Report, Announcement and Checklist create a document the binder keeps
+ * and open it for writing. "Add link" and "Add from Drive" register a document
+ * that lives elsewhere, filed under this ministry — the binder records where it
+ * is, and nothing is copied. "Upload file" stays marked Soon: the binder does
+ * not store files, and a control that looked as if it did would be a promise
+ * it cannot keep.
  */
 function NewMenu({
   ministryId,
@@ -690,6 +700,7 @@ function NewMenu({
   const [open, setOpen] = useState(false);
   const [failure, setFailure] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const [registering, setRegistering] = useState<"link" | "drive" | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -723,10 +734,10 @@ function NewMenu({
     { label: "Checklist", icon: FileText, kind: "Checklist" },
   ];
 
-  const existing: NewItem[] = [
+  const existing: (NewItem & { register?: "link" | "drive" })[] = [
     { label: "Upload file", icon: Upload },
-    { label: "Add from Drive", icon: Cloud },
-    { label: "Add link", icon: Link2 },
+    { label: "Add from Drive", icon: Cloud, register: "drive" },
+    { label: "Add link", icon: Link2, register: "link" },
   ];
 
   return (
@@ -771,17 +782,50 @@ function NewMenu({
             <ul>
               {existing.map((item) => (
                 <li key={item.label}>
-                  <MenuItem item={item} onNavigate={() => setOpen(false)} />
+                  {item.register ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        setRegistering(item.register!);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-muted"
+                    >
+                      <item.icon className="size-3.5 shrink-0" aria-hidden />
+                      <span className="flex-1 truncate">{item.label}</span>
+                    </button>
+                  ) : (
+                    <MenuItem item={item} onNavigate={() => setOpen(false)} />
+                  )}
                 </li>
               ))}
             </ul>
             <p className="px-2 pt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-              A document kept elsewhere is registered from Documents &amp; Forms, and filed under
-              this ministry from there.
+              A link is registered, not copied: the document stays where it is.
             </p>
           </>
         ) : null}
       </PopoverContent>
+      <Sheet
+        open={registering !== null}
+        onOpenChange={(next) => (next ? null : setRegistering(null))}
+      >
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Add existing material</SheetTitle>
+            <SheetDescription>Register a document that lives elsewhere</SheetDescription>
+          </SheetHeader>
+          {registering ? (
+            <div className="mt-6">
+              <RegisterDocument
+                ministryId={ministryId}
+                from={registering}
+                onDone={() => setRegistering(null)}
+              />
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </Popover>
   );
 }
