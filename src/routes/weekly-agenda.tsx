@@ -188,9 +188,9 @@ function WeeklyAgendaPage() {
      * reach the conversation that produced it.
      */
     if (item.source.type === "meeting-task") {
-      const meetingId =
-        item.source.relatedId ??
-        myTasks.tasks.find((entry) => entry.task.id === item.source.id)?.task.meetingId;
+      /* Only a note this leader may read is named; the item is already on
+         this page otherwise. */
+      const meetingId = item.source.relatedId;
       if (meetingId) {
         void navigate({ to: "/meeting-notes", search: { note: meetingId } });
       }

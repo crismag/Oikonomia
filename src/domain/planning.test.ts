@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   filterPlanning,
   groupPlanning,
+  meetingTaskWeek,
   planningForDays,
   planningHref,
   sortPlanning,
+  tasksForDay,
   type PlanningItem,
 } from "./planning";
-import type { AgendaItem, ScheduleEntry } from "./types";
+import type { AgendaItem, MeetingTask, ScheduleEntry } from "./types";
 
 /**
  * Planning information, as several views see it.
@@ -264,5 +266,90 @@ describe("opening a projected item", () => {
       to: "/meeting-notes",
       search: { note: "note-9" },
     });
+  });
+});
+
+/**
+ * A meeting task can be given to someone who may not read the note. The task
+ * is theirs; the note is not, so nothing may link them to it.
+ */
+describe("a meeting task from a note this leader may not read", () => {
+  const entry = (readable: boolean) => ({
+    task: {
+      id: "t-2",
+      meetingId: "note-private",
+      title: "Call the caterer",
+      dueDate: "2026-09-10",
+      status: "open" as const,
+      createdAt: "2026-09-09T12:00:00",
+    },
+    contextLabel: "From a meeting",
+    readable,
+  });
+
+  it("does not name the note", () => {
+    const [item] = tasksForDay("2026-09-10", [], ministryName, [entry(false)]);
+    expect(item?.source).not.toHaveProperty("relatedId");
+  });
+
+  it("opens the day on the week instead of a note they cannot open", () => {
+    const [item] = tasksForDay("2026-09-10", [], ministryName, [entry(false)]);
+    expect(planningHref(item!)).toEqual({ to: "/weekly-agenda", search: { date: "2026-09-10" } });
+  });
+
+  it("lists a day's agenda items before its meeting tasks, with the week's ids", () => {
+    const agendaItem: AgendaItem = {
+      id: "a-1",
+      text: "Buy chairs",
+      date: "2026-09-10",
+      completed: false,
+    };
+    const items = tasksForDay("2026-09-10", [agendaItem], ministryName, [entry(true)]);
+    expect(items.map((item) => item.id)).toEqual(["task-a-1", "meeting-task-t-2"]);
+    expect(
+      planningForDays(["2026-09-10"], [], [agendaItem], ministryName, [entry(true)]).map(
+        (i) => i.id,
+      ),
+    ).toEqual(items.map((i) => i.id));
+  });
+});
+
+/**
+ * The meeting editor tells a leader whether a task will reach a week. It must
+ * say the same thing `fromMeetingTask` does, and name what is missing rather
+ * than choose a day.
+ */
+describe("meetingTaskWeek", () => {
+  const task = (over: Partial<Pick<MeetingTask, "assigneeId" | "dueDate" | "status">> = {}) => ({
+    id: "t-1",
+    status: "open" as const,
+    ...over,
+  });
+
+  it("asks for somebody before a date", () => {
+    expect(meetingTaskWeek(task({ dueDate: "2026-09-18" }), "p-me").state).toBe("needs-assignee");
+  });
+
+  it("asks for a date once somebody has it, and invents none", () => {
+    expect(meetingTaskWeek(task({ assigneeId: "p-me" }), "p-me")).toEqual({ state: "needs-date" });
+  });
+
+  it("puts a dated task of mine on my week, on its due date", () => {
+    expect(meetingTaskWeek(task({ assigneeId: "p-me", dueDate: "2026-09-18" }), "p-me")).toEqual({
+      state: "on-your-week",
+      date: "2026-09-18",
+    });
+  });
+
+  it("says whose week it is on when it is somebody else's", () => {
+    expect(
+      meetingTaskWeek(task({ assigneeId: "p-joel", dueDate: "2026-09-18" }), "p-me"),
+    ).toMatchObject({ state: "on-their-week", assigneeId: "p-joel" });
+  });
+
+  it("stops talking about weeks once it is done", () => {
+    expect(
+      meetingTaskWeek(task({ assigneeId: "p-me", dueDate: "2026-09-18", status: "done" }), "p-me"),
+    ).toEqual({ state: "done" });
   });
 });

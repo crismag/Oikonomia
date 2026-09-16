@@ -101,12 +101,56 @@ export function planningForDay(
   const fromEntries = occurrencesOn(entries, iso).map((occurrence) =>
     fromOccurrence(occurrence, ministryName),
   );
+  return [...fromEntries, ...tasksForDay(iso, agenda, ministryName, tasks)];
+}
+
+/**
+ * The tasks on one day — agenda items, then meeting tasks — without the
+ * schedule.
+ *
+ * For views that show the schedule their own way (the month opens an entry
+ * where it is) but list a day's tasks beside it. Projected here rather than
+ * read from the agenda directly so a task on the month has the same id, and
+ * so the same link, as the task on the week.
+ */
+export function tasksForDay(
+  iso: string,
+  agenda: AgendaItem[],
+  ministryName: (id: string | undefined) => string | undefined,
+  tasks: MeetingTaskEntry[] = [],
+): PlanningItem[] {
   const fromAgenda = agendaOn(agenda, iso).map((item) => fromAgendaItem(item, ministryName));
   const fromTasks = tasks
     .map(fromMeetingTask)
     .filter((item): item is PlanningItem => item !== undefined && item.date === iso);
+  return [...fromAgenda, ...fromTasks];
+}
 
-  return [...fromEntries, ...fromAgenda, ...fromTasks];
+/**
+ * Where a meeting task stands relative to somebody's week.
+ *
+ * The same rule as `fromMeetingTask`, said out loud for the meeting editor: a
+ * task reaches a week only once it is both given to somebody and dated. What is
+ * missing is named rather than guessed — an undated task is a responsibility,
+ * and nothing here picks a day for it.
+ */
+export type MeetingTaskWeek =
+  | { state: "done" }
+  | { state: "needs-assignee" }
+  | { state: "needs-date" }
+  | { state: "on-your-week"; date: string }
+  | { state: "on-their-week"; date: string; assigneeId: string };
+
+export function meetingTaskWeek(
+  task: Pick<MeetingTask, "id" | "status" | "assigneeId" | "dueDate">,
+  viewerId: string,
+): MeetingTaskWeek {
+  if (task.status === "done") return { state: "done" };
+  if (!task.assigneeId) return { state: "needs-assignee" };
+  if (!task.dueDate) return { state: "needs-date" };
+  return task.assigneeId === viewerId
+    ? { state: "on-your-week", date: task.dueDate }
+    : { state: "on-their-week", date: task.dueDate, assigneeId: task.assigneeId };
 }
 
 /**
@@ -140,7 +184,14 @@ export function fromMeetingTask(entry: MeetingTaskEntry): PlanningItem | undefin
     completed: task.status === "done",
     recurring: false,
     contextLabel: entry.contextLabel,
-    source: { type: "meeting-task", id: task.id, relatedId: task.meetingId },
+    /* The note is named only when this leader may open it. A link to a note
+       they may not read would be a door to "not found" — the responsibility
+       is theirs to know, the note is not. */
+    source: {
+      type: "meeting-task",
+      id: task.id,
+      ...(entry.readable ? { relatedId: task.meetingId } : {}),
+    },
     /* Completing is the assignee's; the wording and the date belong to the
        meeting, and are edited where the meeting is — when they may open it. */
     may: { edit: false, complete: true, reschedule: false },
@@ -364,9 +415,12 @@ export function planningHref(item: PlanningItem): {
   search?: Record<string, string>;
 } {
   if (item.source.type === "meeting-task") {
+    /* No note named means this leader may not open it: the task stays where
+       it is theirs — the day on their week. No `open=`, which for a meeting
+       task would send them straight back here. */
     return item.source.relatedId
       ? { to: "/meeting-notes", search: { note: item.source.relatedId } }
-      : { to: "/meeting-notes" };
+      : { to: "/weekly-agenda", search: { date: item.date } };
   }
   return { to: "/weekly-agenda", search: { date: item.date, open: item.id } };
 }
