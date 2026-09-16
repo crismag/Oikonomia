@@ -599,3 +599,84 @@ describe("a report stage an administrator added", () => {
     );
   });
 });
+
+/**
+ * A report is confidential because its author marked it. That changes handling,
+ * not access: anyone else who may read it gets it without content in lists and
+ * replies, and opening it is recorded — who and which report, never its words.
+ */
+describe("a report its author marked confidential", () => {
+  let reads: { actorId: string; reportId: string }[];
+  let audited: ReturnType<typeof createLeadershipReportService>;
+
+  beforeEach(() => {
+    reads = [];
+    audited = createLeadershipReportService(repo, undefined, {
+      record: (actorId, reportId) => reads.push({ actorId, reportId }),
+      of: (reportId) =>
+        reads
+          .filter((read) => read.reportId === reportId)
+          .map((read) => ({ actorId: read.actorId, at: "2026-09-16T10:00:00Z" })),
+    });
+  });
+
+  const confidentialFor = (readerId: string) => {
+    const created = audited.create(maria, {
+      reportType: "pastoral",
+      visibility: "restricted",
+      audienceIds: [readerId],
+      confidential: true,
+    });
+    audited.write(maria, {
+      id: created.id,
+      blocks: [{ id: "b1", type: "paragraph", html: "The family asked for discretion." }],
+    });
+    return repo.find(created.id)!;
+  };
+
+  it("is marked only when its author says so", () => {
+    const plain = audited.create(maria, { reportType: "pastoral", visibility: "restricted" });
+    expect(repo.find(plain.id)?.confidential).toBeUndefined();
+    expect(confidentialFor(joel.person.id).confidential).toBe(true);
+  });
+
+  it("reaches another reader without its content, and its author with it", () => {
+    const report = confidentialFor(joel.person.id);
+    const forJoel = audited.forBrowser(joel, report);
+    expect(forJoel.contentWithheld).toBe(true);
+    expect(JSON.stringify(forJoel)).not.toContain("discretion");
+    expect(audited.forBrowser(maria, report).blocks?.[0]?.html).toContain("discretion");
+  });
+
+  it("records another reader opening it, but not its author", () => {
+    const report = confidentialFor(joel.person.id);
+    expect(audited.get(joel, report.id).blocks?.[0]?.html).toContain("discretion");
+    audited.get(maria, report.id);
+    expect(reads).toEqual([{ actorId: joel.person.id, reportId: report.id }]);
+  });
+
+  it("records nothing for a report that is not marked", () => {
+    const plain = audited.create(maria, {
+      reportType: "pastoral",
+      visibility: "restricted",
+      audienceIds: [joel.person.id],
+    });
+    audited.get(joel, plain.id);
+    expect(reads).toEqual([]);
+  });
+
+  it("shows who opened it to its author, and to nobody else", () => {
+    const report = confidentialFor(joel.person.id);
+    audited.get(joel, report.id);
+    expect(audited.confidentialReads(maria, report.id).map((r) => r.actorId)).toEqual([
+      joel.person.id,
+    ]);
+    expect(() => audited.confidentialReads(joel, report.id)).toThrow(ApiError);
+  });
+
+  it("can be marked or unmarked only by its author", () => {
+    const report = confidentialFor(joel.person.id);
+    expect(() => audited.update(joel, report.id, { confidential: false })).toThrow(ApiError);
+    expect(audited.update(maria, report.id, { confidential: false }).confidential).toBeUndefined();
+  });
+});

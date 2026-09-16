@@ -855,6 +855,17 @@ export interface LeadershipReport {
   updatedAt: string;
   publishedAt?: string;
   archivedAt?: string;
+  /**
+   * Marked confidential by its author. Changes handling, not access: for
+   * anyone but the author the content is not sent with lists, is fetched when
+   * the report is opened, and every such opening is audited.
+   */
+  confidential?: boolean;
+  /**
+   * Set on a confidential report sent without its content — in a list, to
+   * someone other than its author. Open it (`fetchReport`) to read it.
+   */
+  contentWithheld?: boolean;
 }
 
 /**

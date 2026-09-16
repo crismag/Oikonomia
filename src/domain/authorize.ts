@@ -86,9 +86,11 @@ export function permissionsFor(viewer: Viewer, subject: Subject): Permissions {
         edit: caps.edit,
         comment: caps.comment,
         /*
-         * Reviewing is not yet a modelled relationship on a leadership report:
-         * there is no assigned-reviewer field. Saying `false` is the honest
-         * answer, and Slice I is where it stops being false.
+         * There is no reviewer of a leadership report, by design. A report goes
+         * to its distribution — the leader, the head, or the group it is shared
+         * with — as information. When it needs something, the author says so
+         * by asking for attention, an action or an approval; nobody reviews or
+         * signs off a report by virtue of receiving it.
          */
         review: false,
       };

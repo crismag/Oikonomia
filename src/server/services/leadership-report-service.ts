@@ -67,6 +67,17 @@ export function createLeadershipReportService(
    * reaches only its author. Empty and safe beats guessed and wide.
    */
   organization?: { leadershipGroupIds: () => string[] },
+  /**
+   * Where opening a confidential report is recorded, and read back.
+   *
+   * Optional so internal callers that never hand a report to a person need not
+   * wire it. Without it a confidential report still opens; it is simply not
+   * recorded — which is why the browser-facing API always passes one.
+   */
+  confidentialReads?: {
+    record: (actorId: string, reportId: string) => void;
+    of: (reportId: string) => { actorId: string; at: string }[];
+  },
 ) {
   const leadershipGroups = () => organization?.leadershipGroupIds() ?? [];
 
@@ -156,9 +167,38 @@ export function createLeadershipReportService(
       };
     },
 
-    /** One report. Not found when it may not be discovered. */
+    /**
+     * One report. Not found when it may not be discovered.
+     *
+     * Opening a confidential report as anyone but its author is recorded —
+     * who and which report, never what it says.
+     */
     get(viewer: Viewer, id: string): LeadershipReport {
-      return require(viewer, id);
+      const report = require(viewer, id);
+      if (report.confidential && report.authorId !== viewer.person.id) {
+        confidentialReads?.record(viewer.person.id, report.id);
+      }
+      return report;
+    },
+
+    /**
+     * A report as it may travel to this viewer in a list or an action's reply.
+     *
+     * A confidential report goes to anyone but its author without its content
+     * — no text, no revisions, no discussion — so the only way to read it is to
+     * open it, and opening it is what gets recorded.
+     */
+    forBrowser(viewer: Viewer, report: LeadershipReport): LeadershipReport {
+      if (!report.confidential || report.authorId === viewer.person.id) return report;
+      const { blocks: _blocks, relatedText: _related, ...rest } = report;
+      return { ...rest, comments: [], revisions: [], activity: [], contentWithheld: true };
+    },
+
+    /** Who has opened a confidential report. Its author's to see, and nobody else's. */
+    confidentialReads(viewer: Viewer, id: string): { actorId: string; at: string }[] {
+      const report = require(viewer, id);
+      if (report.authorId !== viewer.person.id) throw ApiError.notFound("That report");
+      return confidentialReads?.of(id) ?? [];
     },
 
     /**
@@ -209,6 +249,7 @@ export function createLeadershipReportService(
         ...(parsed.contextId ? { contextId: parsed.contextId } : {}),
         ...(parsed.subjectId ? { subjectId: parsed.subjectId } : {}),
         ...(parsed.subjectText ? { subjectText: parsed.subjectText } : {}),
+        ...(parsed.confidential ? { confidential: true } : {}),
         discussionPolicy: "viewers",
         contentSource,
         relatedDocumentIds: [],
@@ -250,7 +291,14 @@ export function createLeadershipReportService(
         });
       }
 
-      const audienceKeys = ["visibility", "audienceIds", "commenterIds", "discussionPolicy"];
+      /* Confidentiality travels with the audience: both are the author's to set. */
+      const audienceKeys = [
+        "visibility",
+        "audienceIds",
+        "commenterIds",
+        "discussionPolicy",
+        "confidential",
+      ];
       const touchesAudience = audienceKeys.some((key) => key in (patch as object));
       const touchesContent = Object.keys(patch as object).some((k) => !audienceKeys.includes(k));
 

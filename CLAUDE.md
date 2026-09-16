@@ -345,6 +345,18 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
   The demo baseline must be re-imported for existing demo data to be right;
   the migration's backfill guesses (ministry if filed under one).
 
+## Confidential reports and reviewers (Cris's decisions)
+
+- **Confidential is the author's explicit mark** (`leadership_report.confidential`,
+  migration 042) — never inferred from visibility. It changes handling, not
+  access: every API reply passes through `forBrowser`, which strips content
+  (`contentWithheld`) for anyone but the author; the page opens it with
+  `fetchReport` (`useOpenedReport`), and `get` records
+  `report.confidential.read` in `data_audit`. The author sees who opened it.
+- **There is no reviewer/approver of a leadership report.** Reports go to their
+  distribution (leader, head, group); the author tags attention/action/approval
+  through escalations. Do not add an assigned-reviewer field.
+
 ## How to work in this codebase
 
 When adding a link between modules:

@@ -1,6 +1,7 @@
 import { config } from "@/config";
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
   ExternalLink,
@@ -25,7 +26,7 @@ import { DetailSkeleton, ErrorState } from "@/components/oikonomia/async-state";
 import { Page } from "@/components/oikonomia/page";
 import { Combobox, type Suggestion } from "@/components/oikonomia/combobox";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
-import { useReports } from "@/components/oikonomia/report-provider";
+import { useOpenedReport, useReports } from "@/components/oikonomia/report-provider";
 import { StatusTag } from "@/components/oikonomia/report-status";
 import {
   followUpOnWeek,
@@ -36,7 +37,8 @@ import {
 } from "@/domain/leadership-report";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { cn } from "@/lib/utils";
-import { errorMessage } from "@/lib/calendar-client";
+import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
+import { fetchConfidentialReads } from "@/lib/reports-api";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useFiledDocuments } from "@/components/oikonomia/filed-documents";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
@@ -106,11 +108,24 @@ function ReportPage() {
   const { tab = "report", edit, print } = Route.useSearch();
   const store = useReports();
 
-  const report = store.byId(reportId);
+  /* The listed copy, or — for a confidential report someone else wrote — the
+     report opened on its own, which is the read that gets recorded. */
+  const opened = useOpenedReport(reportId);
+  const report = opened.report;
+
+  if (opened.failed) {
+    return (
+      <Page>
+        <ErrorState title="This report could not be opened" onRetry={opened.retry}>
+          Nothing is lost. This is a problem reaching it.
+        </ErrorState>
+      </Page>
+    );
+  }
 
   /* Absent is not the same as missing while it is still loading, and an
      unreachable binder is not a report that does not exist. */
-  if (!report && store.status === "loading") {
+  if (!report && (store.status === "loading" || opened.opening)) {
     return (
       <Page>
         <DetailSkeleton />
@@ -139,6 +154,7 @@ function ReportPage() {
     <Page>
       <BackLink />
       <Header report={report} can={can} />
+      <OpenedBy report={report} />
 
       <nav
         aria-label="Report views"
@@ -317,6 +333,11 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
               </Link>
             ) : reportContextLabel(report) ? (
               <span>{reportContextLabel(report)}</span>
+            ) : null}
+            {report.confidential ? (
+              <span className="inline-flex items-center rounded-full border border-status-overdue/35 px-2 py-0.5 text-[11px] font-medium text-status-overdue">
+                Confidential
+              </span>
             ) : null}
             <button
               type="button"
@@ -587,6 +608,47 @@ function FollowUpsForYourWeek({ report }: { report: LeadershipReport }) {
   );
 }
 
+/**
+ * Who has opened a confidential report — shown to its author, and to nobody
+ * else. Only openings by other people are recorded; the author's own are not.
+ */
+function OpenedBy({ report }: { report: LeadershipReport }) {
+  const { person } = useViewer();
+  const mine = report.confidential && report.authorId === person.id;
+  const reads = useQuery<{ actorId: string; at: string }[]>({
+    queryKey: ["confidential-reads", report.id],
+    queryFn: async () =>
+      unwrap(await withTimeout(fetchConfidentialReads({ data: { id: report.id } }))),
+    enabled: !!mine,
+    networkMode: "always",
+  });
+  if (!mine) return null;
+  const rows = reads.data ?? [];
+
+  return (
+    <section
+      aria-label="Opened by"
+      className="mb-4 rounded-lg border border-border bg-surface-muted px-4 py-2.5 text-[13px]"
+    >
+      <p className="font-medium">Confidential · who has opened it</p>
+      {rows.length > 0 ? (
+        <ul className="mt-1 space-y-0.5 text-muted-foreground">
+          {rows.slice(0, 20).map((row, index) => (
+            <li key={`${row.actorId}-${row.at}-${index}`}>
+              <PersonName personId={row.actorId} /> ·{" "}
+              {format(new Date(row.at), "d MMM yyyy, HH:mm")}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-0.5 text-muted-foreground">
+          {reads.isPending ? "Checking…" : "Nobody else has opened it yet."}
+        </p>
+      )}
+    </section>
+  );
+}
+
 /* ------------------------------------------------------------- discussion */
 
 /**
@@ -834,6 +896,23 @@ function Editor({ report }: { report: LeadershipReport }) {
               ))}
             </select>
           </Field>
+
+          {/* The author's mark, set with the audience. It does not change who may
+              read the report; it changes how anyone else's reading is handled. */}
+          <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
+            <input
+              type="checkbox"
+              checked={!!report.confidential}
+              onChange={(e) => store.updateReport(report.id, { confidential: e.target.checked })}
+              className="size-3.5 accent-[var(--color-primary)]"
+            />
+            Confidential
+          </label>
+          <p className="basis-full text-[12px] text-muted-foreground">
+            {report.confidential
+              ? "Marked confidential. Anyone else who may read it opens it on its own, and each opening is recorded for you to see."
+              : "Mark it confidential if it must be handled that way. It does not change who may read it."}
+          </p>
         </div>
 
         <p className="mt-1.5 text-[12px] text-muted-foreground">

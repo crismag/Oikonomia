@@ -13,6 +13,7 @@ import {
 import {
   commentOnReport,
   createReport as createReportCall,
+  fetchReport as fetchReportCall,
   fetchReports,
   removeReport as removeReportCall,
   transitionReport,
@@ -74,6 +75,7 @@ export type EditablePatch = Patch<
     | "audienceIds"
     | "commenterIds"
     | "discussionPolicy"
+    | "confidential"
     | "tags"
     | "links"
     | "relatedDocumentIds"
@@ -155,6 +157,7 @@ const METADATA_KEYS: (keyof EditablePatch)[] = [
   "audienceIds",
   "commenterIds",
   "discussionPolicy",
+  "confidential",
   "tags",
   "links",
   "relatedDocumentIds",
@@ -189,6 +192,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
   const invalidate = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["leadership-reports"] });
+    void queryClient.invalidateQueries({ queryKey: ["leadership-report-open"] });
   }, [queryClient]);
 
   const flushReport = useCallback(
@@ -396,4 +400,42 @@ export function ReportProvider({ children }: { children: ReactNode }) {
   );
 
   return <ReportContext.Provider value={value}>{children}</ReportContext.Provider>;
+}
+
+/**
+ * One report, as this viewer may read it now.
+ *
+ * Usually the listed copy. A confidential report reaches everyone but its
+ * author without its content, so here it is fetched on its own — which is the
+ * read the server records. Not cached between visits (`gcTime: 0`) and not
+ * refetched on focus: each time the report is opened is one recorded read, no
+ * more and no fewer.
+ */
+export function useOpenedReport(id: string): {
+  report: LeadershipReport | undefined;
+  opening: boolean;
+  failed: boolean;
+  retry: () => void;
+} {
+  const store = useReports();
+  const listed = store.byId(id);
+  const withheld = !!listed?.contentWithheld;
+
+  const opened = useQuery<LeadershipReport>({
+    queryKey: ["leadership-report-open", id],
+    queryFn: async () => unwrap(await withTimeout(fetchReportCall({ data: { id } }))),
+    enabled: withheld,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    networkMode: "always",
+  });
+
+  if (!withheld) return { report: listed, opening: false, failed: false, retry: () => {} };
+  return {
+    report: opened.data,
+    opening: opened.isPending && !opened.isError,
+    failed: opened.isError,
+    retry: () => void opened.refetch(),
+  };
 }

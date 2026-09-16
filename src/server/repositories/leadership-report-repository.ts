@@ -64,6 +64,7 @@ interface ReportRow {
   updated_at: string;
   published_at: string | null;
   archived_at: string | null;
+  confidential: number;
 }
 
 interface RevisionRow {
@@ -140,6 +141,7 @@ function toReport(
     ...(row.blocks ? { blocks: JSON.parse(row.blocks) as MeetingBlock[] } : {}),
     ...has(row.published_at, "publishedAt"),
     ...has(row.archived_at, "archivedAt"),
+    ...(row.confidential === 1 ? { confidential: true } : {}),
   } as LeadershipReport;
 }
 
@@ -177,6 +179,7 @@ const columns = (values: ReportValues) => ({
   tags: pack(values.tags),
   published_at: values.publishedAt ?? null,
   archived_at: values.archivedAt ?? null,
+  confidential: values.confidential ? 1 : 0,
 });
 
 export function createLeadershipReportRepository(db: Db) {

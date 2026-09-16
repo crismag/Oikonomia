@@ -309,6 +309,7 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   /* reports-api.ts */
   "src/lib/reports-api.ts#fetchReports": { method: "GET", demo: "read" },
   "src/lib/reports-api.ts#fetchReport": { method: "GET", demo: "read" },
+  "src/lib/reports-api.ts#fetchConfidentialReads": { method: "GET", demo: "read" },
   "src/lib/reports-api.ts#createReport": { method: "POST", demo: "allowed" },
   "src/lib/reports-api.ts#updateReport": { method: "POST", demo: "allowed" },
   "src/lib/reports-api.ts#writeReport": { method: "POST", demo: "allowed" },
