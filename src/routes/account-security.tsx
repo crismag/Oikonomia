@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
-import { format } from "date-fns";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Laptop, Mail } from "lucide-react";
 
@@ -27,6 +26,7 @@ import { authMethodLabel } from "@/domain/auth";
 import { Switch } from "@/components/ui/switch";
 import { fetchEmailNotices, setEmailNotice } from "@/lib/notice-email-api";
 import { EMAIL_NOTICE_KINDS, emailNoticeKinds, type EmailNoticeKind } from "@/domain/email-notices";
+import { formatDateTime } from "@/domain/dates";
 
 export const Route = createFileRoute("/account-security")({
   head: () => ({ meta: [{ title: "Account & security — Oikonomia" }] }),
@@ -422,11 +422,6 @@ function EmailNotices({ canSend }: { canSend: boolean }) {
       )}
     </Section>
   );
-}
-
-/** A timestamp as a leader reads it. */
-function formatDateTime(iso: string): string {
-  return format(new Date(iso), "d MMM yyyy, h:mm a");
 }
 
 /**

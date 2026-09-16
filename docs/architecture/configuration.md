@@ -78,6 +78,37 @@ adding only where adding is meaningful, and a test asserts each vocabulary
 appears exactly once in the editable or addable list, after a block landed in
 the wrong one and rendered "Report stages" twice.
 
+## Dates and times follow the site profile
+
+`site.profile` holds how the church writes a date. Screens do not call
+date-fns `format` with a pattern of their own; they ask `src/domain/dates.ts`
+for a date by intent — `formatDate`, `formatDateShort`, `formatDayMonth`,
+`formatDayMonthShort`, `formatWeekdayShort`, `formatWeekdayLong`,
+`formatWeekdayFull`, `formatMonthYear`, `formatDayRange`, `formatTime`,
+`formatDateTime`, `formatDayMonthTime` — and the settings decide how it reads.
+
+| Setting | Honoured as |
+| --- | --- |
+| `dateFormat` | The full date, as written (a date-fns pattern). Its order — day, month or year first — also sets the short and weekday forms: `MMMM d, yyyy` gives "Sep 12" and "Sat, Sep 12". |
+| `timeFormat` | Every time of day. An `H` pattern is a 24-hour clock ("19:30"). The shipped `h:mm a` keeps the binder's compact "7:30 PM" / "9 AM" for wall-clock times. |
+| `locale` | Day and month names, for the locales `dates.ts` carries; any other tag reads in English. |
+| `timezone` | Timestamps (`createdAt`, `updatedAt`, audit rows, sessions, comments) are shown on the church's clock, not the reader's device. |
+| `weekStartsOn` | Where the weekly agenda begins (`AGENDA_WEEK_STARTS_ON`). |
+
+Two rules the helper keeps:
+
+- **A calendar date is never shifted.** A `yyyy-MM-dd` value is a day, read as
+  local midnight like `fromISO`; only instants move into the site timezone.
+  An instant near midnight UTC can therefore land on the previous or next day,
+  which is the point.
+- **A mistyped pattern does not break a page.** The settings are free text on
+  the Administration screen; a pattern date-fns refuses falls back to the
+  shipped one, and an unknown zone name to the device's clock.
+
+Machine formats — ISO values, file names, exports — do not go through the
+helper. Email notices spell their dates out on the server and do not read
+these settings yet.
+
 ## Status transitions
 
 A status change is not a free-text field write. `planTransition(from, to)`

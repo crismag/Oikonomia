@@ -61,6 +61,7 @@ import {
 } from "@/domain/lifegroup";
 import { useViewer } from "@/domain/session";
 import type { AttendanceStatus, Gathering, GatheringAttendance } from "@/domain/types";
+import { formatTime } from "@/domain/dates";
 
 export const Route = createFileRoute("/lifegroups/$gatheringId")({
   validateSearch: (search: Record<string, unknown>): { print?: true } =>
@@ -152,8 +153,8 @@ function GatheringWorkspace() {
         <div className="min-w-0">
           <p className="text-[12px] text-muted-foreground">
             {dayLabel(gathering.date)}
-            {gathering.startTime ? ` · ${gathering.startTime}` : ""}
-            {gathering.endTime ? `–${gathering.endTime}` : ""}
+            {gathering.startTime ? ` · ${formatTime(gathering.startTime)}` : ""}
+            {gathering.endTime ? `–${formatTime(gathering.endTime)}` : ""}
           </p>
           <h1 className="mt-0.5 flex items-center gap-2 font-display text-[26px] leading-tight">
             <MapPin className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -733,7 +734,7 @@ function PrintSheet({
           <h1 className="font-display text-[22px] leading-tight">{sheet.venue}</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {dayLabel(gathering.date)}
-            {gathering.startTime ? ` · ${gathering.startTime}` : ""}
+            {gathering.startTime ? ` · ${formatTime(gathering.startTime)}` : ""}
           </p>
           <p className="mt-1 text-[13px]">
             Led by{" "}

@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import { planningTime, type PlanningItem } from "@/domain/planning";
-import { fromISO } from "@/domain/schedule";
-import { format } from "date-fns";
 import type { AgendaItem } from "@/domain/types";
+import { formatDayMonth } from "@/domain/dates";
 
 /**
  * The Weekly Agenda, as the binder page it came from.
@@ -148,4 +147,4 @@ function Bullet({ children, done }: { children: React.ReactNode; done?: boolean 
 }
 
 /** "Week of 7 September" — what the leader writes on the line. */
-export const weekOfLabel = (iso: string) => format(fromISO(iso), "d MMMM");
+export const weekOfLabel = (iso: string) => formatDayMonth(iso);

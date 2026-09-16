@@ -54,9 +54,7 @@ import { StarButton, starredFirst, useStarred } from "@/components/oikonomia/sta
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { errorMessage } from "@/lib/calendar-client";
 import { paginate } from "@/domain/pagination";
-import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import type {
   BinderDocument,
   ContentSource,
@@ -66,6 +64,7 @@ import type {
   ReportType,
   ReportVisibility,
 } from "@/domain/types";
+import { formatDayMonthShort } from "@/domain/dates";
 
 type Tab = "mine" | "shared" | "documents";
 
@@ -571,7 +570,7 @@ function ReportRow({
           ) : null}
           <PersonName personId={report.authorId} />
           {" · "}
-          {format(fromISO(report.updatedAt.slice(0, 10)), "d MMM")}
+          {formatDayMonthShort(report.updatedAt)}
           {comments > 0 ? ` · ${comments} ${comments === 1 ? "comment" : "comments"}` : ""}
         </p>
 

@@ -18,9 +18,9 @@ import { useReports } from "./report-provider";
 import { PersonName } from "./person";
 import { escalationHref } from "@/domain/escalation";
 import { planningTime, type PlanningItem } from "@/domain/planning";
-import { fromISO, shortDayLabel } from "@/domain/schedule";
-import { format } from "date-fns";
+import { shortDayLabel } from "@/domain/schedule";
 import type { AgendaItem } from "@/domain/types";
+import { formatDayMonth } from "@/domain/dates";
 
 /**
  * One task, opened from wherever it was seen.
@@ -170,7 +170,7 @@ export function TaskDetail({
 }
 
 /** "11 September" — how the drawer names the day it is about. */
-export const taskDayLabel = (iso: string) => format(fromISO(iso), "d MMMM");
+export const taskDayLabel = (iso: string) => formatDayMonth(iso);
 
 /**
  * Where a task put on the week for an ask came from.

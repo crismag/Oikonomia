@@ -24,8 +24,8 @@ import {
   reportDateLabel,
 } from "@/domain/reach-out";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import type { ReachOutReport } from "@/domain/types";
+import { formatDayMonthTime } from "@/domain/dates";
 
 export const Route = createFileRoute("/reach-out/$reportId")({
   validateSearch: (search: Record<string, unknown>): { edit?: true; print?: true } => ({
@@ -232,9 +232,7 @@ function Comments({ report }: { report: ReachOutReport }) {
               <div className="min-w-0 flex-1">
                 <p className="text-[12px] text-muted-foreground">
                   {personById(comment.authorId)?.name ?? "Unknown"}
-                  {comment.at.includes("T")
-                    ? ` · ${format(new Date(comment.at), "d MMM, h:mm a")}`
-                    : ""}
+                  {comment.at.includes("T") ? ` · ${formatDayMonthTime(comment.at)}` : ""}
                 </p>
                 <p className="text-[14px] leading-relaxed">{comment.body}</p>
               </div>

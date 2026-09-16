@@ -12,6 +12,14 @@ import {
 } from "date-fns";
 
 import { config } from "@/config";
+import {
+  formatDayNumber,
+  formatDayRange,
+  formatMonthYear,
+  formatTime as formatClock,
+  formatWeekday,
+  formatWeekdayShort,
+} from "./dates";
 import type {
   AgendaItem,
   Recurrence,
@@ -99,21 +107,17 @@ export function shiftWeek(iso: string, delta: number): string {
 }
 
 export function monthLabel(iso: string): string {
-  return format(fromISO(iso), "MMMM yyyy");
+  return formatMonthYear(iso);
 }
 
 export function weekLabel(iso: string): string {
   const days = weekDays(iso);
-  const start = fromISO(days[0] ?? iso);
-  const end = fromISO(days[6] ?? iso);
-  return isSameMonth(start, end)
-    ? `${format(start, "d")}–${format(end, "d MMMM yyyy")}`
-    : `${format(start, "d MMM")} – ${format(end, "d MMM yyyy")}`;
+  return formatDayRange(days[0] ?? iso, days[6] ?? iso);
 }
 
-export const dayNumber = (iso: string) => format(fromISO(iso), "d");
-export const dayLabel = (iso: string) => format(fromISO(iso), "EEEE");
-export const shortDayLabel = (iso: string) => format(fromISO(iso), "EEE d MMM");
+export const dayNumber = (iso: string) => formatDayNumber(iso);
+export const dayLabel = (iso: string) => formatWeekday(iso);
+export const shortDayLabel = (iso: string) => formatWeekdayShort(iso);
 
 /* ------------------------------------------------------- recurrence */
 
@@ -229,9 +233,5 @@ export function notesForWeek(items: AgendaItem[], iso: string): AgendaItem[] {
 /** 12-hour clock, matching how the binder is written. */
 export function formatTime(time?: string): string | undefined {
   if (!time) return undefined;
-  const [h, m] = time.split(":").map(Number);
-  if (h === undefined || m === undefined) return time;
-  const suffix = h >= 12 ? "PM" : "AM";
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
+  return formatClock(time);
 }

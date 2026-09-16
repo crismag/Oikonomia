@@ -6,10 +6,9 @@ import { StatusChip } from "@/components/oikonomia/semantic-status";
 import { VenuePicker } from "@/components/oikonomia/venue-picker";
 import { cn } from "@/lib/utils";
 import { gatheringStatusLabel, myAction, myActionLabel } from "@/domain/lifegroup";
-import { fromISO } from "@/domain/schedule";
-import { format } from "date-fns";
 import type { ObligationStatus } from "@/domain/obligations";
 import type { Gathering, Venue } from "@/domain/types";
+import { formatDayMonthShort, formatTime, formatWeekdayShort } from "@/domain/dates";
 
 /**
  * One row of the shared LifeGroup schedule.
@@ -194,7 +193,7 @@ function InlineDate({
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   if (!editable) {
-    return <span className="text-[13px]">{format(fromISO(value), "d MMM")}</span>;
+    return <span className="text-[13px]">{formatDayMonthShort(value)}</span>;
   }
   return (
     <input
@@ -265,9 +264,9 @@ export function ScheduleCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[14px]">
-            {format(fromISO(gathering.date), "EEE d MMM")}
+            {formatWeekdayShort(gathering.date)}
             {gathering.startTime ? (
-              <span className="text-muted-foreground"> · {gathering.startTime}</span>
+              <span className="text-muted-foreground"> · {formatTime(gathering.startTime)}</span>
             ) : null}
           </p>
           <p className="mt-0.5 truncate text-[13px] text-muted-foreground">

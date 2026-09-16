@@ -28,10 +28,9 @@ import {
   move,
   newId,
 } from "@/domain/forms";
-import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import type { FormDefinition, FormField, FormFieldType, FormSection } from "@/domain/types";
+import { formatDate, formatDayMonthShort } from "@/domain/dates";
 
 export const Route = createFileRoute("/forms/$formId")({
   validateSearch: (search: Record<string, unknown>): { mode?: "print" } =>
@@ -182,8 +181,7 @@ function FormDesigner({ definition }: { definition: FormDefinition }) {
             className="w-full min-w-0 rounded-md border border-transparent bg-transparent font-display text-[22px] leading-tight outline-none transition-colors hover:border-border focus:border-ring"
           />
           <p className="mt-1 text-[12px] text-muted-foreground">
-            Form design · v{definition.version} · updated{" "}
-            {format(fromISO(definition.updatedAt), "d MMMM yyyy")}
+            Form design · v{definition.version} · updated {formatDate(definition.updatedAt)}
             {records.length > 0
               ? ` · ${records.length} ${records.length === 1 ? "record" : "records"} already created`
               : ""}
@@ -251,8 +249,7 @@ function FormDesigner({ definition }: { definition: FormDefinition }) {
 
       {definition.archivedAt ? (
         <p className="mb-3 rounded-md border border-border bg-surface-muted px-3 py-2 text-[13px] text-muted-foreground">
-          This form was retired on{" "}
-          {format(fromISO(definition.archivedAt.slice(0, 10)), "d MMMM yyyy")}. Its {records.length}{" "}
+          This form was retired on {formatDate(definition.archivedAt)}. Its {records.length}{" "}
           {records.length === 1 ? "record is" : "records are"} kept; no new ones can be started.
         </p>
       ) : null}
@@ -440,7 +437,7 @@ function FormDesigner({ definition }: { definition: FormDefinition }) {
                     <span className="font-medium">v{entry.version}</span>
                     <span className="text-muted-foreground">
                       {" · "}
-                      {format(fromISO(entry.date), "d MMM")}
+                      {formatDayMonthShort(entry.date)}
                     </span>
                     <span className="block text-muted-foreground">{entry.summary}</span>
                   </li>
