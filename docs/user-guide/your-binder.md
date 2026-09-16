@@ -80,7 +80,7 @@ lists, quotes, checklists. Notes are documents to read, not pages to design.
 
 ## Reach-Out
 
-> _Reports, and the materials that go with them._
+> _What happened when leaders reached out, written down so any leader can pick it up and continue._
 
 Write what happened. Whatever you would tell another leader belongs here.
 
