@@ -84,12 +84,12 @@ export function createLifegroupService(
   function requireRecorder(viewer: Viewer, id: string): Gathering {
     const gathering = requireGathering(id);
     if (!canEdit(viewer, { kind: "gathering", gathering })) {
-      throw ApiError.forbidden("Only a leader assigned to this gathering can record it.");
+      throw ApiError.forbidden(text("refusal.lifegroup.recordNotAssigned"));
     }
     /* A cancelled gathering did not happen; there is nothing to record until
        it is put back on the schedule. */
     if (gathering.status === "cancelled") {
-      throw ApiError.conflict("This gathering was cancelled. Restore it before recording it.");
+      throw ApiError.conflict(text("refusal.lifegroup.recordCancelled"));
     }
     return gathering;
   }
@@ -123,9 +123,9 @@ export function createLifegroupService(
     if (!namesItsReaders(visibility ?? DEFAULT_VISIBILITY)) return {};
     const readers = namedReaders(viewerIds, authorId);
     if (readers.length === 0) {
-      throw ApiError.validation({ viewerIds: "Name at least one person who may read this." });
+      throw ApiError.validation({ viewerIds: text("refusal.lifegroup.readersMissing") });
     }
-    requireKnownPeople(readers, "viewerIds", "Somebody named here is not in People.");
+    requireKnownPeople(readers, "viewerIds", text("refusal.lifegroup.readerUnknown"));
     return { viewerIds: readers };
   }
 
@@ -248,22 +248,22 @@ export function createLifegroupService(
       if (!canJoinGathering(viewer, gathering)) {
         throw ApiError.conflict(
           gathering.status === "completed"
-            ? "This gathering has been written up. Who led it is part of the record."
-            : "This gathering was cancelled.",
+            ? text("refusal.lifegroup.leadersWrittenUp")
+            : text("refusal.lifegroup.cancelled"),
         );
       }
 
       const already = gathering.assignedLeaderIds.includes(me);
       if (action === "leave" && !already) {
-        throw ApiError.conflict("You are not on this gathering.");
+        throw ApiError.conflict(text("refusal.lifegroup.notOnGathering"));
       }
       if (action !== "leave" && already) {
-        throw ApiError.conflict("You are already on this gathering.");
+        throw ApiError.conflict(text("refusal.lifegroup.alreadyOnGathering"));
       }
       if (action === "claim" && gathering.assignedLeaderIds.length > 0) {
         /* Claiming takes a gathering nobody is leading; joining stands beside
            leaders who already are. Doing the wrong one is worth saying. */
-        throw ApiError.conflict("Someone is already leading this. You can add yourself instead.");
+        throw ApiError.conflict(text("refusal.lifegroup.alreadyLed"));
       }
 
       const assignedLeaderIds =
@@ -298,7 +298,7 @@ export function createLifegroupService(
     updateGathering(viewer: Viewer, id: string, input: unknown): Gathering {
       const gathering = requireGathering(id);
       if (!canAmendGathering(viewer, gathering)) {
-        throw ApiError.forbidden("This gathering is not yours to change.");
+        throw ApiError.forbidden(text("refusal.lifegroup.notYoursToChange"));
       }
 
       const patch = parse(updateGathering, input);
@@ -314,7 +314,7 @@ export function createLifegroupService(
         const live = gathering.status !== "completed" && gathering.status !== "cancelled";
         const scheduling = ["planned", "assigned", "confirmed"].includes(patch.status);
         if (!live || !scheduling) {
-          throw ApiError.conflict("That change of stage has its own action on the gathering.");
+          throw ApiError.conflict(text("refusal.lifegroup.stageHasOwnAction"));
         }
       }
 
@@ -327,9 +327,7 @@ export function createLifegroupService(
         const before = [...gathering.assignedLeaderIds].sort().join();
         const after = [...patch.assignedLeaderIds].sort().join();
         if (before !== after) {
-          throw ApiError.forbidden(
-            "Who else leads this is a campus responsibility. You can add or remove yourself.",
-          );
+          throw ApiError.forbidden(text("refusal.lifegroup.coLeadersCampus"));
         }
       }
 
@@ -355,15 +353,13 @@ export function createLifegroupService(
     cancelGathering(viewer: Viewer, id: string): Gathering {
       const gathering = requireGathering(id);
       if (gathering.status === "cancelled") {
-        throw ApiError.conflict("This gathering is already cancelled.");
+        throw ApiError.conflict(text("refusal.lifegroup.alreadyCancelled"));
       }
       if (gathering.status === "completed") {
-        throw ApiError.conflict(
-          "This gathering has been written up. Reopen the report before cancelling it.",
-        );
+        throw ApiError.conflict(text("refusal.lifegroup.cancelWrittenUp"));
       }
       if (!canCancelGathering(viewer, gathering)) {
-        throw ApiError.forbidden("This gathering is not yours to cancel.");
+        throw ApiError.forbidden(text("refusal.lifegroup.notYoursToCancel"));
       }
       return saveStage(viewer, gathering, "cancelled");
     },
@@ -372,10 +368,10 @@ export function createLifegroupService(
     restoreGathering(viewer: Viewer, id: string): Gathering {
       const gathering = requireGathering(id);
       if (gathering.status !== "cancelled") {
-        throw ApiError.conflict("This gathering is not cancelled.");
+        throw ApiError.conflict(text("refusal.lifegroup.notCancelled"));
       }
       if (!canCancelGathering(viewer, gathering)) {
-        throw ApiError.forbidden("This gathering is not yours to restore.");
+        throw ApiError.forbidden(text("refusal.lifegroup.notYoursToRestore"));
       }
       return saveStage(viewer, gathering, statusForLeaders("planned", gathering.assignedLeaderIds));
     },
@@ -385,11 +381,11 @@ export function createLifegroupService(
     markAttendance(viewer: Viewer, input: unknown) {
       const values = parse(markAttendance, input);
       if (!values.personId && !values.name) {
-        throw ApiError.validation({ name: "Say who came." });
+        throw ApiError.validation({ name: text("refusal.lifegroup.attendeeNameMissing") });
       }
       requireRecorder(viewer, values.gatheringId);
       if (values.personId) {
-        requireKnownPeople([values.personId], "personId", "That person is not in People.");
+        requireKnownPeople([values.personId], "personId", text("refusal.lifegroup.personUnknown"));
       }
       return repo.markAttendance(values);
     },

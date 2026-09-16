@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import type { Database as Db } from "better-sqlite3";
 
 import { ApiError } from "../api/response";
@@ -18,9 +19,7 @@ import type { Viewer } from "@/domain/viewer";
 export function requireCurrentUser(request: Request, db: Db): Viewer {
   const viewer = getCurrentUser(request, db);
   if (!viewer) {
-    throw ApiError.unauthenticated(
-      "Nobody is signed in on this browser, so there is nothing to show.",
-    );
+    throw ApiError.unauthenticated(text("refusal.auth.nothingToShow"));
   }
   return viewer;
 }

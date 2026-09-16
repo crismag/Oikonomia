@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { Result } from "./api-envelope";
@@ -301,7 +302,7 @@ export const changePassword = createServerFn({ method: "POST" })
       const { ApiError } = await import("@/server/api/response");
 
       const principal = principalFor(request, db);
-      if (!principal) throw ApiError.unauthenticated("Sign in first.");
+      if (!principal) throw ApiError.unauthenticated(text("refusal.auth.signInFirst"));
 
       const account = accounts.find(principal.accountId)!;
 
@@ -366,7 +367,7 @@ export const fetchAccountOverview = createServerFn({ method: "GET" })
       const { getRequest } = await import("@tanstack/react-start/server");
 
       const principal = principalFor(getRequest(), db);
-      if (!principal) throw new ApiError("unauthenticated", "You are not signed in.");
+      if (!principal) throw new ApiError("unauthenticated", text("refusal.auth.notSignedIn"));
 
       const account = accounts.find(principal.accountId);
       const password = accounts.credential(principal.accountId, "password");
@@ -420,13 +421,13 @@ export const signOutSession = createServerFn({ method: "POST" })
       const { getRequest } = await import("@tanstack/react-start/server");
 
       const principal = principalFor(getRequest(), db);
-      if (!principal) throw new ApiError("unauthenticated", "You are not signed in.");
+      if (!principal) throw new ApiError("unauthenticated", text("refusal.auth.notSignedIn"));
       if (data.sessionId === principal.sessionId) {
-        throw new ApiError("validation", "Use Sign out to end the session you are using.");
+        throw new ApiError("validation", text("refusal.auth.endCurrentSession"));
       }
 
       const ended = accounts.revokeSessionById(principal.accountId, data.sessionId);
-      if (!ended) throw new ApiError("not-found", "That session has already ended.");
+      if (!ended) throw new ApiError("not-found", text("refusal.auth.sessionEnded"));
 
       accounts.record({
         accountId: principal.accountId,
@@ -452,7 +453,7 @@ export const signOutOtherSessions = createServerFn({ method: "POST" })
       const { getRequest } = await import("@tanstack/react-start/server");
 
       const principal = principalFor(getRequest(), db);
-      if (!principal) throw new ApiError("unauthenticated", "You are not signed in.");
+      if (!principal) throw new ApiError("unauthenticated", text("refusal.auth.notSignedIn"));
 
       const ended = accounts.revokeSessionsExcept(principal.accountId, principal.sessionId);
       accounts.record({
@@ -501,12 +502,9 @@ export const inviteToOikonomia = createServerFn({ method: "POST" })
       const { createOrganizationRepository } =
         await import("@/server/repositories/organization-repository");
       const person = createOrganizationRepository(db).findPerson(data.personId);
-      if (!person) throw new ApiError("not-found", "There is no such person.");
+      if (!person) throw new ApiError("not-found", text("refusal.auth.personUnknown"));
       if (!person.email) {
-        throw new ApiError(
-          "validation",
-          "Add an email address to their record first — it is where the invitation goes.",
-        );
+        throw new ApiError("validation", text("refusal.auth.inviteEmailMissing"));
       }
 
       const account = auth.inviteAccount(person.id, person.email);
@@ -539,7 +537,7 @@ export const inviteManyToOikonomia = createServerFn({ method: "POST" })
     withAuth(async ({ auth, accounts, db, request, ApiError }) => {
       const viewer = await requireAdministrator(request, db, ApiError);
       if (!Array.isArray(data.emails) || data.emails.some((e) => typeof e !== "string")) {
-        throw new ApiError("validation", "Send a list of email addresses.");
+        throw new ApiError("validation", text("refusal.auth.inviteListMissing"));
       }
 
       const outcomes = auth.inviteByEmail(data.emails);
@@ -581,9 +579,9 @@ async function requireAdministrator(
 ) {
   const { viewerFor } = await import("@/server/auth/principal");
   const viewer = viewerFor(request, db);
-  if (!viewer) throw new ApiError("unauthenticated", "You are not signed in.");
+  if (!viewer) throw new ApiError("unauthenticated", text("refusal.auth.notSignedIn"));
   if (!viewer.persona.capabilities.includes("administration")) {
-    throw new ApiError("forbidden", "Inviting somebody is an administrator's to do.");
+    throw new ApiError("forbidden", text("refusal.auth.inviteAdmin"));
   }
   return viewer;
 }

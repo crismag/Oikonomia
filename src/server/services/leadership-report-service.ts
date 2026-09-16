@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
 import {
@@ -143,9 +144,7 @@ export function createLeadershipReportService(
       expectedVersion ?? repo.versionOf(id) ?? 1,
     );
     if (saved === "stale") {
-      throw ApiError.conflict(
-        "This report was changed somewhere else while you were working. Reopen it to see the current version.",
-      );
+      throw ApiError.conflict(text("refusal.leadershipReport.staleVersion"));
     }
     if (!saved) throw ApiError.notFound("That report");
     return saved;
@@ -228,8 +227,7 @@ export function createLeadershipReportService(
        */
       if (parsed.subjectId && !subjectMattersFor(parsed.reportType)) {
         throw ApiError.validation({
-          subjectId:
-            "This kind of report is not written about a named person. Say who it concerns in the report itself.",
+          subjectId: text("refusal.leadershipReport.noSubject"),
         });
       }
 
@@ -287,8 +285,7 @@ export function createLeadershipReportService(
          an edit would be a second door to the thing creation refuses. */
       if (patch.subjectId && !subjectMattersFor(patch.reportType ?? report.reportType)) {
         throw ApiError.validation({
-          subjectId:
-            "This kind of report is not written about a named person. Say who it concerns in the report itself.",
+          subjectId: text("refusal.leadershipReport.noSubject"),
         });
       }
 
@@ -304,7 +301,7 @@ export function createLeadershipReportService(
       const touchesContent = Object.keys(patch as object).some((k) => !audienceKeys.includes(k));
 
       if (touchesAudience) {
-        demand(viewer, report, "manageAccess", "Who may read this report is the author's to set.");
+        demand(viewer, report, "manageAccess", text("refusal.leadershipReport.accessIsAuthors"));
       }
       if (touchesContent) {
         demand(
@@ -312,8 +309,8 @@ export function createLeadershipReportService(
           report,
           "edit",
           report.authorId === viewer.person.id
-            ? "This report has been submitted. Reopen it to make changes."
-            : "This report is its author's to change.",
+            ? text("refusal.leadershipReport.submittedReopen")
+            : text("refusal.leadershipReport.changeIsAuthors"),
         );
       }
 
@@ -332,11 +329,9 @@ export function createLeadershipReportService(
       const report = require(viewer, parsed.id);
 
       if (!statusBehavior(report.status).editable) {
-        throw ApiError.conflict(
-          "This report has been submitted. Reopen it before changing what it says.",
-        );
+        throw ApiError.conflict(text("refusal.leadershipReport.submittedReopenBeforeChanging"));
       }
-      demand(viewer, report, "edit", "This report is its author's to write.");
+      demand(viewer, report, "edit", text("refusal.leadershipReport.writeIsAuthors"));
 
       return write(
         parsed.id,
@@ -419,7 +414,7 @@ export function createLeadershipReportService(
     comment(viewer: Viewer, input: unknown): Comment {
       const parsed = parse(addComment, input);
       const report = require(viewer, parsed.reportId);
-      demand(viewer, report, "comment", "This report is not open for discussion.");
+      demand(viewer, report, "comment", text("refusal.leadershipReport.notOpenForDiscussion"));
 
       const comment = repo.insertComment({
         reportId: parsed.reportId,
@@ -444,15 +439,13 @@ export function createLeadershipReportService(
     remove(viewer: Viewer, id: string): void {
       const report = require(viewer, id);
       if (report.authorId !== viewer.person.id) {
-        throw ApiError.forbidden("A report belongs to whoever wrote it.");
+        throw ApiError.forbidden(text("refusal.leadershipReport.owner"));
       }
       /* A record leadership has read is not deletable, whatever the stage
          that froze it is called. The same rule the page asks before offering
          Delete. */
       if (!mayRemoveReport(report, viewer.person.id)) {
-        throw ApiError.forbidden(
-          "This report has been submitted. Archive it rather than removing the record.",
-        );
+        throw ApiError.forbidden(text("refusal.leadershipReport.submittedArchive"));
       }
       repo.delete(id);
     },

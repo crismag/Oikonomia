@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { z } from "zod";
 
 import { ApiError } from "../api/response";
@@ -85,7 +86,7 @@ export function createCalendarService(
        * the calendar, so hiding its existence would only be confusing. The
        * withholding case is the one above, where they cannot.
        */
-      throw ApiError.forbidden("This entry is not yours to change.");
+      throw ApiError.forbidden(text("refusal.calendar.notYours"));
     }
     return entry;
   }
@@ -167,8 +168,8 @@ export function createCalendarService(
 
       if (!occurrenceDate) {
         throw ApiError.validation(
-          { _: "Say which occurrence is being changed." },
-          "This entry repeats.",
+          { _: text("refusal.calendar.occurrenceToChange") },
+          text("refusal.calendar.repeats"),
         );
       }
 
@@ -224,8 +225,8 @@ export function createCalendarService(
       }
       if (!occurrenceDate) {
         throw ApiError.validation(
-          { _: "Say which occurrence is being removed." },
-          "This entry repeats.",
+          { _: text("refusal.calendar.occurrenceToRemove") },
+          text("refusal.calendar.repeats"),
         );
       }
 
@@ -256,7 +257,7 @@ export function createCalendarService(
     createAgendaItem(viewer: Viewer, input: unknown): AgendaItem {
       const values = parse(createAgendaItem, input);
       if (values.relatedEntryId && !repo.findEntry(values.relatedEntryId)) {
-        throw ApiError.validation({ relatedEntryId: "That entry no longer exists." });
+        throw ApiError.validation({ relatedEntryId: text("refusal.calendar.relatedEntryGone") });
       }
       if (values.escalationId && !asks?.askedOf(viewer, values.escalationId)) {
         throw ApiError.notFound("That request");
@@ -276,7 +277,7 @@ export function createCalendarService(
       const patch = parse(updateAgendaItem, input);
       const merged = { ...existing, ...patch };
       if (!merged.date && !merged.weekOf) {
-        throw ApiError.validation({ date: "File it on a day, or on the week." });
+        throw ApiError.validation({ date: text("refusal.calendar.dateMissing") });
       }
 
       /*

@@ -157,9 +157,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
       );
 
     if (remaining.length === 0) {
-      throw ApiError.conflict(
-        "Somebody has to be able to administer Oikonomia. Give another person an administering role first.",
-      );
+      throw ApiError.conflict(text("refusal.organization.lastAdministrator"));
     }
   };
 
@@ -169,13 +167,13 @@ export function createOrganizationService(repo: OrganizationRepository) {
       const ministry = repo.findMinistry(targetId);
       if (!ministry) throw ApiError.notFound("That ministry");
       if (ministry.active === false) {
-        throw ApiError.conflict("That ministry is no longer running.");
+        throw ApiError.conflict(text("refusal.organization.ministryInactive"));
       }
       return;
     }
     const group = repo.findGroup(targetId);
     if (!group) throw ApiError.notFound("That group");
-    if (!group.active) throw ApiError.conflict("That group is no longer active.");
+    if (!group.active) throw ApiError.conflict(text("refusal.organization.groupInactive"));
   };
 
   const requireAdmin = (viewer: Viewer): void => {
@@ -233,7 +231,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
      */
     claimFirstPerson(input: unknown): PersonRecord {
       if (!repo.isEmpty()) {
-        throw ApiError.forbidden("Oikonomia has already been set up. Sign in instead.");
+        throw ApiError.forbidden(text("refusal.organization.alreadySetUp"));
       }
       const parsed = parse(personInput, input);
       return repo.insertPerson({
@@ -273,7 +271,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
       if (parsed.email && repo.findPersonByEmail(parsed.email)) {
         /* Two people, one address, is a merge nobody asked for. Refuse it and
            let a person decide which account this is. */
-        throw ApiError.conflict("Somebody is already using that email address.");
+        throw ApiError.conflict(text("refusal.organization.emailTaken"));
       }
       return repo.insertPerson({
         name: parsed.name,
@@ -300,7 +298,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
        */
       if (parsed.reportsToId === id) {
         throw ApiError.validation({
-          reportsToId: "Somebody cannot report to themselves. Leave it unset if there is nobody.",
+          reportsToId: text("refusal.organization.reportsToSelf"),
         });
       }
 
@@ -309,7 +307,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
       if (parsed.email) {
         const holder = repo.findPersonByEmail(parsed.email);
         if (holder && holder.id !== id) {
-          throw ApiError.conflict("Somebody is already using that email address.");
+          throw ApiError.conflict(text("refusal.organization.emailTaken"));
         }
       }
 
@@ -395,7 +393,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
          grants anything — nesting is structure — but a cycle would make the
          structure view unrenderable. */
       if (parsed.parentGroupId === id) {
-        throw ApiError.validation({ parentGroupId: "A group cannot sit under itself." });
+        throw ApiError.validation({ parentGroupId: text("refusal.organization.groupUnderItself") });
       }
       if (parsed.parentGroupId && !repo.findGroup(parsed.parentGroupId)) {
         throw ApiError.notFound("That parent group");

@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { hashPassword, verifyPassword } from "../auth/secrets";
 import { SESSION_LIFETIME_MS } from "../auth/principal";
@@ -65,7 +66,7 @@ export type InvitationOutcome =
   | { email: string; outcome: "already-has-access" | "invalid" | "conflict" };
 
 /** One sentence, whatever went wrong. */
-const REFUSED = "Those details were not recognised.";
+const REFUSED = text("refusal.auth.refused");
 
 /**
  * What a throttled caller is told.
@@ -74,7 +75,7 @@ const REFUSED = "Those details were not recognised.";
  * the box is counted whether or not an account has it, so being throttled
  * says nothing about whether the address is real.
  */
-const THROTTLED = "Too many attempts. Wait a few minutes before trying again.";
+const THROTTLED = text("refusal.auth.throttled");
 
 export interface SignedIn {
   /** The only copy of the session token. It goes in a cookie and nowhere else. */
@@ -216,7 +217,7 @@ export function createAuthService(
     setPassword(accountId: string, password: string): void {
       if (password.length < 12) {
         throw ApiError.validation({
-          password: "Use at least 12 characters. A passphrase is easier and stronger.",
+          password: text("refusal.auth.passwordTooShort"),
         });
       }
 
@@ -294,7 +295,7 @@ export function createAuthService(
           method: "magic-link",
           result: "refused",
         });
-        throw ApiError.unauthenticated("That link is no longer valid. Ask for a new one.");
+        throw ApiError.unauthenticated(text("refusal.auth.linkExpired"));
       };
 
       const found = accounts.findToken(input.token, "magic-link");
@@ -363,7 +364,7 @@ export function createAuthService(
     resetPassword(input: { token: string; password: string }): void {
       const refuse = (): never => {
         accounts.record({ action: "auth.password_reset.refused", result: "refused" });
-        throw ApiError.unauthenticated("That link is no longer valid. Ask for a new one.");
+        throw ApiError.unauthenticated(text("refusal.auth.linkExpired"));
       };
 
       const found = accounts.findToken(input.token, "password-reset");
@@ -405,9 +406,7 @@ export function createAuthService(
           method: "google",
           result: reason,
         });
-        throw ApiError.unauthenticated(
-          "That Google account is not set up for this church. Ask an administrator to add you.",
-        );
+        throw ApiError.unauthenticated(text("refusal.auth.googleAccountUnknown"));
       };
 
       const linked = accounts.findBySubject("google", input.subject);
@@ -466,7 +465,7 @@ export function createAuthService(
           method,
           result: "refused",
         });
-        throw ApiError.unauthenticated("That account cannot be signed in to.");
+        throw ApiError.unauthenticated(text("refusal.auth.accountDisabled"));
       }
       return beginSession(account, method, userAgent);
     },
@@ -502,7 +501,7 @@ export function createAuthService(
 
       const taken = accounts.findByEmail(email);
       if (taken) {
-        throw ApiError.conflict("Somebody else is already using that email address.");
+        throw ApiError.conflict(text("refusal.auth.emailTaken"));
       }
 
       const account = accounts.create({ personId, email, status: "invited" });
@@ -527,7 +526,7 @@ export function createAuthService(
     inviteByEmail(addresses: readonly string[]): InvitationOutcome[] {
       if (addresses.length > MAX_INVITATIONS) {
         throw ApiError.validation({
-          emails: `Invite at most ${MAX_INVITATIONS} people at a time.`,
+          emails: text("refusal.auth.inviteTooMany", { max: MAX_INVITATIONS }),
         });
       }
 
