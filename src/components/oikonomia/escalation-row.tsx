@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PersonName } from "./person";
 import { useLeadershipInbox } from "./escalation-provider";
+import { useSchedule } from "./schedule-provider";
 import { errorMessage } from "@/lib/calendar-client";
 import {
+  escalationHref,
   escalationLabel,
   escalationStatusLabel,
   isOverdue,
-  type EscalationSourceType,
   type EscalationStatus,
   type EscalationType,
 } from "@/domain/escalation";
@@ -39,29 +40,6 @@ const tone: Record<EscalationType, string> = {
   approval: "text-status-approval",
 };
 
-/** Where the ask came from, as a route this viewer can open. */
-function pathFor(sourceType: EscalationSourceType, sourceId: string): string | null {
-  switch (sourceType) {
-    case "leadership-report":
-      return `/leadership-reports/${sourceId}`;
-    case "reach-out-report":
-      return `/reach-out/${sourceId}`;
-    case "meeting-note":
-      return `/meeting-notes`;
-    case "gathering":
-    case "lifegroup-entry":
-      return `/lifegroups/${sourceId}`;
-    case "goal":
-      return `/goals/${sourceId}`;
-    case "ministry":
-      return `/ministries/${sourceId}`;
-    case "work":
-      return `/work/${sourceId}`;
-    default:
-      return null;
-  }
-}
-
 export function EscalationRow({
   item,
   today,
@@ -72,13 +50,19 @@ export function EscalationRow({
   className?: string;
 }) {
   const inbox = useLeadershipInbox();
+  const schedule = useSchedule();
   const [note, setNote] = useState("");
   const [asking, setAsking] = useState<EscalationStatus | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  const [onTheWeek, setOnTheWeek] = useState(false);
 
   const Icon = icon[item.type];
   const overdue = isOverdue(item, today);
-  const path = pathFor(item.sourceType, item.sourceId);
+  const href = escalationHref(item.sourceType, item.sourceId);
+  const alreadyFiled = schedule.agenda.some(
+    (entry) => entry.text === item.request && !entry.completed,
+  );
+  const filed = onTheWeek || alreadyFiled;
 
   const move = async (status: EscalationStatus, withNote?: boolean) => {
     if (withNote && !note.trim()) {
@@ -90,6 +74,20 @@ export function EscalationRow({
       await inbox.move(item.id, status, note.trim() ? { note: note.trim() } : {});
       setNote("");
       setAsking(null);
+    } catch (error) {
+      setFailure(errorMessage(error));
+    }
+  };
+
+  const putOnWeek = async () => {
+    setFailure(null);
+    try {
+      const date = item.neededBy && item.neededBy >= today ? item.neededBy : today;
+      await schedule.addAgenda({ text: item.request, date });
+      setOnTheWeek(true);
+      if (item.type === "action" && item.status === "requested") {
+        await move("in-progress");
+      }
     } catch (error) {
       setFailure(errorMessage(error));
     }
@@ -163,9 +161,10 @@ export function EscalationRow({
             </div>
           ) : (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {path ? (
+              {href ? (
                 <Link
-                  to={path}
+                  to={href.to}
+                  {...(href.search ? { search: href.search } : {})}
                   className="inline-flex min-h-6 items-center rounded-md border border-border px-2.5 py-1 text-[12px] transition-colors hover:bg-muted"
                 >
                   Open context
@@ -189,6 +188,26 @@ export function EscalationRow({
                       Take it on
                     </Button>
                   ) : null}
+                  {filed ? (
+                    <Link
+                      to="/weekly-agenda"
+                      search={{
+                        date: item.neededBy && item.neededBy >= today ? item.neededBy : today,
+                      }}
+                      className="inline-flex min-h-6 items-center px-2.5 py-1 text-[12px] text-muted-foreground underline-offset-2 hover:underline"
+                    >
+                      On your week
+                    </Link>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={schedule.saving}
+                      onClick={() => void putOnWeek()}
+                    >
+                      Put on my week
+                    </Button>
+                  )}
                   <Button type="button" variant="ghost" onClick={() => void move("completed")}>
                     Completed
                   </Button>

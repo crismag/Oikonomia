@@ -8,8 +8,19 @@ write.
 > _Good morning, Perpetua — Saturday, 12 September · one thing needs you_
 
 Home answers the question the product is arranged around. It shows what needs
-your attention, what is due soon, and what is left in the week — and when
-nothing needs you, it says so rather than inventing something.
+your attention, what other leaders have asked of you, what is left in the week,
+and what you are carrying — and when nothing needs you, it says so rather than
+inventing something.
+
+Open anything on Home to continue it where it lives. A week item opens that
+item; an ask opens the report or gathering it came from. Home does not keep a
+second copy.
+
+When something needs you, the primary button continues it. **Add to the week**
+is always there, and is the main action when the week is quiet.
+
+A first visit explains this once. The longer walkthrough is in the account
+menu, under Setup & walkthrough.
 
 **My Progress** sits beside it: how your leadership responsibilities are going
 this week and this month, as cycles with steps rather than a percentage.
@@ -29,7 +40,8 @@ filter, and open a **printable page** — the binder is meant to be carried into
 a meeting on paper when that is easier.
 
 Tasks that come out of meeting notes appear here, in the week of whoever they
-were given to.
+were given to. Opening one takes you back to the meeting, not to a copy of the
+task.
 
 ## Monthly Calendar
 
@@ -105,6 +117,15 @@ seniority, and not by administrators.
 
 > **A person is never a report subject category.** Somebody can be named in the
 > body of a report; they are not a heading it is filed under.
+
+## Goals
+
+> _What the ministry said it wanted to improve this year, and where each goal
+> stands now._
+
+Goals used to live only inside a ministry. They still belong to the ministry —
+this page is the year, across the ministries you can see. Home and My Progress
+send you here when a goal is part of the cycle.
 
 ## Documents & Forms and Resource Search
 

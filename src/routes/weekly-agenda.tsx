@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, MapPin, Plus, Printer, Repeat } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/weekly-agenda")({
    */
   validateSearch: (
     search: Record<string, unknown>,
-  ): { date?: string; view?: WorkspaceView; print?: true } => {
+  ): { date?: string; view?: WorkspaceView; print?: true; open?: string } => {
     const views: WorkspaceView[] = ["agenda", "list", "calendar"];
     const view = views.includes(search["view"] as WorkspaceView)
       ? (search["view"] as WorkspaceView)
@@ -76,6 +76,7 @@ export const Route = createFileRoute("/weekly-agenda")({
       ...(typeof search["date"] === "string" ? { date: search["date"] } : {}),
       ...(view ? { view } : {}),
       ...(search["print"] ? { print: true as const } : {}),
+      ...(typeof search["open"] === "string" && search["open"] ? { open: search["open"] } : {}),
     };
   },
   head: () => ({
@@ -123,8 +124,9 @@ function kindFilterLabel(kind: PlanningKind | null, hideCompleted: boolean): str
  */
 function WeeklyAgendaPage() {
   const { ministries } = useOrganization();
-  const { date, view = "agenda", print } = Route.useSearch();
+  const { date, view = "agenda", print, open } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const opened = useRef<string | null>(null);
 
   const today = toISO(new Date());
   const anchor = date ?? today;
@@ -180,7 +182,20 @@ function WeeklyAgendaPage() {
      * Back to the record, never to a copy of it. A projected item carries the
      * source it came from, which is what makes opening one possible at all —
      * and which of the two detail surfaces it belongs to.
+     *
+     * A meeting task is a piece of a note: opening it on this page used to do
+     * nothing, which is how a leader saw work on their week and could not
+     * reach the conversation that produced it.
      */
+    if (item.source.type === "meeting-task") {
+      const meetingId =
+        item.source.relatedId ??
+        myTasks.tasks.find((entry) => entry.task.id === item.source.id)?.task.meetingId;
+      if (meetingId) {
+        void navigate({ to: "/meeting-notes", search: { note: meetingId } });
+      }
+      return;
+    }
     if (item.source.type === "agenda-item") {
       taskDetail.open(item);
       return;
@@ -195,6 +210,21 @@ function WeeklyAgendaPage() {
       recurring: item.recurring,
     });
   };
+
+  /*
+   * Home (and anything else) can name an item in the URL. Open it once the
+   * week is loaded, and only once — `opened` is what prevents a second open
+   * when the projected list is a new array.
+   */
+  useEffect(() => {
+    if (!open || store.status === "loading") return;
+    if (opened.current === open) return;
+    const item = weekItems.find((candidate) => candidate.id === open);
+    if (!item) return;
+    opened.current = open;
+    openItem(item);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, store.status, weekItems]);
 
   /** The rest of the day, for context inside a drawer. */
   const openTask = taskDetail.value

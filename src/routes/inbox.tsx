@@ -116,7 +116,7 @@ function InboxPage() {
     <Page>
       <PageHeader
         title="Leadership Inbox"
-        description="What leaders have asked of you, what is flagged as needing a look, and what has come in since you last looked. Reports do not become work simply by being submitted."
+        description="What leaders have asked of you, what is flagged as needing a look, and what has come in since you last looked. Reports do not become work simply by being submitted. An action can be put on your week from here."
       />
 
       <div className="mb-4 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">

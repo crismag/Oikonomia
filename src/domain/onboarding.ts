@@ -150,12 +150,12 @@ export const tourStops: TourStop[] = [
   {
     to: "/",
     title: "Home",
-    body: "What needs you today, gathered from your own records. Nothing appears here because somebody else read something — only because something is actually waiting on you.",
+    body: "What needs you today. Open anything here to continue it where it lives. Nothing appears because somebody else read something — only because something is actually waiting on you.",
   },
   {
     to: "/weekly-agenda",
     title: "Weekly Agenda",
-    body: "Your working week. Anything assigned to you from a meeting turns up here on the day it is due.",
+    body: "Your working week. Open anything on Home to land on that item. Anything assigned to you from a meeting turns up here on the day it is due.",
   },
   {
     to: "/meeting-notes",
@@ -173,9 +173,14 @@ export const tourStops: TourStop[] = [
     body: "Your account of your work, addressed to an audience you choose. Publishing one puts it in front of those people; it does not put it in anybody's queue.",
   },
   {
+    to: "/goals",
+    title: "Goals",
+    body: "What the ministry said it wanted to improve this year, and where each goal stands. Home will send you here when a goal needs you.",
+  },
+  {
     to: "/inbox",
     title: "Leadership Inbox",
-    body: "What has actually been asked of you. Being able to read something never puts it here.",
+    body: "What has actually been asked of you. Being able to read something never puts it here. An action you take on can be put on your week from here.",
   },
   {
     to: "/team",

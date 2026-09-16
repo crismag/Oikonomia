@@ -13,11 +13,19 @@ import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useQuery } from "@tanstack/react-query";
 
 import { useLifegroup } from "@/components/oikonomia/lifegroup-provider";
+import { useReports } from "@/components/oikonomia/report-provider";
 import { fetchAssignments } from "@/lib/organization-api";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
 import { assignmentSentence, type Assignment } from "@/domain/assignment";
 import { useWorkList } from "@/components/oikonomia/work-provider";
-import { attendanceHistory, dayLabel, venueName } from "@/domain/lifegroup";
+import {
+  attendanceHistory,
+  dayLabel,
+  gatheringHeadline,
+  leadsGathering,
+  venueName,
+} from "@/domain/lifegroup";
+import { reportStatusLabel } from "@/domain/leadership-report";
 import { useViewer } from "@/domain/session";
 
 export const Route = createFileRoute("/people/$personId")({
@@ -39,6 +47,7 @@ function PersonDetail() {
   const { persona, person: viewer } = useViewer();
   const lifegroupStore = useLifegroup();
   const workList = useWorkList();
+  const reports = useReports();
 
   /* Whether this person exists is the directory's answer, and the directory is
      loaded rather than compiled in — so it is checked here rather than in a
@@ -87,6 +96,21 @@ function PersonDetail() {
     person.id,
   )
     .filter(({ record }) => record.status === "present")
+    .slice(0, 6);
+
+  /*
+   * Only what this viewer may already discover. A person page is not a back
+   * door into reports whose audience does not include the reader — `visible`
+   * is the service's list, and we only ask "did they write it?".
+   */
+  const theirReports = reports.visible
+    .filter((report) => report.authorId === person.id)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, 6);
+
+  const theyLead = [...lifegroupStore.gatherings]
+    .filter((gathering) => leadsGathering(gathering, person.id) && gathering.status !== "cancelled")
+    .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 6);
 
   return (
@@ -155,10 +179,19 @@ function PersonDetail() {
                 )}
               </p>
               {oversees.length > 0 ? (
-                <p className="mt-1.5 text-[13px] text-muted-foreground">
-                  {oversees.length} {oversees.length === 1 ? "person reports" : "people report"} to
-                  them
-                </p>
+                <ul className="mt-1.5 space-y-1 text-[13px]">
+                  {oversees.map((other) => (
+                    <li key={other.id}>
+                      <Link
+                        to="/people/$personId"
+                        params={{ personId: other.id }}
+                        className="transition-colors hover:text-primary"
+                      >
+                        {other.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               ) : null}
             </RailBlock>
 
@@ -205,6 +238,53 @@ function PersonDetail() {
             </p>
           )}
         </Section>
+
+        {theirReports.length > 0 ? (
+          <Section title="Leadership reports" meta={`${theirReports.length}`}>
+            <ul className="divide-y divide-border">
+              {theirReports.map((report) => (
+                <li key={report.id} className="row-quiet">
+                  <Link
+                    to="/leadership-reports/$reportId"
+                    params={{ reportId: report.id }}
+                    className="flex items-start gap-3 px-4 py-2.5"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px]">
+                        {report.title || "Untitled report"}
+                      </span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {report.reportingPeriod ?? "No period set"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[12px] text-muted-foreground">
+                      {reportStatusLabel[report.status]}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+
+        {theyLead.length > 0 ? (
+          <Section title="Gatherings they lead" meta={`${theyLead.length}`}>
+            <ul className="divide-y divide-border">
+              {theyLead.map((gathering) => (
+                <li key={gathering.id} className="px-4 py-2.5">
+                  <Link
+                    to="/lifegroups/$gatheringId"
+                    params={{ gatheringId: gathering.id }}
+                    className="text-[14px] transition-colors hover:text-primary"
+                  >
+                    {gatheringHeadline(venues, gathering)}
+                  </Link>
+                  <p className="text-[12px] text-muted-foreground">{dayLabel(gathering.date)}</p>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
 
         {attended.length > 0 ? (
           <Section title="Gatherings attended">

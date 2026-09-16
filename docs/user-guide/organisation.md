@@ -17,6 +17,11 @@ address, their campus and who they report to. **What they are called here is
 descriptive and grants nothing** — "Bishop" is a word the church uses, not a
 permission.
 
+From a person you can also open the leadership reports they wrote that you may
+already read, the gatherings they lead, and the people who report to them.
+Nothing on this page widens access: a report whose audience does not include
+you is not listed.
+
 ### Somebody who has left
 
 People are **deactivated, not deleted**. They stop being available for new

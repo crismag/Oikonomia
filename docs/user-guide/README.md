@@ -36,14 +36,14 @@ confirmed — not from having an account.
 
 The sidebar is a binder, and the groups mean something:
 
-| Group            | What is in it                                                                 |
-| ---------------- | ----------------------------------------------------------------------------- |
-| **Home**         | Home, My Progress — where you stand                                           |
-| **My Work**      | Weekly Agenda, Monthly Calendar, Meeting Notes, Reach-Out, Leadership Reports |
-| **Shared**       | LifeGroup, Ministry — work a team does together                               |
-| **More**         | Documents & Forms, Resource Search                                            |
-| **Leadership**   | Leadership Inbox, Team Overview, Reports                                      |
-| **Organization** | People, Attendance, Leadership journal, Administration                        |
+| Group            | What is in it                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| **Home**         | Home, My Progress — where you stand                                                  |
+| **My Work**      | Weekly Agenda, Monthly Calendar, Meeting Notes, Reach-Out, Leadership Reports, Goals |
+| **Shared**       | LifeGroup, Ministry — work a team does together                                      |
+| **Library**      | Documents & Forms, Resource Search                                                   |
+| **Oversight**    | Leadership Inbox, Team Overview, Reports to you                                      |
+| **Organization** | People, Attendance, Leadership journal, Administration                               |
 
 You will not see all of it. What appears depends on what your church has
 confirmed about where you serve. A leader with no confirmed assignments signs

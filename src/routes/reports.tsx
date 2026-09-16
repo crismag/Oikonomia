@@ -18,7 +18,7 @@ import { useViewer } from "@/domain/session";
 export const Route = createFileRoute("/reports")({
   head: () => ({
     meta: [
-      { title: "Reports — Oikonomia" },
+      { title: "Reports to you — Oikonomia" },
       {
         name: "description",
         content: "Reports published to you and by you, with what you have already read.",
@@ -89,8 +89,8 @@ function ReportsPage() {
   return (
     <Page>
       <PageHeader
-        title="Reports"
-        description="Reports published to you and by you. A report is information: it is here to read, and it asks nothing of you unless its author said so."
+        title="Reports to you"
+        description="Work reports published to you and by you. This is not Leadership Reports — those are the confidential accounts you write in your binder. A report here is information: it is here to read, and it asks nothing of you unless its author said so."
       />
 
       {withheld > 0 ? (

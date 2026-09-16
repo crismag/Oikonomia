@@ -13,7 +13,6 @@ import {
   HeartHandshake,
   Inbox,
   Sprout,
-  LayoutGrid,
   Search,
   Settings2,
   Target,
@@ -130,6 +129,13 @@ export const navGroups: NavGroup[] = [
       { label: "Meeting Notes", icon: NotebookPen, to: "/meeting-notes" },
       { label: "Reach-Out", icon: HeartHandshake, to: "/reach-out" },
       { label: "Leadership Reports", icon: FileText, to: "/leadership-reports" },
+      /*
+       * A page with no door is a page nobody finds. Goals already participate
+       * in the leadership cycle — Home and My Progress send people here — and
+       * used to live only inside a ministry, which hid them from anyone who
+       * was not already on that ministry's page.
+       */
+      { label: "Goals", icon: Target, to: "/goals" },
     ],
   },
   /*
@@ -159,12 +165,15 @@ export const navGroups: NavGroup[] = [
      * short: §27 — the sidebar should communicate the product's shape, and a
      * flat list of everything communicates nothing.
      */
-    heading: "More",
+    heading: "Library",
     context: "binder",
     /*
      * Two different jobs. Documents & Forms is the working library — what this
      * area manages. Resource Search answers "where is that thing I know we
      * have?" across the whole workspace. Neither replaces the other.
+     *
+     * Named for what it is, not "More". A leftover heading teaches a leader
+     * that these pages are miscellaneous, and they are not.
      */
     items: [
       { label: "Documents & Forms", icon: FolderOpen, to: "/documents" },
@@ -181,7 +190,7 @@ export const navGroups: NavGroup[] = [
      * information, and the heading now says what these pages are for: seeing
      * what has been asked of you, and how the team is doing.
      */
-    heading: "Leadership",
+    heading: "Oversight",
     context: "leadership",
     items: [
       /*
@@ -192,7 +201,12 @@ export const navGroups: NavGroup[] = [
        */
       { label: "Leadership Inbox", icon: Inbox, to: "/inbox" },
       { label: "Team Overview", icon: Users, to: "/team" },
-      { label: "Reports", icon: ClipboardCheck, to: "/reports" },
+      /*
+       * Not "Reports". Leadership Reports (above) is what you write; this is
+       * what has been published to you as work records. The same word for both
+       * is how a pastor opens the wrong one and decides neither is the product.
+       */
+      { label: "Reports to you", icon: ClipboardCheck, to: "/reports" },
     ],
   },
   {
@@ -254,7 +268,6 @@ export function areaLabelFor(pathname: string): string {
   /* Areas reachable only from within another area, so absent from the sidebar. */
   if (segment === "/work") return "Work";
   if (segment === "/records") return "Record";
-  if (segment === "/goals") return "Ministry";
   if (segment === "/forms") return "Documents & Forms";
   if (segment === "/progress-report") return "Leadership Reports";
   if (segment === "/planning") return "Resource Search";

@@ -45,6 +45,13 @@ export interface PlanningSource {
   id: string;
   /** The occurrence, when the record recurs and this is one of its days. */
   occurrenceDate?: string;
+  /**
+   * The record this item is a piece of, when that is not `id`.
+   *
+   * A meeting task's `id` is the task; `relatedId` is the note it came from,
+   * which is where opening one has to go.
+   */
+  relatedId?: string;
 }
 
 export interface PlanningItem {
@@ -133,7 +140,7 @@ export function fromMeetingTask(entry: MeetingTaskEntry): PlanningItem | undefin
     completed: task.status === "done",
     recurring: false,
     contextLabel: entry.contextLabel,
-    source: { type: "meeting-task", id: task.id },
+    source: { type: "meeting-task", id: task.id, relatedId: task.meetingId },
     /* Completing is the assignee's; the wording and the date belong to the
        meeting, and are edited where the meeting is — when they may open it. */
     may: { edit: false, complete: true, reschedule: false },
@@ -342,3 +349,24 @@ function bucketFor(
 /** "7:30 PM", or nothing when the item is not at a time. */
 export const planningTime = (item: PlanningItem) =>
   item.allDay ? undefined : formatTime(item.startTime);
+
+/**
+ * Where opening this item should go.
+ *
+ * Home, the week and the month all project the same records. A press that
+ * always dumped them onto the week list — without saying which item — taught
+ * a leader that Home was a summary they could not act from. Meeting tasks
+ * belong in the note that created them; everything else belongs on the week,
+ * on the day it sits, with enough in the URL to open that item.
+ */
+export function planningHref(item: PlanningItem): {
+  to: string;
+  search?: Record<string, string>;
+} {
+  if (item.source.type === "meeting-task") {
+    return item.source.relatedId
+      ? { to: "/meeting-notes", search: { note: item.source.relatedId } }
+      : { to: "/meeting-notes" };
+  }
+  return { to: "/weekly-agenda", search: { date: item.date, open: item.id } };
+}
