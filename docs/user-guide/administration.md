@@ -4,6 +4,13 @@ Everything here is in **Administration**, and it divides into four jobs: the
 organisation, who can get in, what things are called, and looking after the
 data.
 
+Administration opens one section at a time. The row of section names at the
+top switches between them (_Awaiting confirmation_, _Invite people_, _People_,
+_Campuses_, _Ministries_, _Responsibility groups_, _Venues_, _Google
+Workspace_, _Data management_, _Configuration_); a link to a section opens it
+directly. In a large church _People_ lists fifty at a time, with _Find a
+person_ and _Show more_.
+
 > **What administration is not.** Managing structure is not permission to read
 > pastoral or leadership content. The screen tells you how many records are
 > closed to your account, and administering the installation never opens them.

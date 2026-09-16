@@ -663,7 +663,8 @@ export function createDocumentService(
         relationship: parsed.relationship ?? "filed-in",
         createdById: viewer.person.id,
       });
-      if (!association) throw ApiError.validation({ entityType: "That is not a binder record." });
+      if (!association)
+        throw ApiError.validation({ entityType: text("refusal.document.notABinderRecord") });
       return association;
     },
 
@@ -704,7 +705,7 @@ export function createDocumentService(
     createBinder(viewer: Viewer, input: unknown): RegisteredDocument {
       const parsed = parse(createBinderDocument, input);
       const ministry = context_.organization.findMinistry(parsed.ministryId);
-      if (!ministry) throw ApiError.validation({ ministryId: "That ministry does not exist." });
+      if (!ministry) throw ApiError.validation({ ministryId: text("refusal.ministry.unknown") });
 
       const relationship = relationshipTo(ministry, viewer.person.id);
       if (!canContribute(relationship)) {
@@ -779,9 +780,7 @@ export function createDocumentService(
         parsed.expectedVersion ?? current.version,
       );
       if (saved === "stale") {
-        throw ApiError.conflict(
-          "Someone else in this ministry changed this while you were writing. Reopen it to see what they wrote.",
-        );
+        throw ApiError.conflict(text("refusal.document.staleVersion"));
       }
       if (!saved) throw ApiError.notFound("That document");
       return saved;
@@ -808,9 +807,7 @@ export function createDocumentService(
 
       if (document.registeredById !== viewer.person.id && !leads) {
         throw ApiError.forbidden(
-          ministry
-            ? "Removing a document is for whoever added it or whoever leads this ministry."
-            : "Only whoever registered this document can remove it.",
+          ministry ? text("refusal.document.removeMinistry") : text("refusal.document.removeOwner"),
         );
       }
       repo.delete(id);

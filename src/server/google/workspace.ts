@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { createSign } from "node:crypto";
 import { readFileSync } from "node:fs";
 
@@ -191,9 +192,7 @@ export async function accessToken(
 ): Promise<string> {
   const who = subject.trim().toLowerCase();
   if (!mayActAs(config, who)) {
-    throw ApiError.forbidden(
-      "That address is not a Google Workspace account in this church's domain.",
-    );
+    throw ApiError.forbidden(text("refusal.googleWorkspace.addressNotInDomain"));
   }
 
   const key = `${who} ${[...scopes].sort().join(" ")}`;
@@ -213,10 +212,7 @@ export async function accessToken(
     /* Google's reason is for the operator, not the leader: log it, say what to check. */
     const detail = await response.text().catch(() => "");
     console.error(`[google] token for ${who} refused: ${response.status} ${detail.slice(0, 300)}`);
-    throw new ApiError(
-      "internal",
-      "Google Workspace refused access. An administrator should check the service account's domain-wide delegation and scopes.",
-    );
+    throw new ApiError("internal", text("refusal.googleWorkspace.delegationRefused"));
   }
 
   const body = (await response.json()) as { access_token: string; expires_in: number };
@@ -273,12 +269,12 @@ export async function googleRequest<T = unknown>(
     if (response.status === 404 || response.status === 410)
       throw ApiError.notFound("That item in Google");
     if (response.status === 403 || response.status === 401) {
-      throw ApiError.forbidden("Google did not allow that for this account.");
+      throw ApiError.forbidden(text("refusal.googleWorkspace.notAllowed"));
     }
-    throw new ApiError("internal", "Google could not be reached just now. Try again.");
+    throw new ApiError("internal", text("refusal.googleWorkspace.unreachable"));
   }
-  const text = await response.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  const body = await response.text();
+  return (body ? JSON.parse(body) : undefined) as T;
 }
 
 /* ---------------------------------------------------------------- status */

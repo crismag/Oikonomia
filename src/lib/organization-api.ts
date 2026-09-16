@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { Result } from "./api-envelope";
@@ -182,7 +183,7 @@ async function withOrganization<T>(
   const { ApiError, service, viewer } = await serverParts();
   try {
     if (!viewer) {
-      throw ApiError.unauthenticated("Nobody is signed in on this browser.");
+      throw ApiError.unauthenticated(text("refusal.auth.nobodySignedIn"));
     }
     return { data: work(service, viewer) };
   } catch (error) {

@@ -199,9 +199,7 @@ export function createFormsService(repo: FormsRepository) {
       const parsed = parse(createRecord, input);
       const definition = requireDefinition(parsed.definitionId);
       if (definition.archivedAt) {
-        throw ApiError.conflict(
-          "This form has been retired. Its records are kept, but no new ones can be started.",
-        );
+        throw ApiError.conflict(text("refusal.form.retired"));
       }
 
       return repo.insertRecord({
@@ -228,7 +226,7 @@ export function createFormsService(repo: FormsRepository) {
       if (record.status === "completed") {
         /* A completed checklist is a statement about what was done. Changing
            one silently would make it a statement about nothing. */
-        throw ApiError.conflict("This record is complete. Reopen it before changing an answer.");
+        throw ApiError.conflict(text("refusal.form.recordComplete"));
       }
 
       const response = parsed.response as unknown as FormRecord["responses"][number];

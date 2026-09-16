@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
 import { windowFor } from "../api/pagination";
@@ -121,9 +122,7 @@ export function createReachOutService(repo: ReachOutRepository) {
          * Two leaders continuing one report is ordinary here, so the message
          * says what happened rather than treating it as an error they caused.
          */
-        throw ApiError.conflict(
-          "Another leader added to this report while you were writing. Reopen it to see what they wrote.",
-        );
+        throw ApiError.conflict(text("refusal.reachOut.staleVersion"));
       }
       if (!saved) throw ApiError.notFound("That report");
       return saved;
@@ -138,7 +137,7 @@ export function createReachOutService(repo: ReachOutRepository) {
     deleteReport(viewer: Viewer, id: string): void {
       const report = require(id);
       if (!canDeleteReport(report, viewer.person.id)) {
-        throw ApiError.forbidden("Only whoever started this report can remove it.");
+        throw ApiError.forbidden(text("refusal.reachOut.removeIsAuthors"));
       }
       repo.delete(id);
     },
@@ -160,7 +159,7 @@ export function createReachOutService(repo: ReachOutRepository) {
       const comment = repo.findComment(id);
       if (!comment) throw ApiError.notFound("That comment");
       if (comment.authorId !== viewer.person.id) {
-        throw ApiError.forbidden("A comment belongs to whoever wrote it.");
+        throw ApiError.forbidden(text("refusal.reachOut.commentOwner"));
       }
       repo.deleteComment(id);
     },

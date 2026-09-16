@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
 import { createEntry, renameEntry, summarize, writeEntry } from "@/domain/journal-contract";
@@ -136,9 +137,7 @@ export function createJournalService(
         parsed.expectedVersion ?? current.version,
       );
       if (saved === "stale") {
-        throw ApiError.conflict(
-          "This entry was changed in another tab while you were writing. Reopen it to see the current version.",
-        );
+        throw ApiError.conflict(text("refusal.journal.staleVersion"));
       }
       if (!saved) throw ApiError.notFound("That entry");
       return saved;
@@ -154,7 +153,7 @@ export function createJournalService(
         work.versionOf(parsed.id) ?? 1,
       );
       if (saved === "stale") {
-        throw ApiError.conflict("This entry moved on. Reopen it to see the current version.");
+        throw ApiError.conflict(text("refusal.journal.movedOn"));
       }
       if (!saved) throw ApiError.notFound("That entry");
       return saved;
@@ -192,7 +191,7 @@ export function createJournalService(
       const chosen = new Set(parsed.blockIds);
       const selected = body.blocks.filter((block) => chosen.has(block.id));
       if (selected.length === 0) {
-        throw ApiError.validation({ blockIds: "Those lines are not in this entry." });
+        throw ApiError.validation({ blockIds: text("refusal.journal.blocksNotInEntry") });
       }
 
       /*

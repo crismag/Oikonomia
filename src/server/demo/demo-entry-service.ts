@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { z } from "zod";
 
 import { ApiError } from "../api/response";
@@ -174,7 +175,7 @@ export function createDemoEntryService(parts: {
   /** Both gates. Anything else is not a demonstration. */
   const requireDemonstration = (): void => {
     if (!parts.demoMode) {
-      throw ApiError.disabledByInstallation("This installation is not a demonstration.");
+      throw ApiError.disabledByInstallation(text("refusal.demo.notADemo"));
     }
     if (identities.count("designated") === 0) {
       throw ApiError.notFound("A demonstration identity");
@@ -247,9 +248,7 @@ export function createDemoEntryService(parts: {
 
       const account = parts.transaction(() => {
         if (identities.count("visitor") >= VISITOR_LIMIT) {
-          throw ApiError.conflict(
-            "The demo has as many visitors as it can take until it next refreshes. Choose one of the people above instead.",
-          );
+          throw ApiError.conflict(text("refusal.demo.full"));
         }
         const person = organization.insertPerson({ name, accessRole: LEAST_PRIVILEGED });
         const created = accounts.create({ personId: person.id, status: "active" });

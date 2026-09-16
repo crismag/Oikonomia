@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
 import { resolveAccess } from "@/domain/access";
@@ -155,9 +156,7 @@ export function createWorkService(repo: WorkRepository) {
       expectedVersion ?? repo.versionOf(id) ?? 1,
     );
     if (saved === "stale") {
-      throw ApiError.conflict(
-        "This moved on while you were looking at it. Reopen it to see where it stands now.",
-      );
+      throw ApiError.conflict(text("refusal.work.staleVersion"));
     }
     if (!saved) throw ApiError.notFound("That record");
     return saved;
@@ -225,7 +224,7 @@ export function createWorkService(repo: WorkRepository) {
 
       const onlyReviewer = (what: string) => {
         if (!reviewer) {
-          throw ApiError.forbidden(`Reviewing this is for the leaders it was sent to.`);
+          throw ApiError.forbidden(text("refusal.work.reviewIsReviewers"));
         }
         return what;
       };
@@ -240,15 +239,13 @@ export function createWorkService(repo: WorkRepository) {
        */
       const requireReviewProcess = (record: WorkContext) => {
         if (!record.reviewRequired) {
-          throw ApiError.conflict(
-            "This is information, not a submission for review. Comment on it, or create an action from it.",
-          );
+          throw ApiError.conflict(text("refusal.work.informationOnly"));
         }
       };
 
       const from = (allowed: WorkStatus[], action: string) => {
         if (!allowed.includes(work.status)) {
-          throw ApiError.conflict(`This cannot be ${action} from where it currently stands.`);
+          throw ApiError.conflict(text("refusal.work.invalidTransition", { action }));
         }
       };
 
@@ -259,7 +256,7 @@ export function createWorkService(repo: WorkRepository) {
 
       switch (parsed.action) {
         case "submit": {
-          if (!owner) throw ApiError.forbidden("Submitting this is for whoever opened it.");
+          if (!owner) throw ApiError.forbidden(text("refusal.work.submitIsOwners"));
           from(["draft", "changes-requested"], "submitted");
           status = "submitted";
           /*
@@ -299,7 +296,7 @@ export function createWorkService(repo: WorkRepository) {
            * prevent. So the note is required here and nowhere else.
            */
           if (!parsed.note) {
-            throw ApiError.validation({ note: "Say what needs changing." });
+            throw ApiError.validation({ note: text("refusal.work.changesNoteMissing") });
           }
           status = "changes-requested";
           currentState = parsed.note;
@@ -332,7 +329,7 @@ export function createWorkService(repo: WorkRepository) {
           if (underReview) {
             onlyReviewer("resolved");
           } else if (!owner && !reviewer) {
-            throw ApiError.forbidden("Closing this is for whoever opened it or reviews it.");
+            throw ApiError.forbidden(text("refusal.work.closeIsOwnersOrReviewers"));
           }
           from(["open", "in-review", "acknowledged", "submitted"], "resolved");
           status = "resolved";
@@ -345,7 +342,7 @@ export function createWorkService(repo: WorkRepository) {
         case "reopen":
         default: {
           if (!owner && !reviewer) {
-            throw ApiError.forbidden("Reopening this is for whoever opened it or reviews it.");
+            throw ApiError.forbidden(text("refusal.work.reopenIsOwnersOrReviewers"));
           }
           from(["resolved", "closed", "acknowledged"], "reopened");
           status = "open";
@@ -379,7 +376,7 @@ export function createWorkService(repo: WorkRepository) {
       const parsed = parse(requestDecision, input);
       const { work } = readable(viewer, parsed.workId);
       if (!isOwner(viewer, work) && !isReviewer(viewer, work)) {
-        throw ApiError.forbidden("Asking for a decision here is for its owner or its reviewers.");
+        throw ApiError.forbidden(text("refusal.work.decisionRequestIsOwnersOrReviewers"));
       }
 
       const decision = repo.addDecision(parsed.workId, {
@@ -405,7 +402,7 @@ export function createWorkService(repo: WorkRepository) {
       const parsed = parse(recordDecision, input);
       const { work } = readable(viewer, parsed.workId);
       if (!isReviewer(viewer, work)) {
-        throw ApiError.forbidden("Deciding this is for the leaders it was sent to.");
+        throw ApiError.forbidden(text("refusal.work.decideIsReviewers"));
       }
 
       if (parsed.decisionId) {

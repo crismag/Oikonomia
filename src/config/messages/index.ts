@@ -217,6 +217,561 @@ export const messages = {
     body: "Another administrator decides where you serve, lead or belong.",
     severity: "warning",
   },
+
+  /*
+   * Every refusal a service throws, by area. `src/server-refusals-catalogued.test.ts`
+   * fails when a sentence is written inline at a throw site instead.
+   */
+  /* auth */
+  "refusal.auth.accountDisabled": {
+    title: "That account cannot be signed in to.",
+    severity: "warning",
+  },
+  "refusal.auth.emailTaken": {
+    title: "Somebody else is already using that email address.",
+    severity: "warning",
+  },
+  "refusal.auth.endCurrentSession": {
+    title: "Use Sign out to end the session you are using.",
+    severity: "warning",
+  },
+  "refusal.auth.googleAccountUnknown": {
+    title: "That Google account is not set up for this church. Ask an administrator to add you.",
+    severity: "warning",
+  },
+  "refusal.auth.inviteAdmin": {
+    title: "Inviting somebody is an administrator's to do.",
+    severity: "warning",
+  },
+  "refusal.auth.inviteEmailMissing": {
+    title: "Add an email address to their record first — it is where the invitation goes.",
+    severity: "warning",
+  },
+  "refusal.auth.inviteListMissing": {
+    title: "Send a list of email addresses.",
+    severity: "warning",
+  },
+  "refusal.auth.inviteTooMany": {
+    title: "Invite at most {max} people at a time.",
+    severity: "warning",
+  },
+  "refusal.auth.linkExpired": {
+    title: "That link is no longer valid. Ask for a new one.",
+    severity: "warning",
+  },
+  "refusal.auth.nobodySignedIn": {
+    title: "Nobody is signed in on this browser.",
+    severity: "warning",
+  },
+  "refusal.auth.nothingToShow": {
+    title: "Nobody is signed in on this browser, so there is nothing to show.",
+    severity: "warning",
+  },
+  "refusal.auth.notSignedIn": { title: "You are not signed in.", severity: "warning" },
+  "refusal.auth.passwordTooShort": {
+    title: "Use at least 12 characters. A passphrase is easier and stronger.",
+    severity: "warning",
+  },
+  "refusal.auth.personUnknown": { title: "There is no such person.", severity: "warning" },
+  "refusal.auth.refused": { title: "Those details were not recognised.", severity: "warning" },
+  "refusal.auth.sessionEnded": { title: "That session has already ended.", severity: "warning" },
+  "refusal.auth.signInFirst": { title: "Sign in first.", severity: "warning" },
+  "refusal.auth.throttled": {
+    title: "Too many attempts. Wait a few minutes before trying again.",
+    severity: "warning",
+  },
+
+  /* calendar */
+  "refusal.calendar.dateMissing": {
+    title: "File it on a day, or on the week.",
+    severity: "warning",
+  },
+  "refusal.calendar.notYours": { title: "This entry is not yours to change.", severity: "warning" },
+  "refusal.calendar.occurrenceToChange": {
+    title: "Say which occurrence is being changed.",
+    severity: "warning",
+  },
+  "refusal.calendar.occurrenceToRemove": {
+    title: "Say which occurrence is being removed.",
+    severity: "warning",
+  },
+  "refusal.calendar.relatedEntryGone": {
+    title: "That entry no longer exists.",
+    severity: "warning",
+  },
+  "refusal.calendar.repeats": { title: "This entry repeats.", severity: "warning" },
+
+  /* common */
+  "refusal.common.forbidden": {
+    title: "You do not have permission to do that.",
+    severity: "warning",
+  },
+  "refusal.common.internal": {
+    title: "Something went wrong saving that. Please try again.",
+    severity: "error",
+  },
+  "refusal.common.notFound": { title: "{what} could not be found.", severity: "warning" },
+  "refusal.common.unauthenticated": { title: "Nobody is signed in.", severity: "warning" },
+  "refusal.common.validation": { title: "Some details need fixing.", severity: "warning" },
+
+  /* configuration */
+  "refusal.configuration.accessStrategyMissing": {
+    title: "Say how this audience is enforced.",
+    severity: "warning",
+  },
+  "refusal.configuration.closedList": {
+    title:
+      "The values in this list are part of the product. You can rename them, and stop offering one, but a new value would be one nothing can use.",
+    severity: "warning",
+  },
+  "refusal.configuration.labelEmpty": {
+    title: "Use a name with letters or numbers in it.",
+    severity: "warning",
+  },
+  "refusal.configuration.labelTaken": {
+    title: "Something with that name is already on the list.",
+    severity: "warning",
+  },
+  "refusal.configuration.lastAdministeringRole": {
+    title:
+      "At least one role has to be able to administer Oikonomia. Give another role that permission first.",
+    severity: "warning",
+  },
+  "refusal.configuration.notASetting": {
+    title: "That configuration is part of the product, not a setting.",
+    severity: "warning",
+  },
+  "refusal.configuration.stageBehaviorsMissing": {
+    title: "Say what this stage does.",
+    severity: "warning",
+  },
+
+  /* continuity */
+  "refusal.continuity.admin": {
+    title: "Data management is an administrator's to do.",
+    severity: "warning",
+  },
+
+  /* demo */
+  "refusal.demo.full": {
+    title:
+      "The demo has as many visitors as it can take until it next refreshes. Choose one of the people above instead.",
+    severity: "warning",
+  },
+  "refusal.demo.notADemo": {
+    title: "This installation is not a demonstration.",
+    severity: "warning",
+  },
+
+  /* document */
+  "refusal.document.notABinderRecord": {
+    title: "That is not a binder record.",
+    severity: "warning",
+  },
+  "refusal.document.removeMinistry": {
+    title: "Removing a document is for whoever added it or whoever leads this ministry.",
+    severity: "warning",
+  },
+  "refusal.document.removeOwner": {
+    title: "Only whoever registered this document can remove it.",
+    severity: "warning",
+  },
+  "refusal.document.staleVersion": {
+    title:
+      "Someone else in this ministry changed this while you were writing. Reopen it to see what they wrote.",
+    severity: "warning",
+  },
+
+  /* drive */
+  "refusal.drive.fileMissing": { title: "Choose a file to upload.", severity: "warning" },
+  "refusal.drive.googleAddressMissing": {
+    title:
+      "Oikonomia needs your church Google address (…@{domain}) on your person record before it can open Drive as you. An administrator can add it.",
+    severity: "warning",
+  },
+  "refusal.drive.ministryFoldersMissing": {
+    title:
+      "Ministry folders are not set up on this installation. You can still choose a file from My Drive.",
+    severity: "warning",
+  },
+  "refusal.drive.ministryMissing": { title: "Which ministry's folder?", severity: "warning" },
+  "refusal.drive.notConnected": {
+    title: "Google Drive is not connected on this installation.",
+    severity: "warning",
+  },
+
+  /* escalation */
+  "refusal.escalation.alreadyAnswered": {
+    title: "This has already been answered, so it stays on the record.",
+    severity: "warning",
+  },
+  "refusal.escalation.alreadyDecided": {
+    title: "This has been decided. The decision stays on the record.",
+    severity: "warning",
+  },
+  "refusal.escalation.answerIsAskers": {
+    title: "Only whoever asked answers a question about it.",
+    severity: "warning",
+  },
+  "refusal.escalation.declineReasonMissing": {
+    title: "Say why, so the request can be reworked.",
+    severity: "warning",
+  },
+  "refusal.escalation.forRecipient": {
+    title: "This request is for the leader it was sent to.",
+    severity: "warning",
+  },
+  "refusal.escalation.invalidTransition": {
+    title: "This request cannot move there from where it stands.",
+    severity: "warning",
+  },
+  "refusal.escalation.noQuestion": {
+    title: "Nobody has asked a question about this.",
+    severity: "warning",
+  },
+  "refusal.escalation.notApproval": {
+    title: "Only an approval request is approved or declined.",
+    severity: "warning",
+  },
+  "refusal.escalation.recipientMissing": {
+    title: "Say who this is for, or it reaches nobody.",
+    severity: "warning",
+  },
+  "refusal.escalation.withdrawIsAskers": {
+    title: "Only whoever asked may withdraw a request.",
+    severity: "warning",
+  },
+
+  /* export */
+  "refusal.export.damaged": { title: "That export is damaged. Run it again.", severity: "warning" },
+  "refusal.export.groupMissing": { title: "Say which group.", severity: "warning" },
+  "refusal.export.groupNotYours": {
+    title: "That group is not yours to export.",
+    severity: "warning",
+  },
+  "refusal.export.ministryMissing": { title: "Say which ministry.", severity: "warning" },
+  "refusal.export.ministryNotYours": {
+    title: "That ministry is not yours to export.",
+    severity: "warning",
+  },
+  "refusal.export.tooWide": { title: "That is wider than you may export.", severity: "warning" },
+  "refusal.export.unknownScope": {
+    title: "That is not something Oikonomia can export.",
+    severity: "warning",
+  },
+
+  /* form */
+  "refusal.form.recordComplete": {
+    title: "This record is complete. Reopen it before changing an answer.",
+    severity: "warning",
+  },
+  "refusal.form.retired": {
+    title: "This form has been retired. Its records are kept, but no new ones can be started.",
+    severity: "warning",
+  },
+
+  /* goal */
+  "refusal.goal.alreadyComplete": { title: "That goal is already complete.", severity: "warning" },
+  "refusal.goal.carryBackward": { title: "A goal carries forward, not back.", severity: "warning" },
+  "refusal.goal.groupOnly": {
+    title: "Only members of that group may set its goals.",
+    severity: "warning",
+  },
+  "refusal.goal.ministryOnly": {
+    title: "Only people who work in that ministry may set its goals.",
+    severity: "warning",
+  },
+  "refusal.goal.otherGroup": {
+    title: "This goal belongs to a group you are not in.",
+    severity: "warning",
+  },
+  "refusal.goal.otherMinistry": {
+    title: "This goal belongs to another ministry.",
+    severity: "warning",
+  },
+  "refusal.goal.personal": {
+    title: "This is another leader's personal goal.",
+    severity: "warning",
+  },
+
+  /* googleCalendar */
+  "refusal.googleCalendar.admin": {
+    title: "Publishing the church calendar is an administrator's to manage.",
+    severity: "warning",
+  },
+  "refusal.googleCalendar.notConfigured": {
+    title: "No church calendar is set. Set OIKONOMIA_GOOGLE_CALENDAR_ID on the server first.",
+    severity: "warning",
+  },
+
+  /* googleWorkspace */
+  "refusal.googleWorkspace.addressNotInDomain": {
+    title: "That address is not a Google Workspace account in this church's domain.",
+    severity: "warning",
+  },
+  "refusal.googleWorkspace.admin": {
+    title: "Google Workspace is an administrator's to set up.",
+    severity: "warning",
+  },
+  "refusal.googleWorkspace.delegationRefused": {
+    title:
+      "Google Workspace refused access. An administrator should check the service account's domain-wide delegation and scopes.",
+    severity: "warning",
+  },
+  "refusal.googleWorkspace.notAllowed": {
+    title: "Google did not allow that for this account.",
+    severity: "warning",
+  },
+  "refusal.googleWorkspace.unreachable": {
+    title: "Google could not be reached just now. Try again.",
+    severity: "error",
+  },
+
+  /* journal */
+  "refusal.journal.blocksNotInEntry": {
+    title: "Those lines are not in this entry.",
+    severity: "warning",
+  },
+  "refusal.journal.movedOn": {
+    title: "This entry moved on. Reopen it to see the current version.",
+    severity: "warning",
+  },
+  "refusal.journal.staleVersion": {
+    title:
+      "This entry was changed in another tab while you were writing. Reopen it to see the current version.",
+    severity: "warning",
+  },
+
+  /* leadershipReport */
+  "refusal.leadershipReport.accessIsAuthors": {
+    title: "Who may read this report is the author's to set.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.changeIsAuthors": {
+    title: "This report is its author's to change.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.noSubject": {
+    title:
+      "This kind of report is not written about a named person. Say who it concerns in the report itself.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.notOpenForDiscussion": {
+    title: "This report is not open for discussion.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.owner": {
+    title: "A report belongs to whoever wrote it.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.staleVersion": {
+    title:
+      "This report was changed somewhere else while you were working. Reopen it to see the current version.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.submittedArchive": {
+    title: "This report has been submitted. Archive it rather than removing the record.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.submittedReopen": {
+    title: "This report has been submitted. Reopen it to make changes.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.submittedReopenBeforeChanging": {
+    title: "This report has been submitted. Reopen it before changing what it says.",
+    severity: "warning",
+  },
+  "refusal.leadershipReport.writeIsAuthors": {
+    title: "This report is its author's to write.",
+    severity: "warning",
+  },
+
+  /* lifegroup */
+  "refusal.lifegroup.alreadyCancelled": {
+    title: "This gathering is already cancelled.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.alreadyLed": {
+    title: "Someone is already leading this. You can add yourself instead.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.alreadyOnGathering": {
+    title: "You are already on this gathering.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.attendeeNameMissing": { title: "Say who came.", severity: "warning" },
+  "refusal.lifegroup.cancelled": { title: "This gathering was cancelled.", severity: "warning" },
+  "refusal.lifegroup.cancelWrittenUp": {
+    title: "This gathering has been written up. Reopen the report before cancelling it.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.coLeadersCampus": {
+    title: "Who else leads this is a campus responsibility. You can add or remove yourself.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.leadersWrittenUp": {
+    title: "This gathering has been written up. Who led it is part of the record.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.notCancelled": {
+    title: "This gathering is not cancelled.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.notOnGathering": {
+    title: "You are not on this gathering.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.notYoursToCancel": {
+    title: "This gathering is not yours to cancel.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.notYoursToChange": {
+    title: "This gathering is not yours to change.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.notYoursToRestore": {
+    title: "This gathering is not yours to restore.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.personUnknown": {
+    title: "That person is not in People.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.readersMissing": {
+    title: "Name at least one person who may read this.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.readerUnknown": {
+    title: "Somebody named here is not in People.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.recordCancelled": {
+    title: "This gathering was cancelled. Restore it before recording it.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.recordNotAssigned": {
+    title: "Only a leader assigned to this gathering can record it.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.stageHasOwnAction": {
+    title: "That change of stage has its own action on the gathering.",
+    severity: "warning",
+  },
+
+  /* meeting */
+  "refusal.meeting.owner": { title: "This note belongs to whoever wrote it.", severity: "warning" },
+  "refusal.meeting.staleVersion": {
+    title:
+      "This note was changed somewhere else while you were writing. Reopen it to see the current version.",
+    severity: "warning",
+  },
+
+  /* ministry */
+  "refusal.ministry.unknown": { title: "That ministry does not exist.", severity: "warning" },
+
+  /* onboarding */
+  "refusal.onboarding.nameIsAdministrators": {
+    title: "Your name is on the church's record. An administrator changes it.",
+    severity: "warning",
+  },
+  "refusal.onboarding.nameMissing": {
+    title: "Give the name people call you — first and last.",
+    severity: "warning",
+  },
+  "refusal.onboarding.unknownStep": { title: "That is not one of the steps.", severity: "warning" },
+
+  /* organization */
+  "refusal.organization.alreadySetUp": {
+    title: "Oikonomia has already been set up. Sign in instead.",
+    severity: "warning",
+  },
+  "refusal.organization.emailTaken": {
+    title: "Somebody is already using that email address.",
+    severity: "warning",
+  },
+  "refusal.organization.groupInactive": {
+    title: "That group is no longer active.",
+    severity: "warning",
+  },
+  "refusal.organization.groupUnderItself": {
+    title: "A group cannot sit under itself.",
+    severity: "warning",
+  },
+  "refusal.organization.lastAdministrator": {
+    title:
+      "Somebody has to be able to administer Oikonomia. Give another person an administering role first.",
+    severity: "warning",
+  },
+  "refusal.organization.ministryInactive": {
+    title: "That ministry is no longer running.",
+    severity: "warning",
+  },
+  "refusal.organization.reportsToSelf": {
+    title: "Somebody cannot report to themselves. Leave it unset if there is nobody.",
+    severity: "warning",
+  },
+
+  /* reachOut */
+  "refusal.reachOut.commentOwner": {
+    title: "A comment belongs to whoever wrote it.",
+    severity: "warning",
+  },
+  "refusal.reachOut.removeIsAuthors": {
+    title: "Only whoever started this report can remove it.",
+    severity: "warning",
+  },
+  "refusal.reachOut.staleVersion": {
+    title:
+      "Another leader added to this report while you were writing. Reopen it to see what they wrote.",
+    severity: "warning",
+  },
+
+  /* request */
+  "refusal.request.invalidJson": {
+    title: "The request body was not valid JSON.",
+    severity: "warning",
+  },
+  "refusal.request.sortUnknown": { title: "Sort must be one of: {names}.", severity: "warning" },
+
+  /* work */
+  "refusal.work.changesNoteMissing": { title: "Say what needs changing.", severity: "warning" },
+  "refusal.work.closeIsOwnersOrReviewers": {
+    title: "Closing this is for whoever opened it or reviews it.",
+    severity: "warning",
+  },
+  "refusal.work.decideIsReviewers": {
+    title: "Deciding this is for the leaders it was sent to.",
+    severity: "warning",
+  },
+  "refusal.work.decisionRequestIsOwnersOrReviewers": {
+    title: "Asking for a decision here is for its owner or its reviewers.",
+    severity: "warning",
+  },
+  "refusal.work.informationOnly": {
+    title:
+      "This is information, not a submission for review. Comment on it, or create an action from it.",
+    severity: "warning",
+  },
+  "refusal.work.invalidTransition": {
+    title: "This cannot be {action} from where it currently stands.",
+    severity: "warning",
+  },
+  "refusal.work.reopenIsOwnersOrReviewers": {
+    title: "Reopening this is for whoever opened it or reviews it.",
+    severity: "warning",
+  },
+  "refusal.work.reviewIsReviewers": {
+    title: "Reviewing this is for the leaders it was sent to.",
+    severity: "warning",
+  },
+  "refusal.work.staleVersion": {
+    title: "This moved on while you were looking at it. Reopen it to see where it stands now.",
+    severity: "warning",
+  },
+  "refusal.work.submitIsOwners": {
+    title: "Submitting this is for whoever opened it.",
+    severity: "warning",
+  },
   "demo.reset.soon": {
     title: "The demo refreshes in about {minutes} minutes.",
     body: "Changes made in the demo will be reset then.",

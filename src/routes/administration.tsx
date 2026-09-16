@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
 import { Building2, CircleAlert, Lock, Settings2 } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { EmptyState } from "@/components/oikonomia/empty-state";
 import { Page, PageHeader, RailBlock } from "@/components/oikonomia/page";
@@ -9,13 +10,39 @@ import { StatusBadge } from "@/components/oikonomia/status";
 import { resolveAccess } from "@/domain/access";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useWorkList } from "@/components/oikonomia/work-provider";
-import { AssignmentsAdmin } from "@/components/oikonomia/assignments-admin";
-import { InvitePeople } from "@/components/oikonomia/invite-people";
-import { DataManagement } from "@/components/oikonomia/data-management";
-import { OrganizationAdmin } from "@/components/oikonomia/organization-admin";
-import { WorkspaceAdmin } from "@/components/oikonomia/workspace-admin";
-import { ConfigurationAdmin } from "@/components/oikonomia/configuration-admin";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  administrationSectionFor,
+  administrationSections,
+  type AdministrationSectionId,
+} from "@/domain/administration-sections";
 import { useViewer } from "@/domain/session";
+import { cn } from "@/lib/utils";
+
+/* Each section is its own chunk, fetched when it is opened. Configuration and
+   data care are most of this page's code and most visits are about neither. */
+const AssignmentsAdmin = lazy(() =>
+  import("@/components/oikonomia/assignments-admin").then((m) => ({ default: m.AssignmentsAdmin })),
+);
+const InvitePeople = lazy(() =>
+  import("@/components/oikonomia/invite-people").then((m) => ({ default: m.InvitePeople })),
+);
+const OrganizationAdmin = lazy(() =>
+  import("@/components/oikonomia/organization-admin").then((m) => ({
+    default: m.OrganizationAdmin,
+  })),
+);
+const WorkspaceAdmin = lazy(() =>
+  import("@/components/oikonomia/workspace-admin").then((m) => ({ default: m.WorkspaceAdmin })),
+);
+const DataManagement = lazy(() =>
+  import("@/components/oikonomia/data-management").then((m) => ({ default: m.DataManagement })),
+);
+const ConfigurationAdmin = lazy(() =>
+  import("@/components/oikonomia/configuration-admin").then((m) => ({
+    default: m.ConfigurationAdmin,
+  })),
+);
 
 export const Route = createFileRoute("/administration")({
   head: () => ({
@@ -98,13 +125,7 @@ function AdministrationPage() {
         }
       >
         {persona.capabilities.includes("administration") ? (
-          <>
-            <AssignmentsAdmin />
-            <InvitePeople />
-            <OrganizationAdmin />
-            <WorkspaceAdmin />
-            <DataManagement />
-          </>
+          <AdministrationSections />
         ) : (
           <Section title="The organisation">
             <EmptyState icon={Building2} title="Only an administrator may change this">
@@ -114,23 +135,16 @@ function AdministrationPage() {
           </Section>
         )}
 
-        {persona.capabilities.includes("administration") ? (
-          <ConfigurationAdmin />
-        ) : (
-          <Section title="Configuration">
-            <EmptyState icon={Settings2} title="Only an administrator may change this">
-              What things are called across Oikonomia is an administrator&apos;s to set.
-            </EmptyState>
-          </Section>
+        {persona.capabilities.includes("administration") ? null : (
+          <>
+            <Section title="Configuration">
+              <EmptyState icon={Settings2} title="Only an administrator may change this">
+                What things are called across Oikonomia is an administrator&apos;s to set.
+              </EmptyState>
+            </Section>
+            <ImportingConfiguration />
+          </>
         )}
-
-        <Section title="Importing configuration">
-          <EmptyState icon={Settings2} title="Importing from a source is not implemented">
-            Configuration is edited here and stored in the database. Bringing it in from a file or a
-            Drive document — with validation, preview and a publish step — is the intended model and
-            is not built, so this page shows no import state and no runtime version.
-          </EmptyState>
-        </Section>
 
         {configWork.length > 0 ? (
           <Section title="Needs resolving">
@@ -161,5 +175,110 @@ function AdministrationPage() {
         ) : null}
       </DetailLayout>
     </Page>
+  );
+}
+
+function ImportingConfiguration() {
+  return (
+    <Section title="Importing configuration">
+      <EmptyState icon={Settings2} title="Importing from a source is not implemented">
+        Configuration is edited here and stored in the database. Bringing it in from a file or a
+        Drive document — with validation, preview and a publish step — is the intended model and is
+        not built, so this page shows no import state and no runtime version.
+      </EmptyState>
+    </Section>
+  );
+}
+
+/**
+ * One section of Administration at a time, chosen by the address's hash.
+ *
+ * The hash is read only after hydration: the server never sees it, and
+ * rendering a section there would hand the browser a different page from the
+ * one its address names. Until then — and while a section's code arrives — a
+ * skeleton holds the place.
+ */
+function AdministrationSections() {
+  const hash = useRouterState({ select: (state) => state.location.hash });
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const current = hydrated ? administrationSectionFor(hash) : null;
+
+  return (
+    <>
+      <nav aria-label="Administration sections">
+        <ul className="flex flex-wrap gap-1.5">
+          {administrationSections.map((section) => (
+            <li key={section.id}>
+              <Link
+                to="/administration"
+                hash={section.id}
+                aria-current={current === section.id ? "page" : undefined}
+                className={cn(
+                  "inline-flex rounded-full border border-border px-3 py-1 text-[13px] text-muted-foreground hover:text-foreground",
+                  current === section.id &&
+                    "border-transparent bg-area text-on-area hover:text-on-area",
+                )}
+              >
+                {section.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {current ? (
+        <Suspense key={current} fallback={<SectionSkeleton />}>
+          <OpenSection id={current} />
+        </Suspense>
+      ) : (
+        <SectionSkeleton />
+      )}
+    </>
+  );
+}
+
+function OpenSection({ id }: { id: AdministrationSectionId }): ReactNode {
+  switch (id) {
+    case "assignments":
+      return <AssignmentsAdmin />;
+    case "invite":
+      return <InvitePeople />;
+    case "people":
+    case "campuses":
+    case "ministries":
+    case "groups":
+    case "venues":
+      return <OrganizationAdmin part={id} />;
+    case "google-workspace":
+      return <WorkspaceAdmin />;
+    case "data":
+      return (
+        <div id="data" className="scroll-mt-4">
+          <DataManagement />
+        </div>
+      );
+    case "configuration":
+      return (
+        <div id="configuration" className="scroll-mt-4 space-y-5">
+          <ConfigurationAdmin />
+          <ImportingConfiguration />
+        </div>
+      );
+  }
+}
+
+function SectionSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading this section"
+      className="space-y-3 rounded-2xl border border-border bg-surface p-4 shadow-card"
+    >
+      <Skeleton className="h-5 w-40" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
+      <Skeleton className="h-4 w-2/3" />
+    </div>
   );
 }

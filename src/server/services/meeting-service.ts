@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
 import { windowFor } from "../api/pagination";
@@ -77,7 +78,7 @@ export function createMeetingService(
     const note = require(viewer, id);
     if (!canEdit(viewer, { kind: "meeting-note", note })) {
       /* They can see it, so hiding it now would only confuse. */
-      throw ApiError.forbidden("This note belongs to whoever wrote it.");
+      throw ApiError.forbidden(text("refusal.meeting.owner"));
     }
     return note;
   }
@@ -252,9 +253,7 @@ export function createMeetingService(
       );
 
       if (saved === "stale") {
-        throw ApiError.conflict(
-          "This note was changed somewhere else while you were writing. Reopen it to see the current version.",
-        );
+        throw ApiError.conflict(text("refusal.meeting.staleVersion"));
       }
       if (!saved) throw ApiError.notFound("That meeting note");
       return saved;

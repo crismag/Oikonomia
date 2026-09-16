@@ -38,7 +38,7 @@ related:
 destinations: [administration]
 ---
 
-**Administration** is under **Organization** in the sidebar, for people whose role includes the administration capability. From top to bottom:
+**Administration** is under **Organization** in the sidebar, for people whose role includes the administration capability. It opens one section at a time: the row of section names at the top — **Awaiting confirmation**, **Invite people**, **People**, **Campuses**, **Ministries**, **Responsibility groups**, **Venues**, **Google Workspace**, **Data management** and **Configuration** — switches between them, and it opens on **Awaiting confirmation**. A link to a section (for example from **Set up your church** on Home) opens that section directly.
 
 ### Awaiting confirmation
 
@@ -47,12 +47,12 @@ Claims and correction requests about where people serve. See [Confirm where peop
 ### The organisation
 
 - **Campuses** — name and city.
-- **People** — name, what they are called here, what they may do (their access role), campus and who they report to. **Edit** corrects a record, sets an email address and offers **Invite to Oikonomia**. **Deactivate** removes access without deleting anything they wrote.
+- **People** — in a large church the list shows fifty at a time, with **Find a person** (name, role or email) and **Show more**. Name, what they are called here, what they may do (their access role), campus and who they report to. **Edit** corrects a record, sets an email address and offers **Invite to Oikonomia**. **Deactivate** removes access without deleting anything they wrote.
 - **Ministries** — name, purpose, campus and lead. A ministry can be added before it has a lead.
 - **Responsibility groups** — an eldership or leadership team, with members. Marking one as the leadership audience decides who receives reports set to leadership.
 - **Venues** — places gatherings are held.
 
-### Looking after the data
+### Data management
 
 **Continuity** (Back up now, Verify the last backup, Apply retention now), **Export** of the whole site as JSON, CSV or OPK, **Check a package**, and **Recent data operations**. An export contains only what you may read.
 

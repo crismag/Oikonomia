@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { createServerFn } from "@tanstack/react-start";
 
 import type { Result } from "./api-envelope";
@@ -59,7 +60,7 @@ const requireAdministration = (
   ApiError: typeof import("@/server/api/response").ApiError,
 ) => {
   if (!viewer.persona.capabilities.includes("administration")) {
-    throw ApiError.forbidden("Google Workspace is an administrator's to set up.");
+    throw ApiError.forbidden(text("refusal.googleWorkspace.admin"));
   }
 };
 

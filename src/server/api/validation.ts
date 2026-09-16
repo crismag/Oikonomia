@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { z } from "zod";
 
 import { PAGE_SIZE } from "@/domain/pagination";
@@ -44,7 +45,7 @@ export async function parseBody<T>(schema: z.ZodType<T>, request: Request): Prom
   try {
     payload = await request.json();
   } catch {
-    throw ApiError.validation({ _: "The request body was not valid JSON." });
+    throw ApiError.validation({ _: text("refusal.request.invalidJson") });
   }
   return parse(schema, payload);
 }
@@ -118,7 +119,9 @@ export function sortClause(sort: string | undefined, allowed: Record<string, str
 
   const clause = allowed[sort];
   if (!clause) {
-    throw ApiError.validation({ sort: `Sort must be one of: ${names.join(", ")}.` });
+    throw ApiError.validation({
+      sort: text("refusal.request.sortUnknown", { names: names.join(", ") }),
+    });
   }
   return clause;
 }

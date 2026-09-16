@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 
 import Database from "better-sqlite3";
@@ -60,7 +61,7 @@ const APPLICATION_VERSION = "0.1.0";
 export function createContinuityService(db: Db, jobs: DataJobRepository) {
   const requireAdministration = (viewer: Viewer): void => {
     if (!viewer.persona.capabilities.includes("administration")) {
-      throw ApiError.forbidden("Data management is an administrator's to do.");
+      throw ApiError.forbidden(text("refusal.continuity.admin"));
     }
   };
 

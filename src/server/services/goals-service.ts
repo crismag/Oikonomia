@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { parse } from "../api/validation";
 import { addUpdate, createGoal, goalsForYear, updateGoal } from "@/domain/goals-contract";
@@ -70,9 +71,9 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
   }
 
   function refusalFor(goal: Goal): string {
-    if (goal.scope === "personal") return "This is another leader's personal goal.";
-    if (goal.scope === "other") return "This goal belongs to a group you are not in.";
-    return "This goal belongs to another ministry.";
+    if (goal.scope === "personal") return text("refusal.goal.personal");
+    if (goal.scope === "other") return text("refusal.goal.otherGroup");
+    return text("refusal.goal.otherMinistry");
   }
 
   /** Everything the repository needs back, minus what it owns. */
@@ -163,8 +164,8 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
       if (!canEdit(viewer, subjectFor(preview))) {
         throw ApiError.forbidden(
           parsed.scope === "ministry"
-            ? "Only people who work in that ministry may set its goals."
-            : "Only members of that group may set its goals.",
+            ? text("refusal.goal.ministryOnly")
+            : text("refusal.goal.groupOnly"),
         );
       }
 
@@ -212,7 +213,8 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
      */
     complete(viewer: Viewer, id: string, note?: string, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
-      if (goal.status === "completed") throw ApiError.conflict("That goal is already complete.");
+      if (goal.status === "completed")
+        throw ApiError.conflict(text("refusal.goal.alreadyComplete"));
 
       const saved = commit(
         id,
@@ -280,7 +282,7 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
     carryForward(viewer: Viewer, id: string, toYear: number, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
       if (toYear <= goal.year) {
-        throw ApiError.validation({ toYear: "A goal carries forward, not back." });
+        throw ApiError.validation({ toYear: text("refusal.goal.carryBackward") });
       }
       /* Checked before the new year's copy exists, so a stale carry leaves
          nothing half-made behind. */

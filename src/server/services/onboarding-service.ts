@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import {
   ONBOARDING_VERSION,
@@ -144,7 +145,7 @@ export function createOnboardingService(
     /** Record where they have got to, so closing the browser loses nothing. */
     moveTo(viewer: Viewer, step: string): OnboardingContext {
       if (!(onboardingSteps as readonly string[]).includes(step)) {
-        throw ApiError.validation({ step: "That is not one of the steps." });
+        throw ApiError.validation({ step: text("refusal.onboarding.unknownStep") });
       }
 
       const existing = repo.find(viewer.person.id);
@@ -167,14 +168,12 @@ export function createOnboardingService(
     giveOwnName(viewer: Viewer, input: unknown): OnboardingContext {
       const person = organization.findPerson(viewer.person.id);
       if (!person || !awaitsOwnName(person)) {
-        throw ApiError.forbidden(
-          "Your name is on the church's record. An administrator changes it.",
-        );
+        throw ApiError.forbidden(text("refusal.onboarding.nameIsAdministrators"));
       }
       const name =
         typeof input === "object" && input && "name" in input ? String(input.name).trim() : "";
       if (name.length < 2 || name.length > 120 || name.includes("@")) {
-        throw ApiError.validation({ name: "Give the name people call you — first and last." });
+        throw ApiError.validation({ name: text("refusal.onboarding.nameMissing") });
       }
       organization.updatePerson(person.id, { name });
       return context({ ...viewer, person: { ...viewer.person, name } });

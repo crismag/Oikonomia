@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { z } from "zod";
 
 import { ApiError } from "../api/response";
@@ -440,7 +441,7 @@ export function createEscalationService(
 
       if (!parsed.requestedFromRole && !parsed.requestedFromPersonId) {
         throw ApiError.validation({
-          requestedFrom: "Say who this is for, or it reaches nobody.",
+          requestedFrom: text("refusal.escalation.recipientMissing"),
         });
       }
       if (parsed.requestedFromPersonId && !organization.findPerson(parsed.requestedFromPersonId)) {
@@ -497,20 +498,20 @@ export function createEscalationService(
       const next = parsed.status as EscalationStatus;
 
       if (!recipient && !(requester && next === "not-required")) {
-        throw ApiError.forbidden("This request is for the leader it was sent to.");
+        throw ApiError.forbidden(text("refusal.escalation.forRecipient"));
       }
 
       if (!allowedTransitions[current.status]?.includes(next)) {
-        throw ApiError.conflict("This request cannot move there from where it stands.");
+        throw ApiError.conflict(text("refusal.escalation.invalidTransition"));
       }
 
       /* A decision is a decision: approving and declining record who did it. */
       const decides = next === "approved" || next === "declined";
       if (decides && current.type !== "approval") {
-        throw ApiError.conflict("Only an approval request is approved or declined.");
+        throw ApiError.conflict(text("refusal.escalation.notApproval"));
       }
       if (next === "declined" && !parsed.note) {
-        throw ApiError.validation({ note: "Say why, so the request can be reworked." });
+        throw ApiError.validation({ note: text("refusal.escalation.declineReasonMissing") });
       }
 
       const saved = repo.setStatus(parsed.id, next, {
@@ -541,14 +542,14 @@ export function createEscalationService(
     withdraw(viewer: Viewer, id: string): void {
       const { current } = partyOnly(viewer, id);
       if (current.requestedById !== viewer.person.id) {
-        throw ApiError.forbidden("Only whoever asked may withdraw a request.");
+        throw ApiError.forbidden(text("refusal.escalation.withdrawIsAskers"));
       }
       if (current.decidedById) {
-        throw ApiError.conflict("This has been decided. The decision stays on the record.");
+        throw ApiError.conflict(text("refusal.escalation.alreadyDecided"));
       }
       /* A finished ask is the record of what was done about it. */
       if (!canWithdraw(current)) {
-        throw ApiError.conflict("This has already been answered, so it stays on the record.");
+        throw ApiError.conflict(text("refusal.escalation.alreadyAnswered"));
       }
       repo.remove(id);
     },
@@ -566,10 +567,10 @@ export function createEscalationService(
       const parsed = parse(reply, input);
       const { current } = partyOnly(viewer, parsed.id);
       if (current.requestedById !== viewer.person.id) {
-        throw ApiError.forbidden("Only whoever asked answers a question about it.");
+        throw ApiError.forbidden(text("refusal.escalation.answerIsAskers"));
       }
       if (current.status !== "more-information") {
-        throw ApiError.conflict("Nobody has asked a question about this.");
+        throw ApiError.conflict(text("refusal.escalation.noQuestion"));
       }
 
       const saved = repo.setStatus(parsed.id, "requested");

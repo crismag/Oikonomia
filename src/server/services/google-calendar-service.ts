@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { z } from "zod";
 
@@ -55,7 +56,7 @@ export type CalendarPublishingView = PublishingStatus & { lastRun?: PublishAllRe
 
 function requireAdministration(viewer: Viewer) {
   if (!viewer.persona.capabilities.includes("administration")) {
-    throw ApiError.forbidden("Publishing the church calendar is an administrator's to manage.");
+    throw ApiError.forbidden(text("refusal.googleCalendar.admin"));
   }
 }
 
@@ -69,9 +70,7 @@ export function createGoogleCalendarService(parts: GoogleCalendarServiceParts) {
     async publishAll(viewer: Viewer): Promise<CalendarPublishingView> {
       requireAdministration(viewer);
       if (!parts.publisher) {
-        throw ApiError.conflict(
-          "No church calendar is set. Set OIKONOMIA_GOOGLE_CALENDAR_ID on the server first.",
-        );
+        throw ApiError.conflict(text("refusal.googleCalendar.notConfigured"));
       }
       const lastRun = await parts.publisher.publishAll({
         entries: parts.records.entries(),
