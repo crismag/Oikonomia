@@ -46,7 +46,7 @@ record no participation.
 The page says so rather than showing an empty table that implies data is
 coming.
 
-## Leadership journal
+## Leadership Journal
 
 > _Reflection, goals and development. Private by default; sharing is an
 > explicit act, and a derived report never opens the rest._

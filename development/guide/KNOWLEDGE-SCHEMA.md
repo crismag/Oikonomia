@@ -27,21 +27,21 @@ destinations: [leadership-reports]
 ---
 ```
 
-| Field          | Required | Meaning                                                                                                                                              |
-| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`           | yes      | Stable, lower-case, dotted (`area.topic`). Never reuse or rename casually — links, route tables and future AI sources refer to it.                   |
-| `title`        | yes      | What the reader would call it.                                                                                                                       |
-| `type`         | yes      | `concept`, `page`, `procedure`, `walkthrough`, `permission` or `troubleshooting`.                                                                   |
-| `category`     | yes      | Browse category id (see the pack's `pack.ts`).                                                                                                      |
-| `summary`      | yes      | One sentence, shown in lists and search results.                                                                                                     |
-| `modules`      | no       | Areas this belongs to (`reports`, `planning`, …). Lifts it in search on those pages and lists it in the page's help.                               |
+| Field          | Required | Meaning                                                                                                                                           |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | yes      | Stable, lower-case, dotted (`area.topic`). Never reuse or rename casually — links, route tables and future AI sources refer to it.                |
+| `title`        | yes      | What the reader would call it.                                                                                                                    |
+| `type`         | yes      | `concept`, `page`, `procedure`, `walkthrough`, `permission` or `troubleshooting`.                                                                 |
+| `category`     | yes      | Browse category id (see the pack's `pack.ts`).                                                                                                    |
+| `summary`      | yes      | One sentence, shown in lists and search results.                                                                                                  |
+| `modules`      | no       | Areas this belongs to (`reports`, `planning`, …). Lifts it in search on those pages and lists it in the page's help.                              |
 | `pages`        | no       | Specific pages (`leadership-report`, `weekly-agenda`, …). A `page` item whose `pages` includes the current page becomes that page's help heading. |
-| `keywords`     | no       | Words and short phrases a reader might search for.                                                                                                   |
-| `aliases`      | no       | Whole questions as a reader would type them. The strongest search signal after the exact title.                                                    |
-| `capabilities` | no       | Shown only to readers holding **any** of these. Empty means everyone. Visibility only — the application still enforces access.                     |
-| `hideWhen`     | no       | Hidden while the context has any of these flags (`demo`, `restricted:identity`, …).                                                                 |
-| `related`      | no       | Other item ids, offered under the content. Every id must exist.                                                                                      |
-| `destinations` | no       | Semantic destinations offered as buttons (`leadership-reports`, `administration.people`, …). Must be known to the host.                            |
+| `keywords`     | no       | Words and short phrases a reader might search for.                                                                                                |
+| `aliases`      | no       | Whole questions as a reader would type them. The strongest search signal after the exact title.                                                   |
+| `capabilities` | no       | Shown only to readers holding **any** of these. Empty means everyone. Visibility only — the application still enforces access.                    |
+| `hideWhen`     | no       | Hidden while the context has any of these flags (`demo`, `restricted:identity`, …).                                                               |
+| `related`      | no       | Other item ids, offered under the content. Every id must exist.                                                                                   |
+| `destinations` | no       | Semantic destinations offered as buttons (`leadership-reports`, `administration.people`, …). Must be known to the host.                           |
 
 Lists may be written inline (`[a, b]`) or as `- item` lines. Values are plain
 strings. Unknown fields are errors.
@@ -71,14 +71,17 @@ title: Write a leadership report
 type: walkthrough
 ...
 ---
+
 Five steps, from an empty report to one your leaders can read.
 
 ## Open Leadership Reports
+
 Destination: leadership-reports
 
 Leadership Reports is under My Work in the sidebar.
 
 ## Start a report
+
 Choose **New report**, then **Write report here**.
 ```
 

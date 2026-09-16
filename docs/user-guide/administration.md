@@ -39,16 +39,36 @@ Add, in roughly this order:
 
 ## Giving somebody access
 
-1. Open the person's record and **save an email address**. It is where the
-   invitation goes.
-2. Press **Invite to Oikonomia**.
+### Several people at once
 
-That creates their account and emails a link that lets them set a password. It
-gives them a way in **and nothing else** — no ministry, no group, no
-capability.
+In **Invite people**, list their email addresses — one per line, or separated
+by commas — and choose **Send invitations**. Each address gets its own result:
 
-Where no mail provider is configured, the account is still created and you are
-told to set the password yourself:
+| Result                            | What happened                                                  |
+| --------------------------------- | -------------------------------------------------------------- |
+| _Invitation sent_                 | An account, and an email with a link to set a password         |
+| _Account created — no email sent_ | An account; this installation cannot send email (see below)    |
+| _Already signs in_                | Nothing — they already have access                             |
+| _Not an email address_            | Nothing; the address stays in the box to correct               |
+| _Held by another record_          | Nothing; the address belongs to another account — check People |
+
+An address nobody in **People** has adds a person, recorded under the address
+(_· added to People_). They give their name the first time they sign in; after
+that it is yours to change like the rest of their record. Up to 200 addresses
+at a time. The link works once and lasts seven days.
+
+### One person
+
+Open the person's record, **save an email address**, then press **Invite to
+Oikonomia**.
+
+### What an invitation gives
+
+A way in **and nothing else** — no ministry, no group, no capability. Where
+they serve is claimed in Welcome and confirmed by you.
+
+Where no mail provider is configured, the button reads **Create accounts**:
+the accounts are still created and you set the password yourself:
 
 ```bash
 npm run auth:set-password -- them@example.org "a long passphrase"
@@ -66,6 +86,12 @@ correctly attributed.
 When somebody claims an assignment, it lands here. **A claim grants nothing
 until you confirm it** — no membership, no readership, no export scope — and
 nobody can confirm their own.
+
+That includes administrators. Your own claims show _Another administrator
+confirms this_ instead of **Confirm**, and Oikonomia refuses an administrator
+adding themselves to a ministry or a responsibility group, or naming themselves
+a ministry's lead. Removing yourself is allowed. A church with one
+administrator needs a second one to place them.
 
 This is the single most important administrative habit in Oikonomia: the queue
 is where "I lead the youth ministry" becomes true.

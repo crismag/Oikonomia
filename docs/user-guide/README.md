@@ -43,7 +43,7 @@ The sidebar is a binder, and the groups mean something:
 | **Shared**       | LifeGroup, Ministry — work a team does together                                      |
 | **Library**      | Documents & Forms, Resource Search                                                   |
 | **Oversight**    | Leadership Inbox, Team Overview, Reports to you                                      |
-| **Organization** | People, Attendance, Leadership journal, Administration                               |
+| **Organization** | People, Attendance, Leadership Journal, Administration                               |
 
 You will not see all of it. What appears depends on what your church has
 confirmed about where you serve. A leader with no confirmed assignments signs

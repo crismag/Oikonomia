@@ -18,6 +18,10 @@ gathering is settled separately, by people claiming what they can take. A
 gathering without a leader is a normal, visible state — not an error and not a
 blank to be hidden.
 
+Gatherings are **shared as soon as they are added**: everybody signed in sees
+the schedule, with nothing to share. What leaders write about a gathering has
+its own visibility (below).
+
 ### A gathering
 
 Date, time, venue and who is leading. The **venue is reused and never owned**

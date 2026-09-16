@@ -58,6 +58,10 @@ The month, filterable by **All / Mine / Ministry / LifeGroup / Church**, so the
 church's shared shape and your own commitments can be seen separately or
 together.
 
+Events are **shared as soon as they are added**. A ministry meeting, a LifeGroup
+gathering or a church event is on everybody's calendar without anybody sharing
+it. Your agenda items are yours.
+
 Pick a day to see its events and its tasks — your agenda items and any dated
 tasks a meeting gave you. Open an event to see it in full; open a task to reach
 it where it lives: an agenda item on the week, a meeting task in its note when
@@ -106,6 +110,12 @@ has content, deleting asks first, because there is no undo and no trash.
 
 Filterable by **Status**, **Type** and **Visibility**, and split into **My
 Reports**, **Shared With Me** and **Documents**.
+
+A new report is a **Draft**, and **a draft is yours alone** — whatever you
+choose under _Who can read this_. That choice says who will read it; they read
+it once you share it, by moving it to **Shared** (still open to your changes)
+or **Published** (the submitted record). Sharing is always your move: nobody
+else shares your report, and nothing shares it for you.
 
 Tick **Confidential** beside _Who can read this_ when a report must be handled
 that way. It is your mark and nobody else's, and it does not change who may
