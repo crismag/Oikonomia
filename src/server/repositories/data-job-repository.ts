@@ -265,6 +265,19 @@ export function createDataJobRepository(db: Db) {
       });
     },
 
+    /** Who opened one confidential report, newest first. Never what it said. */
+    confidentialReadsOf(reportId: string, limit = 100): { actorId: string; at: string }[] {
+      return db
+        .prepare(
+          `SELECT actor_id AS actorId, at FROM data_audit
+            WHERE action = 'report.confidential.read'
+              AND json_extract(metadata, '$.reportId') = ?
+              AND actor_id IS NOT NULL
+            ORDER BY at DESC LIMIT ?`,
+        )
+        .all(reportId, limit) as { actorId: string; at: string }[];
+    },
+
     auditTrail(limit = 50): AuditEvent[] {
       const rows = db.prepare("SELECT * FROM data_audit ORDER BY at DESC LIMIT ?").all(limit) as {
         id: string;

@@ -261,8 +261,12 @@ another leader, the bishop and the administrator are all refused identically.
 
 ## What is not built
 
-- **Read auditing for confidential records.** Data operations are audited;
-  ordinary reads are not.
+- **Read auditing beyond reports marked confidential.** A Leadership Report
+  its author marks **Confidential** is sent to anyone else without its content,
+  fetched when opened, and each such opening is recorded in `data_audit`
+  (`report.confidential.read`: who, which report, when — never its words). The
+  author sees who opened it. Other reads, and other kinds of record, are not
+  audited.
 - **A separate confidential storage model.** Classification is enforced on
   access, not by storing differently.
 - **Alerting on repeated sign-in failures.** They are recorded in `auth_event`

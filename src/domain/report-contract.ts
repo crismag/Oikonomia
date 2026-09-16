@@ -76,6 +76,8 @@ export const createReport = z.object({
   audienceIds: z.array(z.string().min(1)).max(200).optional(),
   subjectId: z.string().trim().max(100).optional(),
   subjectText: z.string().trim().max(200).optional(),
+  /** The author's mark. Set with the audience, before the words are shared. */
+  confidential: z.boolean().optional(),
 });
 
 export const updateReport = z.object({
@@ -94,6 +96,7 @@ export const updateReport = z.object({
   relatedDocumentIds: z.array(z.string().min(1)).max(100).optional(),
   primaryDocumentId: z.string().trim().max(100).optional(),
   category: z.string().trim().max(40).optional(),
+  confidential: z.boolean().optional(),
 });
 
 export const setBlocks = z.object({

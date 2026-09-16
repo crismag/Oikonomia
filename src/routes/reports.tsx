@@ -234,6 +234,9 @@ function ReportsPage() {
                             {report.title || "Untitled report"}
                           </span>
                           <span className="block truncate text-[12px] text-muted-foreground">
+                            {report.confidential ? (
+                              <span className="text-status-overdue">Confidential · </span>
+                            ) : null}
                             <PersonName personId={report.authorId} /> ·{" "}
                             {reportTypeLabel(report.reportType)}
                             {report.reportingPeriod ? ` · ${report.reportingPeriod}` : ""}

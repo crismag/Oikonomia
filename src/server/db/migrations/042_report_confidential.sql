@@ -1,0 +1,13 @@
+-- A report is confidential because its author said so.
+--
+-- Until now every report shared with leadership was treated as confidential by
+-- its audience, which made the word mean "most reports" and left nothing to
+-- audit meaningfully. Confidentiality is now the author's explicit mark. It
+-- does not change who may read a report — visibility still decides that — it
+-- changes how the report is handled for everyone but its author: its content
+-- is not sent with lists, it is fetched when opened, and each such opening is
+-- recorded in `data_audit` (who, which report, when; never what it says).
+--
+-- Existing reports start unmarked. Nothing is newly withheld until an author
+-- marks a report.
+ALTER TABLE leadership_report ADD COLUMN confidential INTEGER NOT NULL DEFAULT 0;

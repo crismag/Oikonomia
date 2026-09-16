@@ -107,6 +107,12 @@ has content, deleting asks first, because there is no undo and no trash.
 Filterable by **Status**, **Type** and **Visibility**, and split into **My
 Reports**, **Shared With Me** and **Documents**.
 
+Tick **Confidential** beside _Who can read this_ when a report must be handled
+that way. It is your mark and nobody else's, and it does not change who may
+read the report. Anyone else who may read it sees it listed as Confidential
+but opens it on its own, and each time they do it is recorded; on your report
+you see who has opened it and when. What the report says is never recorded.
+
 Mark a line as a **follow-up** while writing, and your own report lists its
 open follow-ups under the text with **Put on my week**. It goes on this week's
 notes rather than on a day, so nothing is given a deadline you did not choose,

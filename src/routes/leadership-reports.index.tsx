@@ -541,6 +541,11 @@ function ReportRow({
           <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
             {report.title || "Untitled report"}
           </span>
+          {report.confidential ? (
+            <span className="shrink-0 rounded-full border border-status-overdue/35 px-1.5 text-[11px] font-medium text-status-overdue">
+              Confidential
+            </span>
+          ) : null}
           {isRestricted(report) ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-[12px] text-status-overdue">
               <Lock className="size-3.5" aria-hidden />
