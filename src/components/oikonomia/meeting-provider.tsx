@@ -520,7 +520,9 @@ export function MeetingProvider({ children }: { children: ReactNode }) {
  * business loading a page of meeting notes in order to know what somebody owes.
  */
 export function useMyMeetingTasks() {
-  const query = useQuery<{ task: MeetingTask; contextLabel: string; readable: boolean }[]>({
+  const query = useQuery<
+    { task: MeetingTask; contextLabel: string; readable: boolean; byYou: boolean }[]
+  >({
     queryKey: ["my-meeting-tasks"],
     queryFn: async () => unwrap(await withTimeout(fetchMyTasks({ data: undefined }))),
     retry: 1,

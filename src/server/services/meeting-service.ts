@@ -224,7 +224,13 @@ export function createMeetingService(repo: MeetingRepository) {
      * they may not read arrives with a neutral label, because what they have
      * been asked to do is theirs to know and the note is not.
      */
-    myTasks(viewer: Viewer): { task: MeetingTask; contextLabel: string; readable: boolean }[] {
+    myTasks(viewer: Viewer): {
+      task: MeetingTask;
+      contextLabel: string;
+      readable: boolean;
+      /** Written into a note this leader wrote or took down themselves. */
+      byYou: boolean;
+    }[] {
       return repo.tasksAssignedTo(viewer.person.id).map((task) => {
         const note = repo.findNote(task.meetingId);
         const readable = !!note && readable_(viewer, note);
@@ -232,6 +238,10 @@ export function createMeetingService(repo: MeetingRepository) {
           task,
           contextLabel: readable ? note!.title || "Untitled meeting" : "From a meeting",
           readable,
+          /* Whether somebody else gave it to them — which is what makes it
+             news. Tasks a leader writes for themselves are not. */
+          byYou:
+            !!note && (note.authorId === viewer.person.id || note.noteTakerId === viewer.person.id),
         };
       });
     },

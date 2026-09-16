@@ -170,3 +170,31 @@ export const markRead = createServerFn({ method: "POST" })
       return repo.allRead(personId);
     }),
   );
+
+/**
+ * Several things seen at once — what opening the notices panel records.
+ *
+ * Seen is the same fact `markRead` records, for the items the panel showed as
+ * new. It says nothing about whether the work is done; the asks and tasks stay
+ * exactly where they are.
+ */
+export const markSeen = createServerFn({ method: "POST" })
+  .validator((input: { items: { itemType: string; itemId: string }[] }) => {
+    const items = Array.isArray(input?.items) ? input.items : [];
+    if (items.length > 100) throw new Error("Too many items at once.");
+    return {
+      items: items.filter(
+        (item) =>
+          (item?.itemType === "escalation" || item?.itemType === "meeting-task") &&
+          typeof item.itemId === "string" &&
+          item.itemId.length > 0 &&
+          item.itemId.length <= 200,
+      ),
+    };
+  })
+  .handler(({ data }) =>
+    withReadState((repo, personId): ReadRecord[] => {
+      for (const item of data.items) repo.markRead(personId, item.itemType, item.itemId);
+      return repo.allRead(personId);
+    }),
+  );

@@ -6,6 +6,7 @@ import {
   fetchInbox,
   fetchReadState,
   markRead as markReadCall,
+  markSeen as markSeenCall,
   moveEscalation,
   raiseEscalation,
   withdrawEscalation,
@@ -185,6 +186,16 @@ export function useReadState() {
       void mutation.mutateAsync({ itemType, itemId }).catch(() => {}),
     markUnread: (itemType: string, itemId: string) =>
       void mutation.mutateAsync({ itemType, itemId, read: false }).catch(() => {}),
+    /** Record several things as seen at once. Seen is not done. */
+    markSeen: (items: { itemType: string; itemId: string }[]) => {
+      if (items.length === 0) return;
+      void markSeenCall({ data: { items } })
+        .then((result) => {
+          const rows = unwrap(result as never) as ReadRecord[];
+          queryClient.setQueryData(["read-state"], rows);
+        })
+        .catch(() => {});
+    },
     status: query.isError ? "error" : query.data ? "ready" : ("loading" as const),
   };
 }

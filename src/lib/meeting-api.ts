@@ -144,7 +144,10 @@ export const fetchMyTasks = createServerFn({ method: "GET" })
   .validator(() => ({}))
   .handler(() =>
     withMeetings(
-      (service, viewer): { task: MeetingTask; contextLabel: string; readable: boolean }[] =>
+      (
+        service,
+        viewer,
+      ): { task: MeetingTask; contextLabel: string; readable: boolean; byYou: boolean }[] =>
         service.myTasks(viewer),
     ),
   );
