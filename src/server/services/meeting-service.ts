@@ -49,6 +49,23 @@ export function createMeetingService(repo: MeetingRepository) {
     return note;
   }
 
+  /** The latest readable meeting of the same type held before this one. */
+  function previousInSeries(viewer: Viewer, note: MeetingNote): MeetingNote | undefined {
+    if (!note.type) return undefined;
+    return repo
+      .listNotes(
+        {
+          readableBy: viewer.person.id,
+          meetingType: note.type,
+          before: note.date,
+          excludeId: note.id,
+        },
+        1,
+        0,
+      )
+      .find((candidate) => readable(viewer, candidate));
+  }
+
   function requireWritable(viewer: Viewer, id: string): MeetingNote {
     const note = require(viewer, id);
     if (!canEdit(viewer, { kind: "meeting-note", note })) {
@@ -101,9 +118,30 @@ export function createMeetingService(repo: MeetingRepository) {
       return { notes, page: meta, facets: repo.facets({ readableBy: viewer.person.id }) };
     },
 
-    getNote(viewer: Viewer, id: string): { note: MeetingNote; tasks: MeetingTask[] } {
+    /**
+     * A note, its tasks, and the meeting before it in its series.
+     *
+     * The earlier meeting is looked for in the database, among notes this
+     * viewer may read. Finding it among whatever page of the list happened to
+     * be loaded missed it whenever it was on another page or outside a search,
+     * and "what was left open last time" is a question about the notebook, not
+     * about the screen.
+     */
+    getNote(
+      viewer: Viewer,
+      id: string,
+    ): {
+      note: MeetingNote;
+      tasks: MeetingTask[];
+      previous?: { note: MeetingNote; tasks: MeetingTask[] };
+    } {
       const note = require(viewer, id);
-      return { note, tasks: repo.tasksFor([note.id]) };
+      const previous = previousInSeries(viewer, note);
+      return {
+        note,
+        tasks: repo.tasksFor([note.id]),
+        ...(previous ? { previous: { note: previous, tasks: repo.tasksFor([previous.id]) } } : {}),
+      };
     },
 
     /** Tasks belonging to notes the viewer may read, for a list's counts. */

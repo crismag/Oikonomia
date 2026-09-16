@@ -426,3 +426,25 @@ export function planningHref(item: PlanningItem): {
   }
   return { to: "/weekly-agenda", search: { date: item.date, open: item.id } };
 }
+
+/**
+ * What ticking this item changes, in the record it came from.
+ *
+ * The week's Agenda view, its List view and the month's day panel all offer
+ * the same box. Each used to decide for itself what the box does, and the List
+ * view decided that a meeting task did nothing. Asked once, here, they cannot
+ * disagree: an agenda item toggles itself; a meeting task moves the meeting's
+ * own task between open and done.
+ */
+export type PlanningCompletion =
+  | { kind: "agenda-item"; id: string }
+  | { kind: "meeting-task"; id: string; status: "open" | "done" };
+
+export function completionFor(item: PlanningItem): PlanningCompletion | null {
+  if (!item.may.complete) return null;
+  if (item.source.type === "agenda-item") return { kind: "agenda-item", id: item.source.id };
+  if (item.source.type === "meeting-task") {
+    return { kind: "meeting-task", id: item.source.id, status: item.completed ? "open" : "done" };
+  }
+  return null;
+}

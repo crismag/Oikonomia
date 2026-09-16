@@ -31,3 +31,7 @@ Choose **Print** at the top of the note. A clean page opens with the title, date
 Below **Meeting activity** is *Does this need anything from leadership?*. It works the same as on a report: choose **Please take notice**, **I need an action** or **I need approval**, write what you need, choose who it is **Requested from**, and **Send request**. See [Ask leadership for something](topic:asks.raise).
 
 The person you ask sees it in their [Leadership Inbox](destination:inbox), and **Open context** takes them to this note. Asking does not let them read it: a personal note stays yours alone, and minutes stay readable only by you and the participants. If they need the note, write minutes with them as a participant, or put what they need in the request itself.
+
+### Asked of you
+
+If someone asked you for an **action** from a note you may read, the note shows an **Asked of you** card above the request control, with the request, who asked, when it is needed by, and **Put on my week**. See [Put an ask on your week](topic:asks.put-on-week).

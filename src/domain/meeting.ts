@@ -387,6 +387,56 @@ export function unresolvedFrom(note: MeetingNote, tasks: MeetingTask[]): Unresol
   return [...followUps, ...open];
 }
 
+/**
+ * The heading that marks where an earlier meeting's open items were brought in.
+ *
+ * Bringing items forward writes it, and the offer to bring them looks for it.
+ * The offer used to look for this heading while bringing never wrote it, so the
+ * offer stayed and a second press copied everything again.
+ */
+export const PREVIOUS_ACTIONS_HEADING = "Previous actions";
+
+const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/** Whether this note already holds what was brought from the last meeting. */
+export const hasPreviousActions = (note: Pick<MeetingNote, "blocks">): boolean =>
+  note.blocks.some(
+    (b) =>
+      (b.type === "heading-1" || b.type === "heading-2") &&
+      sameText(blockText(b), PREVIOUS_ACTIONS_HEADING),
+  );
+
+/** The items not already written somewhere in this document. */
+export function notYetBrought<T extends { text: string }>(blocks: MeetingBlock[], items: T[]): T[] {
+  const present = blocks.map(blockText);
+  return items.filter((item) => !present.some((text) => sameText(text, item.text)));
+}
+
+/**
+ * Append an earlier meeting's open items under one "Previous actions" heading.
+ *
+ * Idempotent: an item already in the document is not written again, and the
+ * heading is written once. Applied to the blocks as they are at the moment of
+ * the write, so two quick presses cannot both add the same lines.
+ */
+export function bringForwardBlocks(
+  blocks: MeetingBlock[],
+  items: { text: string; kind: "follow-up" | "task" }[],
+): MeetingBlock[] {
+  const missing = notYetBrought(blocks, items);
+  if (missing.length === 0) return blocks;
+  return [
+    ...blocks,
+    ...(hasPreviousActions({ blocks })
+      ? []
+      : [{ ...emptyBlock("heading-2"), html: PREVIOUS_ACTIONS_HEADING }]),
+    ...missing.map((item) => ({
+      ...emptyBlock(item.kind === "task" ? "checklist" : "follow-up"),
+      html: item.text,
+    })),
+  ];
+}
+
 /* ----------------------------------------------------------------- lists */
 
 export function sortNotes(notes: MeetingNote[]): MeetingNote[] {

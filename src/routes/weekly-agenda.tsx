@@ -20,6 +20,7 @@ import { PlanningList, WeekCalendar } from "@/components/oikonomia/planning-view
 import { AgendaSheet, weekOfLabel } from "@/components/oikonomia/agenda-sheet";
 import { TaskDetail } from "@/components/oikonomia/task-detail";
 import {
+  completionFor,
   filterPlanning,
   groupPlanning,
   planningForDay,
@@ -231,9 +232,15 @@ function WeeklyAgendaPage() {
     ? store.agenda.find((a) => a.id === taskDetail.value!.source.id)
     : undefined;
 
+  /* The same box as the Agenda view's and the month's, so it completes a
+     meeting task too — in the meeting, where the task lives. */
+  const { updateTask } = useMeetings();
   const toggleItem = (item: PlanningItem) => {
-    if (item.source.type !== "agenda-item") return;
-    void store.toggleAgenda(item.source.id);
+    const completion = completionFor(item);
+    if (completion?.kind === "agenda-item") void store.toggleAgenda(completion.id);
+    if (completion?.kind === "meeting-task") {
+      void updateTask(completion.id, { status: completion.status });
+    }
   };
   const notes = notesForWeek(store.agenda, anchor);
 

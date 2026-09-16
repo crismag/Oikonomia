@@ -32,7 +32,7 @@ Your own working record. It need not cover everything that happened.
 The meeting's record, for the people it concerned.
 
 - **The people added as participants can read it**, as well as the person who wrote it.
-- Only the writer can change it. A participant reads it but cannot edit it.
+- Only the writer, or whoever took it down, can change it. A participant sees it as a reading page, without anything to edit.
 
 ### Tasks from a note
 

@@ -13,6 +13,7 @@ import {
 } from "@/components/oikonomia/meeting-editor";
 import { useMeetings } from "@/components/oikonomia/meeting-provider";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
+import { AskedOfYou } from "@/components/oikonomia/put-on-week";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { Pagination } from "@/components/oikonomia/pagination";
 import { PersonName } from "@/components/oikonomia/person";
@@ -22,13 +23,14 @@ import { useOrganization } from "@/components/oikonomia/organization-provider";
 import {
   addTag,
   blockText,
+  hasPreviousActions,
   meetingActivity,
   meetingTypeLabel,
   meetingTypes,
   ministryContextId,
   noteTypeHint,
   noteTypeLabel,
-  previousInSeries,
+  notYetBrought,
   readership,
   removeTag,
   setContext,
@@ -38,6 +40,7 @@ import {
 } from "@/domain/meeting";
 import { PAGE_SIZE, windowFromMeta } from "@/domain/pagination";
 import { fromISO } from "@/domain/schedule";
+import { mayChangeNote, mayCompleteTask, readOnlyReason } from "@/domain/meeting-access";
 import { meetingTaskWeek } from "@/domain/planning";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
@@ -115,7 +118,8 @@ function MeetingNotesPage() {
   const { note: noteId, print } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const store = useMeetings();
-  const { person } = useViewer();
+  const viewer = useViewer();
+  const { person } = viewer;
 
   /*
    * The provider fetches whichever note the URL names, so arriving on
@@ -140,7 +144,15 @@ function MeetingNotesPage() {
   }
 
   if (selected && print) return <PrintView note={selected} />;
-  if (selected) return <Editor note={selected} />;
+  /* Offering fields the server will refuse is a page that lies until the
+     leader types; somebody who may only read the note is given a reading page. */
+  if (selected) {
+    return mayChangeNote(viewer, selected) ? (
+      <Editor note={selected} />
+    ) : (
+      <NoteReader note={selected} />
+    );
+  }
 
   /* Opening a note keeps the list's reading state, so closing it comes back here. */
   return (
@@ -657,9 +669,13 @@ function Editor({ note }: { note: MeetingNote }) {
   const focused = note.blocks.find((b) => b.id === focusedId);
   const activity = meetingActivity(note, store.tasks);
   const myTasks = tasksFor(store.tasks, note.id);
-  const previous = previousInSeries(store.notes, note);
-  const unresolved = previous ? unresolvedFrom(previous, store.tasks) : [];
-  const alreadyCarried = note.blocks.some((b) => blockText(b) === "Previous actions");
+  /* The earlier meeting comes from the server, among notes this leader may
+     read; the items offered are only those not already in this note. */
+  const previous = store.previous?.note;
+  const unresolved = store.previous
+    ? notYetBrought(note.blocks, unresolvedFrom(store.previous.note, store.previous.tasks))
+    : [];
+  const alreadyCarried = hasPreviousActions(note);
 
   /* The line a task was just made from. When that task arrives, its date is
      the next thing to fill in — the date is what puts it on a week. */
@@ -900,7 +916,147 @@ function Editor({ note }: { note: MeetingNote }) {
        * read this, and nobody has to sign it off. Where the meeting produced
        * something that needs a leader outside the room, it is asked for here.
        */}
-      <div className="mt-4">
+      <div className="mt-4 space-y-3">
+        <AskedOfYou sourceType="meeting-note" sourceId={note.id} />
+        <EscalationControl
+          sourceType="meeting-note"
+          sourceId={note.id}
+          contextLabel={note.title || "Meeting note"}
+        />
+      </div>
+    </Page>
+  );
+}
+
+/* ---------------------------------------------------------------- reader */
+
+/**
+ * A note this viewer may read and not change — minutes, read by somebody who
+ * was at the meeting.
+ *
+ * Nothing on it edits, because the server would refuse the edit. What a reader
+ * may still do is here: print it, tick a task that was given to them, and ask
+ * a leader for something the meeting needs (anyone may ask).
+ */
+function NoteReader({ note }: { note: MeetingNote }) {
+  const { ministries } = useOrganization();
+  const store = useMeetings();
+  const viewer = useViewer();
+  const activity = meetingActivity(note, store.tasks);
+  const own = tasksFor(store.tasks, note.id);
+  const ministryId = ministryContextId(note);
+  const related = ministries.find((m) => m.id === ministryId)?.name ?? note.relatedText;
+
+  return (
+    <Page width="regular">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <Link
+          to="/meeting-notes"
+          className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Meeting Notes
+        </Link>
+        <Link
+          to="/meeting-notes"
+          search={{ note: note.id, print: true }}
+          className={buttonVariants({ variant: "secondary" })}
+        >
+          <Printer className="size-3.5" aria-hidden />
+          Print
+        </Link>
+      </div>
+
+      <header className="mb-3">
+        <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
+          {noteTypeLabel[note.noteType]}
+          {note.status === "draft" ? " · Draft" : ""}
+        </p>
+        <h1 className="mt-0.5 font-display text-[26px] leading-tight">
+          {note.title || "Untitled meeting"}
+        </h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          {format(fromISO(note.date), "EEEE d MMMM yyyy")}
+          {note.time ? ` · ${note.time}` : ""}
+          {note.type ? ` · ${meetingTypeLabel[note.type]}` : ""}
+          {related ? ` · ${related}` : ""}
+        </p>
+        {note.participantIds.length > 0 ? (
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Present:{" "}
+            {note.participantIds.map((id, i) => (
+              <span key={id}>
+                {i > 0 ? ", " : ""}
+                <PersonName personId={id} />
+              </span>
+            ))}
+          </p>
+        ) : null}
+        {note.tags.length > 0 ? (
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            {note.tags.map((t) => `#${t}`).join(" ")}
+          </p>
+        ) : null}
+        <p className="mt-2 rounded-md border border-border bg-surface-muted px-3 py-2 text-[13px] text-muted-foreground">
+          {readOnlyReason}
+        </p>
+      </header>
+
+      <MeetingDocument blocks={note.blocks} readOnly />
+
+      <section data-print="hide" className="mt-8 border-t border-border pt-4">
+        <h2 className="text-[13px] font-medium text-muted-foreground">Meeting activity</h2>
+        <p className="mt-1 text-[13px]">
+          {activity.tasks} {activity.tasks === 1 ? "task" : "tasks"} · {activity.decisions}{" "}
+          {activity.decisions === 1 ? "decision" : "decisions"} · {activity.followUps}{" "}
+          {activity.followUps === 1 ? "follow-up" : "follow-ups"}
+        </p>
+
+        {own.length > 0 ? (
+          <ul className="mt-3 divide-y divide-border rounded-md border border-border">
+            {own.map((task) => {
+              const done = task.status === "done";
+              return (
+                <li
+                  key={task.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2"
+                >
+                  {/* A task given to this reader is theirs to tick; the rest
+                      only show where they stand. */}
+                  <input
+                    type="checkbox"
+                    checked={done}
+                    disabled={!mayCompleteTask(viewer, note, task)}
+                    onChange={() => store.updateTask(task.id, { status: done ? "open" : "done" })}
+                    aria-label={task.title}
+                    className="size-4 shrink-0 accent-[var(--color-primary)]"
+                  />
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 text-[13px]",
+                      done && "text-muted-foreground line-through",
+                    )}
+                  >
+                    {task.title}
+                  </span>
+                  <span className="shrink-0 text-[12px] text-muted-foreground">
+                    {task.assigneeId ? <PersonName personId={task.assigneeId} /> : "Unassigned"}
+                    {task.dueDate ? ` · due ${format(fromISO(task.dueDate), "d MMM")}` : ""}
+                  </span>
+                  {/* Only the link to their own week: what a task still lacks
+                      is for whoever keeps the note to fill in. */}
+                  {meetingTaskWeek(task, viewer.person.id).state === "on-your-week" ? (
+                    <TaskWeek task={task} viewerId={viewer.person.id} />
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </section>
+
+      <div className="mt-4 space-y-3">
+        <AskedOfYou sourceType="meeting-note" sourceId={note.id} />
         <EscalationControl
           sourceType="meeting-note"
           sourceId={note.id}
