@@ -24,7 +24,7 @@ destinations: [leadership-journal]
 4. Write below. Press Enter for a new line; use the toolbar to turn the line you are on into a heading, bullet or numbered list, checklist or quote, or to add a divider.
 5. Watch the corner: **Saving…**, then **Saved**.
 
-Choose **Leadership** at the top to go back to your list. The entry is under **My development**.
+Choose **Leadership Journal** at the top to go back to your list. The entry is under **My development**.
 
 ### Worth knowing
 

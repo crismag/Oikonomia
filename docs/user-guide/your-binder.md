@@ -117,6 +117,11 @@ it once you share it, by moving it to **Shared** (still open to your changes)
 or **Published** (the submitted record). Sharing is always your move: nobody
 else shares your report, and nothing shares it for you.
 
+While a report is a Draft or Shared, its author can **Delete report** — it asks
+first, because there is no undo and no trash. A Published report is the
+submitted record: leadership may have read it, so it cannot be deleted. Archive
+it when it is no longer current.
+
 Tick **Confidential** beside _Who can read this_ when a report must be handled
 that way. It is your mark and nobody else's, and it does not change who may
 read the report. Anyone else who may read it sees it listed as Confidential

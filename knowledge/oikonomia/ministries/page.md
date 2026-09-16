@@ -37,6 +37,6 @@ The header names the campus, who leads it and how many are on the team, and — 
 
 People who lead or serve in the ministry see **New**. Under **Create in the binder**: **Goals**, **Meeting Note** and **Form** open those pages, and **Plan**, **Report**, **Announcement** and **Checklist** start a document the ministry keeps and open it for writing.
 
-Only the lead also sees **Add existing material**: [Add link and Add from Drive](topic:ministries.add-link). **Upload file** is marked Soon — Oikonomia does not store files.
+Only the lead also sees **Add existing material**: [Add link and Add from Drive](topic:ministries.add-link). There is no upload — Oikonomia does not store files.
 
 What you can do depends on your place in the ministry. See [Your relationship to a ministry](topic:ministries.relationship).

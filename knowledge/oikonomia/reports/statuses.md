@@ -13,7 +13,7 @@ aliases:
   - can I edit a report after publishing
 capabilities: []
 hideWhen: []
-related: [reports.report-page, reports.create, reports.visibility]
+related: [reports.report-page, reports.create, reports.visibility, reports.delete]
 destinations: [leadership-reports]
 ---
 
@@ -35,5 +35,9 @@ Moving to Published or Archived keeps a copy of the content as it stood and stam
 The author can move a Published report back to Draft or Shared to correct it. The copy made when it was published is kept, so a correction never quietly replaces what leadership read.
 
 An Archived report is not reopened from the report page.
+
+### Deleting
+
+The author can delete a report while it is Draft or Shared. A Published or Archived report is the submitted record and cannot be deleted — archive it when it is no longer current. See [Delete a leadership report](topic:reports.delete).
 
 > A stage is not a review. Nobody approves a report. It goes to the people _Who can read this_ names, as information. Moving between stages does not change who is named — but the people named read it only once it leaves Draft.

@@ -179,7 +179,7 @@ function EntryPage() {
         className="mb-3 inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
       >
         <ChevronLeft className="size-3.5" aria-hidden />
-        Leadership
+        Leadership Journal
       </Link>
 
       <header className="mb-3">

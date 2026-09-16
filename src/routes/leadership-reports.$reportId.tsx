@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   Pencil,
   Printer,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import { Combobox, type Suggestion } from "@/components/oikonomia/combobox";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { useOpenedReport, useReports } from "@/components/oikonomia/report-provider";
 import { GuideHint } from "@/features/guide";
+import { useConfirm } from "@/config/messages/handlers";
 import { StatusTag } from "@/components/oikonomia/report-status";
 import {
   followUpOnWeek,
@@ -50,6 +52,7 @@ import {
   discussionPolicyLabel,
   hasTemplate,
   isRestricted,
+  mayRemoveReport,
   namedAudience,
   relatedKindFor,
   reportContextLabel,
@@ -277,6 +280,61 @@ function BackLink() {
   );
 }
 
+/**
+ * Delete a report that is still being worked on.
+ *
+ * Offered only where the server allows it — the author, while the content is
+ * editable. There is no undo and no trash, so it always asks first. Once the
+ * report is the submitted record it is archived instead, and this is not shown.
+ */
+function DeleteReport({ report }: { report: LeadershipReport }) {
+  const { person } = useViewer();
+  const store = useReports();
+  const confirm = useConfirm();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  if (!mayRemoveReport(report, person.id)) return null;
+
+  const remove = async () => {
+    const named = report.title.trim();
+    const agreed = await confirm(
+      named ? "reports.delete.confirm" : "reports.delete.confirm.untitled",
+      named ? { title: named } : undefined,
+    );
+    if (!agreed) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await store.removeReport(report.id);
+      void navigate({ to: "/leadership-reports", search: {} });
+    } catch (cause) {
+      setDeleting(false);
+      setError(errorMessage(cause));
+    }
+  };
+
+  return (
+    <span className="inline-flex flex-col items-start gap-1">
+      <button
+        type="button"
+        onClick={() => void remove()}
+        disabled={deleting}
+        className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-status-overdue disabled:opacity-60"
+      >
+        <Trash2 className="size-3.5" aria-hidden />
+        {deleting ? "Deleting…" : "Delete report"}
+      </button>
+      {error ? (
+        <span role="alert" className="text-[12px] text-status-overdue">
+          {error}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 /* ----------------------------------------------------------------- header */
 
 /**
@@ -398,6 +456,12 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
         </div>
       </div>
 
+      {mayRemoveReport(report, person.id) ? (
+        <div className="mt-2">
+          <DeleteReport report={report} />
+        </div>
+      ) : null}
+
       {showAccess ? <AccessPanel report={report} can={can} /> : null}
 
       {!statusBehavior(report.status).editable ? (
@@ -407,6 +471,12 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
             ? ` ${format(fromISO(report.publishedAt.slice(0, 10)), "d MMMM")}`
             : ""}
           . The report content is the submitted record; discussion continues below.
+          {/* Said to the author, who is the one who would look for Delete. */}
+          {report.authorId === person.id
+            ? can.archive
+              ? " It cannot be deleted — archive it when it is no longer current."
+              : " It cannot be deleted."
+            : ""}
         </p>
       ) : null}
     </header>
@@ -1008,7 +1078,10 @@ function Editor({ report }: { report: LeadershipReport }) {
             {config.label("reports.statuses", report.status)} · saved as you type. Moving it on
             makes the content the submitted record.
           </p>
-          <StatusActions report={report} can={can} onMoved={done} />
+          <div className="flex flex-wrap items-center gap-3">
+            <DeleteReport report={report} />
+            <StatusActions report={report} can={can} onMoved={done} />
+          </div>
         </div>
       ) : null}
     </Page>

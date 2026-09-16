@@ -15,7 +15,6 @@ import {
   Paperclip,
   Plus,
   Target,
-  Upload,
 } from "lucide-react";
 
 import { EmptyState } from "@/components/oikonomia/empty-state";
@@ -677,16 +676,13 @@ type NewItem = {
 /**
  * What a leader can add to the ministry.
  *
- * Everything the ministry will eventually hold is listed, because the menu is
- * the honest shape of the product. What is not built yet is marked "Soon" and
- * genuinely disabled, so nothing here looks operational that is not.
+ * Only what works is listed: a control that looks operational must be.
  *
  * Plan, Report, Announcement and Checklist create a document the binder keeps
  * and open it for writing. "Add link" and "Add from Drive" register a document
  * that lives elsewhere, filed under this ministry — the binder records where it
- * is, and nothing is copied. "Upload file" stays marked Soon: the binder does
- * not store files, and a control that looked as if it did would be a promise
- * it cannot keep.
+ * is, and nothing is copied. There is no upload: the binder does not store
+ * files, and a control that suggested it did would be a promise it cannot keep.
  */
 function NewMenu({
   ministryId,
@@ -734,8 +730,7 @@ function NewMenu({
     { label: "Checklist", icon: FileText, kind: "Checklist" },
   ];
 
-  const existing: (NewItem & { register?: "link" | "drive" })[] = [
-    { label: "Upload file", icon: Upload },
+  const existing: { label: string; icon: typeof FileText; register: "link" | "drive" }[] = [
     { label: "Add from Drive", icon: Cloud, register: "drive" },
     { label: "Add link", icon: Link2, register: "link" },
   ];
@@ -751,20 +746,22 @@ function NewMenu({
           Create in the binder
         </p>
         <ul>
-          {binderNative.map((item) => (
-            <li key={item.label}>
-              <MenuItem
-                item={item}
-                busy={busy}
-                /* Writing a ministry's material is for the people who work in
+          {binderNative
+            .filter((item) => !item.kind || contribute)
+            .map((item) => (
+              <li key={item.label}>
+                <MenuItem
+                  item={item}
+                  busy={busy}
+                  /* Writing a ministry's material is for the people who work in
                    it. Someone it is merely shared with is not shown a control
                    that would refuse them. */
-                mayCreate={contribute}
-                onNavigate={() => setOpen(false)}
-                onCreate={start}
-              />
-            </li>
-          ))}
+                  mayCreate={contribute}
+                  onNavigate={() => setOpen(false)}
+                  onCreate={start}
+                />
+              </li>
+            ))}
         </ul>
 
         {failure ? (
@@ -782,21 +779,17 @@ function NewMenu({
             <ul>
               {existing.map((item) => (
                 <li key={item.label}>
-                  {item.register ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        setRegistering(item.register!);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-muted"
-                    >
-                      <item.icon className="size-3.5 shrink-0" aria-hidden />
-                      <span className="flex-1 truncate">{item.label}</span>
-                    </button>
-                  ) : (
-                    <MenuItem item={item} onNavigate={() => setOpen(false)} />
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      setRegistering(item.register);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-muted"
+                  >
+                    <item.icon className="size-3.5 shrink-0" aria-hidden />
+                    <span className="flex-1 truncate">{item.label}</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -876,16 +869,7 @@ function MenuItem({
     );
   }
 
-  return (
-    <button
-      type="button"
-      disabled
-      className="flex w-full cursor-not-allowed items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-disabled"
-    >
-      {inner}
-      <span className="shrink-0 rounded border border-border px-1 py-px text-[10px] uppercase tracking-wide text-disabled">
-        Soon
-      </span>
-    </button>
-  );
+  /* Something this viewer may not create here is not shown at all, rather
+     than shown disabled as if it were coming. */
+  return null;
 }
