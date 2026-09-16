@@ -7,6 +7,7 @@ import {
   formatTargetShort,
   goalCounts,
   goalYears,
+  goalsByWhose,
   goalsForYear,
   latestUpdate,
   needsAttention,
@@ -238,5 +239,64 @@ describe("access", () => {
 
   it("opens it to the reviewer it was shared with", () => {
     expect(level("bishop", confidential)).toBe("full");
+  });
+});
+
+/**
+ * A leader's goals are theirs. On the page where reports arrive they must stay
+ * grouped by whose they are, never pooled into one list of everybody's goals.
+ */
+describe("goalsByWhose", () => {
+  const people = [
+    { id: "me" },
+    { id: "ana", reportsToId: "me" },
+    { id: "ben", reportsToId: "me" },
+    { id: "cy", reportsToId: "someone-else" },
+  ];
+  const ministries = [
+    { id: "m-mine", leadId: "me", teamIds: [] },
+    { id: "m-ana", leadId: "ana", teamIds: [] },
+    { id: "m-other", leadId: "cy", teamIds: [] },
+  ];
+  const goals = [
+    goal({ id: "ana-1", ownerId: "ana" }),
+    goal({ id: "ana-2", ownerId: "ana", number: 2 }),
+    goal({ id: "cy-1", ownerId: "cy" }),
+    goal({ id: "mine-min", ministryId: "m-mine" }),
+    goal({ id: "ana-min", ministryId: "m-ana", ownerId: "ana", number: 3 }),
+    goal({ id: "ana-ministry-own", ministryId: "m-ana", number: 4 }),
+    goal({ id: "other-min", ministryId: "m-other" }),
+    goal({ id: "church", number: 9 }),
+    goal({ id: "old", ownerId: "ana", year: 2025 }),
+  ];
+  const grouped = goalsByWhose(goals, { year: 2026, viewerId: "me", people, ministries });
+
+  it("keeps every goal a report owns under that person, and omits people with none", () => {
+    expect(grouped.people.map((g) => [g.personId, g.goals.map((x) => x.id)])).toEqual([
+      ["ana", ["ana-1", "ana-2", "ana-min"]],
+    ]);
+  });
+
+  it("does not list goals of people who report to somebody else", () => {
+    expect(grouped.people.flatMap((g) => g.goals).map((g) => g.id)).not.toContain("cy-1");
+  });
+
+  it("puts only a ministry's own, unowned goals under the ministry", () => {
+    expect(grouped.ministries.map((m) => [m.ministryId, m.goals.map((g) => g.id)])).toEqual([
+      ["m-mine", ["mine-min"]],
+      ["m-ana", ["ana-ministry-own"]],
+    ]);
+  });
+
+  /* The data this came from: a leader's personal goals filed under the
+     ministry they serve. Pooled by ministry they became one incoherent list. */
+  it("never pools different leaders' goals under the ministry they relate to", () => {
+    const owners = grouped.ministries.flatMap((m) => m.goals).map((g) => g.ownerId);
+    expect(owners.every((owner) => owner === undefined)).toBe(true);
+  });
+
+  it("keeps shared goals apart, and only this year's", () => {
+    expect(grouped.shared.map((g) => g.id)).toEqual(["church"]);
+    expect(JSON.stringify(grouped)).not.toContain('"old"');
   });
 });
