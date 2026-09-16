@@ -76,7 +76,12 @@ function ReachOutPage() {
 
   return (
     <Page>
-      <PageHeader title="Reach-Out" description="Reports, and the materials that go with them." />
+      {/* The word is the church's, not a common one, so the page says what it
+          holds. "Any leader" is the module's rule: authorship is provenance. */}
+      <PageHeader
+        title="Reach-Out"
+        description="What happened when leaders reached out, written down so any leader can pick it up and continue."
+      />
 
       <nav aria-label="Reach-Out views" className="mb-4 flex gap-1 border-b border-border">
         {(

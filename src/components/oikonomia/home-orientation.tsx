@@ -48,6 +48,11 @@ export function HomeOrientation() {
             of you. Open anything here to continue it where it lives — nothing is edited on this
             page.
           </p>
+          <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
+            <span className="text-foreground">My Binder</span>, in the sidebar, is your own work. If
+            you lead others, <span className="text-foreground">Leadership</span> is where you see
+            how they are doing.
+          </p>
           <p className="mt-2 text-[13px] text-muted-foreground">
             The longer walkthrough is in the account menu, under{" "}
             <Link
