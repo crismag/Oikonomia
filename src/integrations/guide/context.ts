@@ -202,7 +202,13 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/documents/$",
     module: "documents",
     page: "document",
-    topics: ["documents.document-page", "documents.register", "ministries.find-documents"],
+    topics: [
+      "documents.registered-document",
+      "documents.edit-unfile",
+      "documents.document-page",
+      "documents.register",
+      "ministries.find-documents",
+    ],
     entityType: "document",
   },
   {

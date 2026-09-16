@@ -156,8 +156,9 @@ export function globalSearch(
       id: resource.id,
       label: resource.title,
       ...(resource.associations[0]?.label ? { detail: resource.associations[0].label } : {}),
-      to: "/resource-search",
-      search: { q: resource.title },
+      /* Straight to the document's own page, which opens onward to wherever
+         it is kept. */
+      to: `/documents/${encodeURIComponent(resource.id)}`,
     });
   }
 

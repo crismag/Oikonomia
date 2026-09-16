@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { contextPath, sectionLabel } from "@/domain/resources";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import type { BinderSection, ResourceSearchResult, ResourceSort } from "@/domain/types";
 import { formatDayMonthShort } from "@/domain/dates";
 
@@ -341,7 +342,9 @@ function ResultRow({ resource, query }: { resource: ResourceSearchResult; query:
             headings make a screen reader's outline useless; the list
             structure already provides the navigation. */}
         <p className="min-w-0 flex-1 text-[15px] font-medium">
-          <Highlight text={resource.title} query={query} />
+          <Link {...documentHref(resource.id)} className="underline-offset-2 hover:underline">
+            <Highlight text={resource.title} query={query} />
+          </Link>
         </p>
         <Open resource={resource} />
       </div>
@@ -405,10 +408,11 @@ function ResultRow({ resource, query }: { resource: ResourceSearchResult; query:
 function Open({ resource }: { resource: ResourceSearchResult }) {
   const className =
     "inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-[13px] transition-colors hover:bg-muted";
+  const url = openableUrl(resource.openUrl);
 
-  if (resource.openUrl) {
+  if (url) {
     return (
-      <a href={resource.openUrl} target="_blank" rel="noreferrer" className={className}>
+      <a href={url} target="_blank" rel="noopener noreferrer" className={className}>
         Open
         <ExternalLink className="size-3.5" aria-hidden />
         <span className="sr-only">{resource.title}, opens in a new tab</span>
@@ -416,15 +420,12 @@ function Open({ resource }: { resource: ResourceSearchResult }) {
     );
   }
 
-  if (resource.openRoute) {
-    return (
-      <Link to={resource.openRoute} className={className}>
-        Open<span className="sr-only"> {resource.title}</span>
-      </Link>
-    );
-  }
-
-  return null;
+  /* Kept in the binder: its own page is where it opens. */
+  return (
+    <Link {...documentHref(resource.id)} className={className}>
+      Open<span className="sr-only"> {resource.title}</span>
+    </Link>
+  );
 }
 
 /** Highlights only what search actually matched — never invented snippets. */

@@ -14,7 +14,7 @@ aliases:
   - why does a document say there is nothing here to open
 capabilities: []
 hideWhen: []
-related: [ministries.page, documents.page, documents.register]
+related: [ministries.page, documents.page, documents.register, documents.registered-document]
 destinations: [ministries, documents]
 ---
 
@@ -38,6 +38,10 @@ If the page says _Writing here is for the people who work in this ministry_, you
 
 Writers see **Delete document** at the bottom. Oikonomia asks first, then returns you to the ministry.
 
+### Registered documents
+
+A **registered** document lives somewhere else, such as Google Drive. Its page shows the binder's record of it and **Open**, rather than a place to write; see [A registered document's page](topic:documents.registered-document).
+
 ### Nothing here to open
 
-A **registered** document lives somewhere else, such as Google Drive, so it has no page in the binder. Open it from Documents & Forms or the ministry's **Documents** view, which link to where it is kept.
+The document is no longer in the binder, or it is not one you may see.

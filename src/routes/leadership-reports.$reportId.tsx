@@ -40,6 +40,7 @@ import {
 } from "@/domain/leadership-report";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { cn } from "@/lib/utils";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
 import { fetchConfidentialReads } from "@/lib/reports-api";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
@@ -566,15 +567,25 @@ function ReportBody({ report }: { report: LeadershipReport }) {
             {[document.kind, document.provider].filter(Boolean).join(" · ")}
           </p>
         ) : null}
-        {document?.openUrl ? (
-          <a
-            href={document.openUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[13px] transition-colors hover:bg-muted"
-          >
-            Open the document
-          </a>
+        {document ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {openableUrl(document.openUrl) ? (
+              <a
+                href={openableUrl(document.openUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[13px] transition-colors hover:bg-muted"
+              >
+                Open the document
+              </a>
+            ) : null}
+            <Link
+              {...documentHref(document.id)}
+              className="text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Its record in the binder
+            </Link>
+          </div>
         ) : null}
         <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
           The content of this report is kept in a document. The binder holds the report itself — who
@@ -813,34 +824,34 @@ function Documents({ report }: { report: LeadershipReport }) {
   return (
     <ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
       {rows.map(({ document, role }) => {
-        const openable = !!document.openUrl;
-        const body = (
-          <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14px]">{document.title}</span>
-              <span className="block truncate text-[12px] text-muted-foreground">
-                {[role, document.kind, document.provider].filter(Boolean).join(" · ")}
-              </span>
-            </span>
-          </>
-        );
+        const url = openableUrl(document.openUrl);
         return (
           <li
             key={document.id}
-            className={cn("border-b border-border last:border-b-0", openable && "row-quiet")}
+            className="row-quiet flex items-start border-b border-border last:border-b-0"
           >
-            {openable ? (
+            <Link
+              {...documentHref(document.id)}
+              className="flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-4 pr-2"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px]">{document.title}</span>
+                <span className="block truncate text-[12px] text-muted-foreground">
+                  {[role, document.kind, document.provider].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+            </Link>
+            {url ? (
               <a
-                href={document.openUrl}
+                href={url}
                 target="_blank"
-                rel="noreferrer"
-                className="flex items-start gap-3 px-4 py-2.5"
+                rel="noopener noreferrer"
+                className="mt-2.5 mr-4 shrink-0 text-[13px] text-primary"
               >
-                {body}
+                Open
+                <span className="sr-only"> {document.title}, opens in a new tab</span>
               </a>
-            ) : (
-              <div className="flex items-start gap-3 px-4 py-2.5">{body}</div>
-            )}
+            ) : null}
           </li>
         );
       })}

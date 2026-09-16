@@ -247,11 +247,21 @@ material. Two different things live here:
 
 - **Register a document** — the binder records what it is and where it lives.
   The document itself stays where it is; nothing is copied in, and whoever
-  keeps it still decides who may open it. Opening it takes you there. Where
+  keeps it still decides who may open it. **Open** takes you there. Where
   Google Drive is connected, a Drive document also shows its owner and when it
   last changed, and uploading or choosing Drive files happens from a
   ministry's **New → Add from Drive**.
 - **Create a form** — built in Oikonomia, with sections and fields.
+
+Choosing a registered document's name — on a ministry's **Documents** view,
+here, or in Resource Search — opens its page in the binder: what it is, where
+it lives, the ministries and records it is filed under (only those you may
+see), who registered it and when, and **Open**. People who work in the
+ministry it is filed in (or whoever registered it, when it is filed in no
+ministry) also see **Edit details** — title, kind, web address, description —
+and **Unfile from** each place. Both change the binder's record only: unfiling
+asks first, and never deletes the document in Google Drive or wherever it is
+kept.
 
 A filled-in form keeps its own copy of the form as it was, so changing the
 design never rewrites a completed checklist. Deleting a form nobody has used

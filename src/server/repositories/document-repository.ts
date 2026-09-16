@@ -274,14 +274,27 @@ export function createDocumentRepository(db: Db) {
       return this.findUnguarded(id)!;
     },
 
-    update(id: string, patch: DocumentPatch): RegisteredDocument | undefined {
+    /**
+     * Change a record's metadata.
+     *
+     * `moved` is for a new address: where the document lives is read off it
+     * again, and a Drive file recorded for the old address is forgotten rather
+     * than left describing a different document.
+     */
+    update(
+      id: string,
+      patch: DocumentPatch,
+      moved?: { origin: RegisteredDocument["origin"] },
+    ): RegisteredDocument | undefined {
       const current = this.findUnguarded(id);
       if (!current) return undefined;
 
       db.prepare(
         `UPDATE document
             SET title = @title, description = @description, kind = @kind,
-                url = @url, tags = @tags, updated_at = @updated_at
+                url = @url, tags = @tags, origin = @origin,
+                drive_file_id = @drive_file_id, drive_mime_type = @drive_mime_type,
+                updated_at = @updated_at
           WHERE id = @id`,
       ).run({
         id,
@@ -290,9 +303,19 @@ export function createDocumentRepository(db: Db) {
         kind: patch.kind ?? current.kind,
         url: (patch.url ?? current.url) || null,
         tags: pack(patch.tags ?? current.tags),
+        origin: moved?.origin ?? current.origin,
+        drive_file_id: moved ? null : (current.driveFileId ?? null),
+        drive_mime_type: moved ? null : (current.driveMimeType ?? null),
         updated_at: nowIso(),
       });
       return this.findUnguarded(id);
+    },
+
+    /** Whether this person may read a meeting note — the same rule the gate uses. */
+    noteReadable(noteId: string, personId: string): boolean {
+      return !!db
+        .prepare(`SELECT 1 FROM meeting_note n WHERE n.id = ? AND ${noteReadableSql("n")}`)
+        .get(noteId, ...noteReadableParams(personId));
     },
 
     /**

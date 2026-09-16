@@ -131,6 +131,15 @@ export const messages = {
     confirmLabel: "Delete the document",
     cancelLabel: "Keep it",
   },
+  /* Unfiling forgets one place, never the document. People reasonably fear
+     "remove" means their Drive file goes too, so the dialog says it does not. */
+  "documents.unfile.confirm": {
+    title: "Unfile “{title}” from {place}?",
+    body: "It will no longer be listed there. Nothing is deleted: the document stays wherever it is kept — in Google Drive or at its link — and stays filed anywhere else it is filed.",
+    severity: "warning",
+    confirmLabel: "Unfile it",
+    cancelLabel: "Keep it here",
+  },
   "journal.delete.confirm": {
     title: "Delete this journal entry?",
     body: "What you wrote here goes with it. This cannot be undone.",
