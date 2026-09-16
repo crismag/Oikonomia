@@ -26,6 +26,7 @@ A gathering is named by its venue — the home or room where it meets. When ther
 - **Set the venue** — someone leads it, but where it meets is not set. If it is yours, [set the venue](topic:lifegroup.venue).
 - **Venue not set** — the same gap, as the gathering's own page, the phone schedule and Attendance show it.
 - **Leader needed** — in the schedule's **Leading** column, nobody has taken it.
+- **Needs a leader** — on Home, beside a gathering nobody leads yet. Home lists these after the gatherings you lead.
 
 Being unclaimed is a normal state for a row on a shared schedule, not an error.
 

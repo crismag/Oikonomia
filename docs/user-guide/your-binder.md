@@ -16,6 +16,10 @@ Open anything on Home to continue it where it lives. A week item opens that
 item; an ask opens the report or gathering it came from. Home does not keep a
 second copy.
 
+The **LifeGroup** card lists the gatherings you lead from the start of the
+week, then any still marked **Needs a leader**. Other leaders' gatherings are
+on the LifeGroup schedule, not on your Home.
+
 When something needs you, the primary button continues it. **Add to the week**
 is always there, and is the main action when the week is quiet.
 
@@ -102,7 +106,12 @@ report the second is told rather than silently overwriting the first.
 
 A report you have not written anything in yet offers **Discard** rather than
 Delete — it was created by pressing Add and has nothing in it to lose. Once it
-has content, deleting asks first, because there is no undo and no trash.
+has content, deleting asks first, because there is no undo and no trash. Only
+the leader who started a report sees either: anyone may add to a report, but
+nobody removes somebody else's account of what happened.
+
+Home and My Progress ask for **this week's Reach-Out report** — one you started
+or added to. Another leader's report dated this week does not count as yours.
 
 ## Leadership Reports
 

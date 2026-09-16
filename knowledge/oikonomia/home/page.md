@@ -36,7 +36,7 @@ The header greets you, gives the date and says how many things need you — or t
 - **Asked of you** — shown only when another leader has asked something of you. Rows open the report or record the ask came from.
 - **This week** — what is still ahead on your week. Each row opens that item.
 - **What you are carrying** — work in hand or not yet started this cycle.
-- **LifeGroup** — a few gatherings from the start of this week on, including any you could claim.
+- **LifeGroup** — gatherings you lead from the start of this week on, then any that still **Needs a leader**. Other leaders' gatherings are on the schedule, not here.
 - **Your reports** — your open Leadership Reports.
 - **Shared with others** — ministries you lead or serve in.
 

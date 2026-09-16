@@ -75,6 +75,21 @@ export function canContribute(_report: ReachOutReport, _personId: string): boole
 }
 
 /**
+ * Whether this leader may delete the report.
+ *
+ * Only whoever started it. Shared work means anyone may *add* to a report; it
+ * does not mean anyone may remove somebody else's account of what happened.
+ * The service enforces this and the page asks the same question, so Delete is
+ * never offered to someone the server would refuse.
+ */
+export function canDeleteReport(
+  report: Pick<ReachOutReport, "authorId">,
+  personId: string,
+): boolean {
+  return report.authorId === personId;
+}
+
+/**
  * Everyone who has worked on the report, the first author first.
  *
  * Shown so a reader knows whose account this is, without implying that any of

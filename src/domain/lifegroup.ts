@@ -141,6 +141,34 @@ export function otherScheduled(
   );
 }
 
+/**
+ * Home's LifeGroup card: this leader's gatherings, then any still needing one.
+ *
+ * Home is personal, so another leader's gathering does not belong here —
+ * listing it beside this leader's own reads as theirs to do. Gatherings led
+ * earlier this week stay (one led last night may still need writing up).
+ * Unclaimed rows follow only where there is room, from today on, and
+ * `needsLeader` lets the card say plainly that nobody has taken them.
+ */
+export function homeGatherings(
+  gatherings: Gathering[],
+  personId: string,
+  weekStart: string,
+  today: string,
+  limit = 3,
+): { gathering: Gathering; needsLeader: boolean }[] {
+  const mine = byDateAscending(
+    gatherings.filter(
+      (g) => leadsGathering(g, personId) && g.date >= weekStart && g.status !== "cancelled",
+    ),
+  ).map((gathering) => ({ gathering, needsLeader: false }));
+  const open = needingLeaders(gatherings, today).map((gathering) => ({
+    gathering,
+    needsLeader: true,
+  }));
+  return [...mine, ...open].slice(0, limit);
+}
+
 export function upcoming(gatherings: Gathering[], today: string): Gathering[] {
   return byDateAscending(gatherings.filter((g) => g.date >= today && g.status !== "cancelled"));
 }

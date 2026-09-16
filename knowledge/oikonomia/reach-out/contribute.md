@@ -26,7 +26,7 @@ Reach-Out is shared work. One leader may lead an effort, another write it up, an
 - **Reported by** names the leader who started the report. That is where it came from, not who owns it.
 - **with** names every other leader who has saved a change to it, in the order they first did. The list shows *with 2 other leaders*.
 
-Only the leader who started a report can delete it.
+Only the leader who started a report can delete it. Everyone else sees no delete button in the editor.
 
 ### Adding to a report
 

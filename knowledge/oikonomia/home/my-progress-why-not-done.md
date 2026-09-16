@@ -25,7 +25,7 @@ A status on My Progress is worked out from your records; there is no button to s
 
 - **Plan the week** (Weekly Agenda) — something scheduled this week, **and** something you mean to do written down as a task on your week. Due on the second day of the week.
 - **Report the gathering you led** (LifeGroup) — who came recorded, the exhortation recorded, **and** the gathering report completed. Attendance alone leaves it in progress. Follow-up entries are optional and never hold it open. Due two days after the gathering.
-- **This week's Reach-Out report** — a Reach-Out report dated this week, with something written in it. Due at the end of the week.
+- **This week's Reach-Out report** — a Reach-Out report dated this week that you started or added to, with something written in it. Another leader's report does not count as yours. Due at the end of the week.
 - **Finish this week's meeting note** — shown only while a note you can read, dated this week, is still a draft.
 - **Lay out the month** (Monthly Calendar) — anything on the calendar this month.
 - **Say where the goals stand** — an update this month on each active goal you own.
