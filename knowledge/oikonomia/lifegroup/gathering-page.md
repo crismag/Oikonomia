@@ -6,14 +6,14 @@ category: lifegroup
 summary: What one gathering's page holds — attendance, exhortation, notes, the leader's summary, reports and asks — and who may fill it in.
 modules: [lifegroup]
 pages: [gathering]
-keywords: [gathering page, attendance, exhortation, sharing and notes, leader's summary, complete gathering, printable view, edit details]
+keywords: [cancel gathering, restore gathering, gathering page, attendance, exhortation, sharing and notes, leader's summary, complete gathering, printable view, edit details]
 aliases:
   - what do I fill in after a gathering
   - where do I record a lifegroup gathering
   - how do I print a gathering report
 capabilities: []
 hideWhen: []
-related: [lifegroup.record-attendance, lifegroup.write-up, lifegroup.entry-visibility, lifegroup.gathering-report, lifegroup.cannot-record, lifegroup.lead.walkthrough]
+related: [lifegroup.cancel, lifegroup.record-attendance, lifegroup.write-up, lifegroup.entry-visibility, lifegroup.gathering-report, lifegroup.cannot-record, lifegroup.lead.walkthrough]
 destinations: [lifegroups]
 ---
 
@@ -32,5 +32,7 @@ Anyone signed in can open a gathering. **Only a leader assigned to this gatherin
 
 ### Buttons in the header
 
-- **Edit details** — change the date, times, venue and leaders. Shown to the gathering's leaders and campus oversight, and to anyone while nobody has claimed it — though saving needs someone leading it, so take it with **Assign to me** first.
+- **Assign to me** or **Add me** — put your name on the gathering from its own page, when you may.
+- **Edit details** — change the date, times and venue, and (campus oversight only) the leaders. Shown to the gathering's leaders and campus oversight, and to anyone while nobody has claimed it; an unclaimed gathering's details can be saved without anyone leading it.
+- **Cancel gathering** — take it off the schedule, after confirming. A cancelled gathering shows **Restore gathering** instead. See [Cancel or restore a gathering](topic:lifegroup.cancel).
 - **Printable view** — a clean sheet of the record, with **Print**. Notes you may not read are left off and counted instead.

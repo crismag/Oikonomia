@@ -15,10 +15,18 @@ import {
 import {
   canAmendGathering,
   canAssignGatheringLeaders,
+  canCancelGathering,
   canJoinGathering,
   canEdit,
 } from "@/domain/authorize";
-import { canReadEntry, leadsGathering, statusForLeaders } from "@/domain/lifegroup";
+import {
+  canReadEntry,
+  DEFAULT_VISIBILITY,
+  leadsGathering,
+  namedReaders,
+  namesItsReaders,
+  statusForLeaders,
+} from "@/domain/lifegroup";
 import { todayISO } from "@/domain/goals";
 import type {
   EntryValues,
@@ -65,7 +73,47 @@ export function createLifegroupService(repo: LifegroupRepository) {
     if (!canEdit(viewer, { kind: "gathering", gathering })) {
       throw ApiError.forbidden("Only a leader assigned to this gathering can record it.");
     }
+    /* A cancelled gathering did not happen; there is nothing to record until
+       it is put back on the schedule. */
+    if (gathering.status === "cancelled") {
+      throw ApiError.conflict("This gathering was cancelled. Restore it before recording it.");
+    }
     return gathering;
+  }
+
+  /**
+   * Directory people, by id.
+   *
+   * A mark or a reader naming an id nobody has would be stored as somebody
+   * and render as "Unknown person" — and a reader nobody can be is an entry
+   * shared with nobody while it says otherwise.
+   */
+  function requireKnownPeople(ids: string[], field: string, message: string) {
+    const known = repo.knownPeople(ids);
+    if (ids.some((id) => !known.has(id))) throw ApiError.validation({ [field]: message });
+  }
+
+  /**
+   * Who an entry is shared with, settled before it is stored.
+   *
+   * Named readers mean something only for an audience that is named; for any
+   * other choice they are dropped, so changing an entry to "Leaders" cannot
+   * leave a stale list that a later change back would silently reopen. A named
+   * audience with nobody in it is refused rather than stored as author-only
+   * under a label that says it is shared.
+   */
+  function readersFor(
+    visibility: string | undefined,
+    viewerIds: string[] | undefined,
+    authorId: string,
+  ): { viewerIds?: string[] } {
+    if (!namesItsReaders(visibility ?? DEFAULT_VISIBILITY)) return {};
+    const readers = namedReaders(viewerIds, authorId);
+    if (readers.length === 0) {
+      throw ApiError.validation({ viewerIds: "Name at least one person who may read this." });
+    }
+    requireKnownPeople(readers, "viewerIds", "Somebody named here is not in People.");
+    return { viewerIds: readers };
   }
 
   /**
@@ -78,6 +126,17 @@ export function createLifegroupService(repo: LifegroupRepository) {
     isLeader: true,
     isAssignedLeader: leadsGathering(gathering, viewer.person.id),
   });
+
+  function saveStage(viewer: Viewer, gathering: Gathering, status: Gathering["status"]) {
+    const { id, ...rest } = gathering;
+    const saved = repo.saveGathering(id, {
+      ...rest,
+      status,
+      updatedBy: viewer.person.id,
+    } as GatheringValues);
+    if (!saved) throw ApiError.notFound("That gathering");
+    return saved;
+  }
 
   function readableEntries(viewer: Viewer, gathering: Gathering, entries: LifegroupEntry[]) {
     const context = contextFor(viewer, gathering);
@@ -230,6 +289,21 @@ export function createLifegroupService(repo: LifegroupRepository) {
       const patch = parse(updateGathering, input);
 
       /*
+       * Cancelling, completing and reopening each have their own operation and
+       * their own rule. A stage patch may only move a live row between the
+       * stages a schedule has — otherwise "Edit details" would be a way to
+       * complete a gathering without a report, or cancel one without the
+       * right to.
+       */
+      if (patch.status && patch.status !== gathering.status) {
+        const live = gathering.status !== "completed" && gathering.status !== "cancelled";
+        const scheduling = ["planned", "assigned", "confirmed"].includes(patch.status);
+        if (!live || !scheduling) {
+          throw ApiError.conflict("That change of stage has its own action on the gathering.");
+        }
+      }
+
+      /*
        * Naming somebody else is a different right from maintaining the row.
        * An assigned leader may move the time and settle the venue; deciding who
        * else leads is campus oversight's.
@@ -256,6 +330,41 @@ export function createLifegroupService(repo: LifegroupRepository) {
       return saved;
     },
 
+    /**
+     * Take a gathering off the schedule.
+     *
+     * Kept, not deleted: a cancelled evening is part of the roster's history,
+     * and a duplicate row cancelled by mistake can be put back. Nothing it
+     * recorded is touched.
+     */
+    cancelGathering(viewer: Viewer, id: string): Gathering {
+      const gathering = requireGathering(id);
+      if (gathering.status === "cancelled") {
+        throw ApiError.conflict("This gathering is already cancelled.");
+      }
+      if (gathering.status === "completed") {
+        throw ApiError.conflict(
+          "This gathering has been written up. Reopen the report before cancelling it.",
+        );
+      }
+      if (!canCancelGathering(viewer, gathering)) {
+        throw ApiError.forbidden("This gathering is not yours to cancel.");
+      }
+      return saveStage(viewer, gathering, "cancelled");
+    },
+
+    /** Put a cancelled gathering back, at the stage its leaders say it is at. */
+    restoreGathering(viewer: Viewer, id: string): Gathering {
+      const gathering = requireGathering(id);
+      if (gathering.status !== "cancelled") {
+        throw ApiError.conflict("This gathering is not cancelled.");
+      }
+      if (!canCancelGathering(viewer, gathering)) {
+        throw ApiError.forbidden("This gathering is not yours to restore.");
+      }
+      return saveStage(viewer, gathering, statusForLeaders("planned", gathering.assignedLeaderIds));
+    },
+
     /* ------------------------------------------------------- attendance */
 
     markAttendance(viewer: Viewer, input: unknown) {
@@ -264,6 +373,9 @@ export function createLifegroupService(repo: LifegroupRepository) {
         throw ApiError.validation({ name: "Say who came." });
       }
       requireRecorder(viewer, values.gatheringId);
+      if (values.personId) {
+        requireKnownPeople([values.personId], "personId", "That person is not in People.");
+      }
       return repo.markAttendance(values);
     },
 
@@ -330,8 +442,10 @@ export function createLifegroupService(repo: LifegroupRepository) {
       const values = parse(addEntry, input);
       requireRecorder(viewer, values.gatheringId);
 
+      const { viewerIds, ...rest } = values;
       return repo.insertEntry({
-        ...values,
+        ...rest,
+        ...readersFor(values.visibility, viewerIds, viewer.person.id),
         authorId: viewer.person.id,
       } as EntryValues);
     },
@@ -356,8 +470,13 @@ export function createLifegroupService(repo: LifegroupRepository) {
       }
 
       const patch = parse(updateEntry, input);
-      const { id: _id, createdAt: _created, ...rest } = entry;
-      const saved = repo.saveEntry(id, { ...rest, ...patch } as EntryValues);
+      const { id: _id, createdAt: _created, viewerIds: storedReaders, ...rest } = entry;
+      const { viewerIds: patchReaders, ...changes } = patch;
+      const merged = { ...rest, ...changes };
+      const saved = repo.saveEntry(id, {
+        ...merged,
+        ...readersFor(merged.visibility, patchReaders ?? storedReaders, entry.authorId),
+      } as EntryValues);
       if (!saved) throw ApiError.notFound("That entry");
       return saved;
     },

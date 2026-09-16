@@ -14,6 +14,8 @@ import {
   gatheringHeadline,
   homeGatherings,
   leadsGathering,
+  namedReaders,
+  namesItsReaders,
   otherScheduled,
   outstanding,
   readableEntries,
@@ -430,6 +432,24 @@ describe("the discarded model", () => {
  * from an older schema, a deactivated choice removed by hand. The narrowest
  * answer is the only safe one, and the author still reads their own entry.
  */
+describe("an audience the author names", () => {
+  it("is asked of the strategy, not the id", () => {
+    expect(namesItsReaders("selected-viewers")).toBe(true);
+    expect(namesItsReaders("leaders")).toBe(false);
+    expect(namesItsReaders("private")).toBe(false);
+    /* Unrecognised resolves to author-only, which names nobody. */
+    expect(namesItsReaders("shared-with-everyone-91827")).toBe(false);
+  });
+
+  it("lists each reader once and never the author", () => {
+    expect(namedReaders(["p-joel", "p-maria", "p-joel", "p-anna"], "p-maria")).toEqual([
+      "p-joel",
+      "p-anna",
+    ]);
+    expect(namedReaders(undefined, "p-maria")).toEqual([]);
+  });
+});
+
 describe("an unrecognised entry visibility", () => {
   const entry = (over: Record<string, unknown> = {}) =>
     ({

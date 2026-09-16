@@ -412,6 +412,17 @@ describe("LifeGroup stays separate from the organisation", () => {
 
     expect(service.assignmentsFor(admin, leader.person.id)).toEqual([]);
   });
+
+  /* Named while scheduling a gathering, without asking an administrator. */
+  it("lets a leader who is not an administrator name a venue", () => {
+    const venue = service.addVenue(leader, { name: "The Okafor home" });
+    expect(venue.name).toBe("The Okafor home");
+    expect(repo.venues().map((v) => v.id)).toContain(venue.id);
+  });
+
+  it("refuses a venue with no name", () => {
+    expect(() => service.addVenue(leader, { name: "  " })).toThrow(ApiError);
+  });
 });
 
 describe("deactivating", () => {

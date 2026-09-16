@@ -333,11 +333,22 @@ export function createLifegroupRepository(db: Db) {
       expected?: boolean | undefined;
       firstTime?: boolean | undefined;
     }): GatheringAttendance {
+      /*
+       * A walk-in marked by name is matched on that name. Changing somebody
+       * from Present to Absent used to insert a second row for them, because
+       * a name had no id to collide on — the correction became a duplicate.
+       */
       const existing = values.personId
         ? (db
             .prepare("SELECT * FROM gathering_attendance WHERE gathering_id = ? AND person_id = ?")
             .get(values.gatheringId, values.personId) as AttendanceRow | undefined)
-        : undefined;
+        : values.name
+          ? (db
+              .prepare(
+                "SELECT * FROM gathering_attendance WHERE gathering_id = ? AND person_id IS NULL AND name = ?",
+              )
+              .get(values.gatheringId, values.name) as AttendanceRow | undefined)
+          : undefined;
 
       if (existing) {
         db.prepare(
@@ -446,6 +457,21 @@ export function createLifegroupRepository(db: Db) {
 
     deleteEntry(id: string): boolean {
       return db.prepare("DELETE FROM lifegroup_entry WHERE id = ?").run(id).changes > 0;
+    },
+
+    /**
+     * Which of these ids are people in the directory.
+     *
+     * Read here rather than through the organisation repository so the
+     * service can refuse a made-up id without being handed a second store.
+     */
+    knownPeople(ids: string[]): Set<string> {
+      if (ids.length === 0) return new Set();
+      const holes = ids.map(() => "?").join(", ");
+      const rows = db.prepare(`SELECT id FROM person WHERE id IN (${holes})`).all(...ids) as {
+        id: string;
+      }[];
+      return new Set(rows.map((row) => row.id));
     },
 
     /** Used only by the development seed. */

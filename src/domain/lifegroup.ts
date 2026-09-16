@@ -334,6 +334,25 @@ export function entryStrategyOf(visibility: string): EntryStrategy {
 }
 
 /**
+ * Whether an audience choice is one the author fills in by naming people.
+ *
+ * Asked of the strategy rather than of the id, so a church's own choice that
+ * behaves like "selected viewers" offers the same picker.
+ */
+export const namesItsReaders = (visibility: string): boolean =>
+  entryStrategyOf(visibility) === "named-viewers";
+
+/**
+ * The people an entry is shared with, as it should be stored.
+ *
+ * Nobody twice, and never the author: they read their own entry anyway, and
+ * listing them would make an entry shared with nobody look shared.
+ */
+export function namedReaders(viewerIds: string[] | undefined, authorId: string): string[] {
+  return [...new Set(viewerIds ?? [])].filter((id) => id !== authorId);
+}
+
+/**
  * Whether one viewer may read one entry.
  *
  * Deliberately small and local: the binder-wide access resolver decides who may

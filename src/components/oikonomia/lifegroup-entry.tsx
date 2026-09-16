@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Lock, Plus, Trash2 } from "lucide-react";
+import { Lock, Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/oikonomia/combobox";
+import { PersonName } from "@/components/oikonomia/person";
+import { errorMessage, fieldErrors } from "@/lib/calendar-client";
 import { useLifegroup } from "@/components/oikonomia/lifegroup-provider";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "./organization-provider";
@@ -9,6 +12,8 @@ import {
   DEFAULT_VISIBILITY,
   entryCategories,
   entryCategoryLabel,
+  namedReaders,
+  namesItsReaders,
   readableEntries,
   visibilityLabel,
   visibilityOf,
@@ -70,6 +75,19 @@ export function EntryItem({
             <p className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
               <Lock className="size-3" aria-hidden />
               {visibilityLabel[visibility]}
+              {/* Who it is shared with is only this entry's readers' business,
+                  and every reader of it is one of them. */}
+              {namesItsReaders(visibility) && entry.viewerIds?.length ? (
+                <span>
+                  {" · "}
+                  {entry.viewerIds.map((id, i) => (
+                    <span key={id}>
+                      {i > 0 ? ", " : ""}
+                      <PersonName personId={id} />
+                    </span>
+                  ))}
+                </span>
+              ) : null}
             </p>
           ) : null}
         </div>
@@ -111,12 +129,10 @@ export function LifegroupEntryList({
   gatheringId,
   viewerId,
   context,
-  canEdit,
 }: {
   gatheringId: string;
   viewerId: string;
   context: ReadContext;
-  canEdit: boolean;
 }) {
   const store = useLifegroup();
   const visible = readableEntries(store.entries, gatheringId, viewerId, context);
@@ -137,7 +153,9 @@ export function LifegroupEntryList({
           <EntryItem
             key={entry.id}
             entry={entry}
-            onRemove={canEdit ? () => store.removeEntry(entry.id) : undefined}
+            /* Only whoever wrote it, which is the server's rule too. Leading the
+               gathering does not make somebody else's words yours to remove. */
+            onRemove={entry.authorId === viewerId ? () => store.removeEntry(entry.id) : undefined}
           />
         ))}
       </ul>
@@ -173,20 +191,40 @@ export function NewEntry({ gatheringId, authorId }: { gatheringId: string; autho
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<LifegroupEntryCategory | null>(null);
   const [visibility, setVisibility] = useState<EntryVisibility>(DEFAULT_VISIBILITY);
+  const [readers, setReaders] = useState<string[]>([]);
+  const [pickerKey, setPickerKey] = useState(0);
+  const [failure, setFailure] = useState<string | null>(null);
+  const { activePeople } = useOrganization();
 
-  const submit = () => {
+  const naming = namesItsReaders(visibility);
+  const chosen = namedReaders(readers, authorId);
+
+  const submit = async () => {
     const text = body.trim();
     if (!text) return;
-    store.addEntry({
-      gatheringId,
-      authorId,
-      body: text,
-      ...(category ? { category } : {}),
-      ...(visibility !== DEFAULT_VISIBILITY ? { visibility } : {}),
-    });
-    setBody("");
-    setCategory(null);
-    setVisibility(DEFAULT_VISIBILITY);
+    /* Said here rather than after a round trip; the server refuses it too. */
+    if (naming && chosen.length === 0) {
+      setFailure("Name at least one person who may read this.");
+      return;
+    }
+    setFailure(null);
+    try {
+      await store.addEntry({
+        gatheringId,
+        authorId,
+        body: text,
+        ...(category ? { category } : {}),
+        ...(visibility !== DEFAULT_VISIBILITY ? { visibility } : {}),
+        ...(naming ? { viewerIds: chosen } : {}),
+      });
+      setBody("");
+      setCategory(null);
+      setVisibility(DEFAULT_VISIBILITY);
+      setReaders([]);
+    } catch (error) {
+      /* What was written stays in the box, so nothing is lost to a refusal. */
+      setFailure(Object.values(fieldErrors(error))[0] ?? errorMessage(error));
+    }
   };
 
   return (
@@ -197,7 +235,7 @@ export function NewEntry({ gatheringId, authorId }: { gatheringId: string; autho
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
           }}
           rows={body ? 3 : 1}
           placeholder="Add an entry"
@@ -241,9 +279,59 @@ export function NewEntry({ gatheringId, authorId }: { gatheringId: string; autho
             </select>
           </label>
 
-          <Button type="button" onClick={submit} variant="primary">
+          <Button type="button" onClick={() => void submit()} variant="primary">
             Add
           </Button>
+
+          {naming ? (
+            <div className="w-full">
+              <p className="mb-1 text-[12px] text-muted-foreground">Who may read this</p>
+              {chosen.length > 0 ? (
+                <ul className="mb-1.5 flex flex-wrap gap-1.5">
+                  {chosen.map((id) => (
+                    <li
+                      key={id}
+                      className="inline-flex min-h-7 items-center gap-1 rounded-full border border-border bg-surface py-0.5 pl-2.5 pr-1 text-[13px]"
+                    >
+                      <PersonName personId={id} />
+                      <button
+                        type="button"
+                        onClick={() => setReaders((current) => current.filter((x) => x !== id))}
+                        aria-label="Remove this reader"
+                        className="grid size-5 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <X className="size-3" aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <Combobox
+                key={pickerKey}
+                label="Add a reader"
+                value=""
+                placeholder="Add someone from People…"
+                width="w-full"
+                suggestions={activePeople
+                  .filter((p) => p.id !== authorId && !chosen.includes(p.id))
+                  .map((p) => ({ id: p.id, label: p.name, ...(p.role ? { hint: p.role } : {}) }))}
+                onChange={(_text, id) => {
+                  /* Only somebody in People can be a reader; a typed name is nobody. */
+                  if (id) {
+                    setReaders((current) => [...current, id]);
+                    setFailure(null);
+                  }
+                  setPickerKey((key) => key + 1);
+                }}
+              />
+            </div>
+          ) : null}
+
+          {failure ? (
+            <p role="alert" className="w-full text-[12px] text-status-overdue">
+              {failure}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

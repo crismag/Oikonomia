@@ -14,7 +14,7 @@ aliases:
   - why can't I add myself to this gathering
 capabilities: []
 hideWhen: []
-related: [lifegroup.claim, lifegroup.gathering-page, lifegroup.record-attendance]
+related: [lifegroup.cancel, lifegroup.claim, lifegroup.gathering-page, lifegroup.record-attendance]
 destinations: [lifegroups]
 ---
 
@@ -31,6 +31,10 @@ The gathering is **Completed** or **Cancelled**. Who led a written-up gathering 
 ### Campus oversight
 
 Campus oversight may move a gathering, change its venue and name its leaders, but still cannot mark its attendance or write it up unless they are assigned to it.
+
+### If the gathering was cancelled
+
+Nothing is recorded on a cancelled gathering, even by its leaders. Choose **Restore gathering** first if it is going ahead after all. See [Cancel or restore a gathering](topic:lifegroup.cancel).
 
 ### Changing the date, time or venue
 
