@@ -27,8 +27,16 @@ import { Combobox, type Suggestion } from "@/components/oikonomia/combobox";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { useReports } from "@/components/oikonomia/report-provider";
 import { StatusTag } from "@/components/oikonomia/report-status";
-import { planTransition, statusBehavior, transitionsFrom } from "@/domain/leadership-report";
+import {
+  followUpOnWeek,
+  openFollowUps,
+  planTransition,
+  statusBehavior,
+  transitionsFrom,
+} from "@/domain/leadership-report";
+import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { cn } from "@/lib/utils";
+import { errorMessage } from "@/lib/calendar-client";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useFiledDocuments } from "@/components/oikonomia/filed-documents";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
@@ -52,7 +60,7 @@ import {
 } from "@/domain/leadership-report";
 import { categoryLabelOf, triggersAttention } from "@/domain/categories";
 import { emptyBlock, sanitizeInline } from "@/domain/meeting";
-import { fromISO, toISO } from "@/domain/schedule";
+import { fromISO, toISO, weekOf } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
 import type {
@@ -168,6 +176,7 @@ function ReportPage() {
       {tab === "report" ? (
         <div className="space-y-4">
           <ReportBody report={report} />
+          <FollowUpsForYourWeek report={report} />
           <AskedOfYou sourceType="leadership-report" sourceId={report.id} />
           {/*
            * A report is information. This is where its author says that one
@@ -497,6 +506,84 @@ function ReportBody({ report }: { report: LeadershipReport }) {
     <article className="rounded-lg border border-border bg-surface px-5 py-4">
       <MeetingDocument blocks={blocks} readOnly />
     </article>
+  );
+}
+
+/**
+ * The author's own follow-ups, onto their own week.
+ *
+ * A follow-up line is the author saying something needs doing. Only the author
+ * is offered this: the report stays information for everyone else, and asking
+ * another leader for something is what "Does this need anything from
+ * leadership?" is for. A line goes on the week — filed to this week rather
+ * than to a day nobody chose — and once there it links to the week instead.
+ */
+function FollowUpsForYourWeek({ report }: { report: LeadershipReport }) {
+  const { person } = useViewer();
+  const schedule = useSchedule();
+  const [failure, setFailure] = useState<unknown>(null);
+
+  const followUps = openFollowUps(report);
+  if (report.authorId !== person.id || followUps.length === 0) return null;
+
+  const thisWeek = weekOf(toISO(new Date()));
+
+  return (
+    <section
+      aria-label="Follow-ups in this report"
+      className="rounded-lg border border-border bg-surface px-4 py-3.5"
+    >
+      <h3 className="text-[13px] font-medium">Follow-ups in this report</h3>
+      <p className="text-[12px] text-muted-foreground">
+        Put one on your week to carry it out. It is filed to the week, not to a day.
+      </p>
+      <ul className="mt-2 divide-y divide-border">
+        {followUps.map((item) => {
+          const onWeek = followUpOnWeek(schedule.agenda, report.id, item.blockId);
+          return (
+            <li
+              key={item.blockId}
+              className="flex flex-wrap items-center justify-between gap-2 py-2 first:pt-0 last:pb-0"
+            >
+              <span className="min-w-0 flex-1 text-[14px] leading-6">{item.text}</span>
+              {onWeek ? (
+                <Link
+                  to="/weekly-agenda"
+                  search={{ date: onWeek.date ?? onWeek.weekOf ?? thisWeek }}
+                  className="inline-flex min-h-6 items-center px-2.5 py-1 text-[12px] text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  On your week
+                </Link>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={schedule.saving}
+                  onClick={() => {
+                    setFailure(null);
+                    void schedule
+                      .addAgenda({
+                        text: item.text,
+                        weekOf: thisWeek,
+                        reportId: report.id,
+                        reportBlockId: item.blockId,
+                      })
+                      .catch(setFailure);
+                  }}
+                >
+                  Put on my week
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {failure ? (
+        <p role="alert" className="mt-1.5 text-[12px] text-status-overdue">
+          {errorMessage(failure)}
+        </p>
+      ) : null}
+    </section>
   );
 }
 

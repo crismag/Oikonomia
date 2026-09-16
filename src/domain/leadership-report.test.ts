@@ -33,6 +33,8 @@ import {
   templateFor,
   withheldCount,
   reportsToYou,
+  openFollowUps,
+  followUpOnWeek,
 } from "./leadership-report";
 import { resolveAccess } from "./access";
 import { applyOverrides, config, resetOverrides } from "@/config";
@@ -1187,5 +1189,35 @@ describe("reportsToYou", () => {
 
   it("lists everything else that reached them, newest first, and nothing of theirs", () => {
     expect(reportsToYou(list, "p-me").shared.map((r) => r.id)).toEqual(["theirs", "theirs-old"]);
+  });
+});
+
+/**
+ * A report's author can put the report's own follow-ups on their week. What is
+ * offered is the open follow-up lines with words in them, and a line already on
+ * the week is recognised by the report and the line — never by its text.
+ */
+describe("report follow-ups", () => {
+  const withBlocks = report({
+    blocks: [
+      { id: "b1", type: "paragraph", html: "We visited three families." },
+      { id: "b2", type: "follow-up", html: "Call the <b>Santos</b> family", state: "open" },
+      { id: "b3", type: "follow-up", html: "Order chairs", state: "resolved" },
+      { id: "b4", type: "follow-up", html: "<br>", state: "open" },
+    ],
+  } as never);
+
+  it("offers the open follow-up lines, as plain words", () => {
+    expect(openFollowUps(withBlocks)).toEqual([{ blockId: "b2", text: "Call the Santos family" }]);
+  });
+
+  it("recognises the line already on the week by report and line", () => {
+    const agenda = [
+      { reportId: "r1", reportBlockId: "b2", completed: false, text: "renamed" },
+      { reportId: "r1", reportBlockId: "b9", completed: false, text: "Call the Santos family" },
+    ];
+    expect(followUpOnWeek(agenda, "r1", "b2")?.text).toBe("renamed");
+    expect(followUpOnWeek(agenda, "r2", "b2")).toBeUndefined();
+    expect(followUpOnWeek([{ ...agenda[0]!, completed: true }], "r1", "b2")).toBeUndefined();
   });
 });

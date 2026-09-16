@@ -356,6 +356,14 @@ export function ReportProvider({ children }: { children: ReactNode }) {
             }),
           )) as never,
         ) as LeadershipReport;
+        /* Into the list before anybody navigates to it. Waiting for the refetch
+           meant the new report's page opened on a list that did not have it yet,
+           and answered "not found" for a report that had just been written. */
+        queryClient.setQueryData<ReportList>(["leadership-reports"], (current) =>
+          current && !current.reports.some((r) => r.id === created.id)
+            ? { ...current, reports: [created, ...current.reports] }
+            : current,
+        );
         invalidate();
         return created.id;
       },
@@ -384,7 +392,7 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       addComment: (id, _authorId, body) =>
         act(() => commentOnReport({ data: { reportId: id, body } })),
     }),
-    [visible, query, byId, can, saveState, saveError, flush, edit, act, invalidate],
+    [visible, query, byId, can, saveState, saveError, flush, edit, act, invalidate, queryClient],
   );
 
   return <ReportContext.Provider value={value}>{children}</ReportContext.Provider>;

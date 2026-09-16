@@ -157,10 +157,17 @@ export const createAgendaItem = z
     assigneeId: z.string().min(1).optional(),
     /** The ask this was put on the week for. Set once, when it is created. */
     escalationId: z.string().min(1).optional(),
+    /** The report, and the follow-up line in it, this was put on the week for. */
+    reportId: z.string().min(1).optional(),
+    reportBlockId: z.string().min(1).optional(),
   })
   .refine((v) => !!v.date || !!v.weekOf, {
     message: "File it on a day, or on the week.",
     path: ["date"],
+  })
+  .refine((v) => !!v.reportId === !!v.reportBlockId, {
+    message: "Name both the report and the line in it.",
+    path: ["reportBlockId"],
   });
 
 export const updateAgendaItem = z.object({
