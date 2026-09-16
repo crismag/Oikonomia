@@ -33,6 +33,6 @@ Anyone signed in can open a gathering. **Only a leader assigned to this gatherin
 ### Buttons in the header
 
 - **Assign to me** or **Add me** — put your name on the gathering from its own page, when you may.
-- **Edit details** — change the date, times and venue, and (campus oversight only) the leaders. Shown to the gathering's leaders and campus oversight, and to anyone while nobody has claimed it; an unclaimed gathering's details can be saved without anyone leading it.
+- **Edit details** — change the date, times and venue, and (campus oversight only) the leaders. Shown to the gathering's leaders and campus oversight, and to anyone while nobody has claimed it; an unclaimed gathering's details can be saved without anyone leading it. If someone else changed the gathering while the form was open, **Save changes** is refused and what you typed stays in the form; choose **Load the current version** to see what is stored, then make your change again.
 - **Cancel gathering** — take it off the schedule, after confirming. A cancelled gathering shows **Restore gathering** instead. See [Cancel or restore a gathering](topic:lifegroup.cancel).
 - **Printable view** — a clean sheet of the record, with **Print**. Notes you may not read are left off and counted instead.

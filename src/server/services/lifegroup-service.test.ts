@@ -417,6 +417,46 @@ describe("amending a gathering", () => {
 });
 
 /**
+ * Two leaders on one row.
+ *
+ * Several people maintain a gathering, so a save states the version it loaded
+ * and a stale one is refused rather than quietly putting old values back.
+ */
+describe("two people changing the same gathering", () => {
+  it("starts at version one and moves on with every change", () => {
+    const g = led();
+    expect(g.version).toBe(1);
+    const moved = service.updateGathering(maria, g.id, { date: "2026-09-24" }, 1);
+    expect(moved.version).toBe(2);
+    expect(moved.date).toBe("2026-09-24");
+  });
+
+  it("refuses a save made against a version somebody else has moved on", () => {
+    const g = led();
+    service.updateGathering(bishop, g.id, { startTime: "19:30" }, g.version);
+
+    expect(() => service.updateGathering(maria, g.id, { startTime: "20:00" }, g.version)).toThrow(
+      expect.objectContaining({ code: "conflict" }) as ApiError,
+    );
+    expect(repo.findGathering(g.id)?.startTime).toBe("19:30");
+  });
+
+  it("keeps the old behaviour for a caller that states no version", () => {
+    const g = led();
+    service.updateGathering(bishop, g.id, { startTime: "19:30" });
+    expect(service.updateGathering(maria, g.id, { startTime: "20:00" }).startTime).toBe("20:00");
+  });
+
+  it("counts joining and cancelling as changes", () => {
+    const g = led();
+    service.joinGathering(joel, { gatheringId: g.id, action: "join" });
+    expect(() => service.updateGathering(maria, g.id, { startTime: "20:00" }, g.version)).toThrow(
+      expect.objectContaining({ code: "conflict" }) as ApiError,
+    );
+  });
+});
+
+/**
  * The schedule is a shared roster, not a form one person completes.
  *
  * Three rules carry that: **a row may exist before its details do**,

@@ -13,14 +13,7 @@ aliases:
   - how do I link a document as a report
 capabilities: []
 hideWhen: []
-related:
-  [
-    reports.create.walkthrough,
-    reports.visibility,
-    reports.confidential,
-    reports.statuses,
-    reports.follow-ups,
-  ]
+related: [reports.create.walkthrough, reports.visibility, reports.confidential, reports.statuses, reports.follow-ups, meeting-notes.write-report]
 destinations: [leadership-reports]
 ---
 
@@ -36,6 +29,8 @@ destinations: [leadership-reports]
 6. Add tags with **+ tag** and Enter.
 7. Write. The toolbar has bold, italic, underline, links, headings, lists, checklists, quotes and dividers, plus **Mark as decision** and **Follow-up**. For a linked report, choose the document instead.
 8. Choose **Done**. Everything saves as you type.
+
+To write about a meeting, start from the note instead: **Write a report from this meeting** creates the Draft with the meeting's title and a link back to it. See [Write a report from a meeting](topic:meeting-notes.write-report).
 
 When it is ready, move it on with the stage buttons. See [Report stages](topic:reports.statuses).
 

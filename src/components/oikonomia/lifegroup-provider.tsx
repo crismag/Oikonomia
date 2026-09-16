@@ -19,7 +19,7 @@ import {
   updateGathering,
   type LifegroupData,
 } from "@/lib/lifegroup-api";
-import { unwrap, withTimeout } from "@/lib/calendar-client";
+import { isConflict, unwrap, withTimeout } from "@/lib/calendar-client";
 import type {
   AttendanceStatus,
   EntryVisibility,
@@ -126,6 +126,10 @@ export interface LifegroupStore {
    * removes *themselves*.
    *
    * The actor is taken from the request, never from the caller.
+   *
+   * `expectedVersion` is the version the caller loaded. The server refuses a
+   * stale one with a conflict, and the book is refreshed either way so the
+   * screen shows what is actually stored.
    */
   updateGathering: (
     gatheringId: string,
@@ -141,6 +145,7 @@ export interface LifegroupStore {
         | "status"
       >
     >,
+    expectedVersion: number | undefined,
   ) => Promise<void>;
 }
 
@@ -183,6 +188,11 @@ export function LifegroupProvider({ children }: { children: ReactNode }) {
     mutationFn: async (work: () => Promise<unknown>) =>
       unwrap((await withTimeout(work())) as never),
     onSuccess: invalidate,
+    /* A conflict means the copy on screen is out of date. Fetch the current
+       one, so what the person sees next is what is stored. */
+    onError: (error) => {
+      if (isConflict(error)) void invalidate();
+    },
     networkMode: "always" as const,
     retry: 0,
   });
@@ -306,8 +316,16 @@ export function LifegroupProvider({ children }: { children: ReactNode }) {
       joinGathering: (gatheringId, action) =>
         call(() => joinGathering({ data: { gatheringId, action } })),
 
-      updateGathering: (gatheringId, patch) =>
-        call(() => updateGathering({ data: { id: gatheringId, patch } })),
+      updateGathering: (gatheringId, patch, expectedVersion) =>
+        call(() =>
+          updateGathering({
+            data: {
+              id: gatheringId,
+              patch,
+              ...(expectedVersion !== undefined ? { expectedVersion } : {}),
+            },
+          }),
+        ),
     }),
     [data, query, mutation.isPending, call, invalidate],
   );

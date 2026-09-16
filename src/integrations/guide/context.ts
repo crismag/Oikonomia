@@ -81,6 +81,7 @@ export const routeGuides: RouteGuide[] = [
       "meeting-notes.personal-vs-minutes",
       "meeting-notes.find",
       "meeting-notes.record.walkthrough",
+      "meeting-notes.write-report",
     ],
   },
   {

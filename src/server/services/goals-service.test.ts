@@ -456,3 +456,47 @@ describe("what a goal belongs to", () => {
     expect(() => service.createGoal(maria, { title: "Whose?", year: 2026 })).toThrow(ApiError);
   });
 });
+
+/**
+ * A ministry's goal is maintained by more than one person, so a change states
+ * the version it loaded and a stale one is refused.
+ */
+describe("two people changing the same goal", () => {
+  it("starts at version one and moves on with every change", () => {
+    const created = service.createGoal(maria, goal());
+    expect(created.version).toBe(1);
+    const renamed = service.updateGoal(maria, created.id, { title: "Renamed" }, 1);
+    expect(renamed.version).toBe(2);
+    expect(service.hold(maria, created.id, "Waiting on the budget", 2).version).toBe(3);
+  });
+
+  it("refuses a change made against a version somebody else has moved on", () => {
+    const created = service.createGoal(maria, goal());
+    service.complete(maria, created.id, "Done.", created.version);
+
+    expect(() => service.hold(maria, created.id, "Later", created.version)).toThrow(
+      expect.objectContaining({ code: "conflict" }) as ApiError,
+    );
+    expect(() =>
+      service.updateGoal(maria, created.id, { title: "Stale" }, created.version),
+    ).toThrow(expect.objectContaining({ code: "conflict" }) as ApiError);
+    expect(repo.findGoal(created.id)?.status).toBe("completed");
+    expect(repo.findGoal(created.id)?.title).toBe("Training for excellence");
+  });
+
+  it("does not carry a stale goal into the next year", () => {
+    const created = service.createGoal(maria, goal());
+    service.updateGoal(maria, created.id, { title: "Moved on" });
+
+    expect(() => service.carryForward(maria, created.id, 2027, created.version)).toThrow(
+      expect.objectContaining({ code: "conflict" }) as ApiError,
+    );
+    expect(repo.goalsForYear(2027)).toHaveLength(0);
+  });
+
+  it("keeps the old behaviour for a caller that states no version", () => {
+    const created = service.createGoal(maria, goal());
+    service.updateGoal(maria, created.id, { title: "First" });
+    expect(service.updateGoal(maria, created.id, { title: "Second" }).title).toBe("Second");
+  });
+});

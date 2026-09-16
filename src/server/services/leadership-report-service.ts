@@ -18,13 +18,20 @@ import {
   withheldCount,
 } from "@/domain/leadership-report";
 import { newBlockId } from "@/domain/meeting";
+import { canView } from "@/domain/authorize";
 import { config } from "@/config";
 import type {
   LeadershipReportRepository,
   ReportValues,
 } from "../repositories/leadership-report-repository";
 import type { TransitionPlan } from "@/domain/leadership-report";
-import type { Comment, LeadershipReport, MeetingBlock, ReportCapabilities } from "@/domain/types";
+import type {
+  Comment,
+  LeadershipReport,
+  MeetingBlock,
+  MeetingNote,
+  ReportCapabilities,
+} from "@/domain/types";
 import type { Viewer } from "@/domain/viewer";
 
 /**
@@ -79,6 +86,15 @@ export function createLeadershipReportService(
     record: (actorId: string, reportId: string) => void;
     of: (reportId: string) => { actorId: string; at: string }[];
   },
+  /**
+   * Where a context record is looked up, so a report cannot claim to come from
+   * something its author may not read.
+   *
+   * Optional; without it a meeting-note context is refused. A report's context
+   * link names and opens its source, and naming a personal note somebody else
+   * wrote would confirm that note exists.
+   */
+  contexts?: { findMeetingNote: (id: string) => MeetingNote | undefined },
 ) {
   const leadershipGroups = () => organization?.leadershipGroupIds() ?? [];
 
@@ -231,6 +247,18 @@ export function createLeadershipReportService(
           subjectId:
             "This kind of report is not written about a named person. Say who it concerns in the report itself.",
         });
+      }
+
+      /*
+       * Written from a meeting only if the author may read that meeting. An
+       * unreadable note and a missing one are the same answer, as they are
+       * everywhere else: a personal note's existence is part of what is private.
+       */
+      if (parsed.contextType === "meeting-note") {
+        const note = parsed.contextId ? contexts?.findMeetingNote(parsed.contextId) : undefined;
+        if (!note || !canView(viewer, { kind: "meeting-note", note })) {
+          throw ApiError.notFound("That meeting note");
+        }
       }
 
       const report = repo.insert({

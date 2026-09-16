@@ -837,18 +837,26 @@ export function reportContextLabel(report: LeadershipReport): string {
   }
 }
 
-/** Where the source lives, when the report came from somewhere. */
-export function reportContextPath(report: LeadershipReport): string | undefined {
+/**
+ * Where the source lives, when the report came from somewhere.
+ *
+ * A path and its search, the shape `escalationHref` uses: a meeting note is
+ * `/meeting-notes?note=`, and a query folded into the path string is not
+ * something the router reads as search.
+ */
+export function reportContextPath(
+  report: LeadershipReport,
+): { to: string; search?: Record<string, string> } | undefined {
   if (!report.contextId) return undefined;
   switch (report.contextType) {
     case "lifegroup-gathering":
-      return `/lifegroups/${report.contextId}`;
+      return { to: `/lifegroups/${report.contextId}` };
     case "ministry":
-      return `/ministries/${report.contextId}`;
+      return { to: `/ministries/${report.contextId}` };
     case "meeting-note":
-      return `/meeting-notes?note=${report.contextId}`;
+      return { to: "/meeting-notes", search: { note: report.contextId } };
     case "reach-out":
-      return `/reach-out/${report.contextId}`;
+      return { to: `/reach-out/${report.contextId}` };
     default:
       return undefined;
   }

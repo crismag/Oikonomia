@@ -384,7 +384,8 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
              */}
             {sourcePath ? (
               <Link
-                to={sourcePath}
+                to={sourcePath.to}
+                {...(sourcePath.search ? { search: sourcePath.search } : {})}
                 className="inline-flex items-center gap-1 rounded transition-colors hover:text-foreground"
               >
                 <ExternalLink className="size-3.5" aria-hidden />

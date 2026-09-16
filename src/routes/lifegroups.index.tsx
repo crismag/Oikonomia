@@ -196,7 +196,10 @@ function LifegroupSchedule() {
                           onPatch={(patch) => {
                             setFailure(null);
                             void store
-                              .updateGathering(gathering.id, patch as never)
+                              /* The version this row is showing: a row
+                                 refreshed by somebody else's save is refused
+                                 rather than overwritten. */
+                              .updateGathering(gathering.id, patch as never, gathering.version)
                               .catch(setFailure);
                           }}
                           onJoin={(action) => {

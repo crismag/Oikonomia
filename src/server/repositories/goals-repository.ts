@@ -32,6 +32,7 @@ interface GoalRow {
   carried_from_goal_id: string | null;
   links: string | null;
   policy: string | null;
+  version: number;
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +63,7 @@ function toGoal(row: GoalRow): Goal {
     title: row.title,
     scope: row.scope,
     status: row.status,
+    version: row.version,
     links: list<BinderLink>(row.links),
     createdAt: row.created_at,
     ...has(row.description, "description"),
@@ -92,7 +94,7 @@ function toUpdate(row: UpdateRow): GoalUpdate {
   } as GoalUpdate;
 }
 
-export type GoalValues = Writable<Omit<Goal, "id" | "createdAt">>;
+export type GoalValues = Writable<Omit<Goal, "id" | "createdAt" | "version">>;
 export type UpdateValues = Writable<Omit<GoalUpdate, "id">>;
 
 function goalColumns(values: GoalValues) {
@@ -135,9 +137,12 @@ export function createGoalsRepository(db: Db) {
      VALUES (@id, ${columns.map((c) => `@${c}`).join(", ")}, @created_at, @updated_at)`,
   );
 
+  /* The version is part of the WHERE when a caller states one, so the check
+     and the write are one statement. */
   const replace = db.prepare(
-    `UPDATE goal SET ${columns.map((c) => `${c} = @${c}`).join(", ")}, updated_at = @updated_at
-      WHERE id = @id`,
+    `UPDATE goal SET ${columns.map((c) => `${c} = @${c}`).join(", ")},
+            updated_at = @updated_at, version = version + 1
+      WHERE id = @id AND (@version IS NULL OR version = @version)`,
   );
 
   return {
@@ -200,8 +205,20 @@ export function createGoalsRepository(db: Db) {
       return this.findGoal(id)!;
     },
 
-    saveGoal(id: string, values: GoalValues): Goal | undefined {
-      replace.run({ id, ...goalColumns(values), updated_at: nowIso() });
+    /**
+     * Save, if nobody else has saved since the stated version.
+     *
+     * `"stale"` means somebody else moved it on; `undefined` means it is gone.
+     * No version keeps the old last-writer behaviour.
+     */
+    saveGoal(id: string, values: GoalValues, version?: number): Goal | "stale" | undefined {
+      const result = replace.run({
+        id,
+        ...goalColumns(values),
+        updated_at: nowIso(),
+        version: version ?? null,
+      });
+      if (result.changes === 0) return this.findGoal(id) ? "stale" : undefined;
       return this.findGoal(id);
     },
 

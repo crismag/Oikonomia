@@ -77,9 +77,26 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
 
   /** Everything the repository needs back, minus what it owns. */
   const values = (goal: Goal): GoalValues => {
-    const { id: _id, createdAt: _created, ...rest } = goal;
+    const { id: _id, createdAt: _created, version: _version, ...rest } = goal;
     return rest;
   };
+
+  /**
+   * Write the goal, refusing a stale version when the caller stated one.
+   *
+   * A ministry's goal is maintained by everyone who works in it, so one leader
+   * putting a goal on hold must not quietly undo another marking it complete.
+   */
+  function commit(id: string, next: GoalValues, expectedVersion?: number): Goal {
+    const saved = repo.saveGoal(id, next, expectedVersion);
+    if (saved === "stale") {
+      throw ApiError.conflict(
+        "This goal was changed somewhere else while you were working. Reopen it to see the current version.",
+      );
+    }
+    if (!saved) throw ApiError.notFound("That goal");
+    return saved;
+  }
 
   /** A status change is a line in the goal's history, not only a column. */
   function record(goal: Goal, viewer: Viewer, text: string, kind: GoalUpdate["kind"]) {
@@ -154,13 +171,16 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
       return repo.insertGoal(draft);
     },
 
-    updateGoal(viewer: Viewer, id: string, input: unknown): Goal {
+    /**
+     * Change what a goal says.
+     *
+     * The caller states the version it loaded; a stale one is refused. An
+     * omitted version is the old last-writer behaviour, never used by the page.
+     */
+    updateGoal(viewer: Viewer, id: string, input: unknown, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
       const patch = parse(updateGoal, input);
-
-      const saved = repo.saveGoal(id, { ...values(goal), ...patch } as GoalValues);
-      if (!saved) throw ApiError.notFound("That goal");
-      return saved;
+      return commit(id, { ...values(goal), ...patch } as GoalValues, expectedVersion);
     },
 
     deleteGoal(viewer: Viewer, id: string): void {
@@ -190,51 +210,60 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
      * leader reads back in December — so it is kept as an update as well as on
      * the goal, where the year's history shows it in order.
      */
-    complete(viewer: Viewer, id: string, note?: string): Goal {
+    complete(viewer: Viewer, id: string, note?: string, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
       if (goal.status === "completed") throw ApiError.conflict("That goal is already complete.");
 
-      const saved = repo.saveGoal(id, {
-        ...values(goal),
-        status: "completed",
-        completedAt: todayISO(),
-        ...(note?.trim() ? { completionNote: note.trim() } : {}),
-        /* Finishing something lifts any hold that was on it. */
-        holdSince: undefined,
-        holdReason: undefined,
-      } as GoalValues);
-      if (!saved) throw ApiError.notFound("That goal");
+      const saved = commit(
+        id,
+        {
+          ...values(goal),
+          status: "completed",
+          completedAt: todayISO(),
+          ...(note?.trim() ? { completionNote: note.trim() } : {}),
+          /* Finishing something lifts any hold that was on it. */
+          holdSince: undefined,
+          holdReason: undefined,
+        } as GoalValues,
+        expectedVersion,
+      );
 
       record(goal, viewer, note?.trim() || "Completed.", "completion");
       return saved;
     },
 
     /** A goal on hold is not a goal abandoned, and the reason is the point. */
-    hold(viewer: Viewer, id: string, reason?: string): Goal {
+    hold(viewer: Viewer, id: string, reason?: string, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
 
-      const saved = repo.saveGoal(id, {
-        ...values(goal),
-        status: "on-hold",
-        holdSince: todayISO(),
-        ...(reason?.trim() ? { holdReason: reason.trim() } : {}),
-      } as GoalValues);
-      if (!saved) throw ApiError.notFound("That goal");
+      const saved = commit(
+        id,
+        {
+          ...values(goal),
+          status: "on-hold",
+          holdSince: todayISO(),
+          ...(reason?.trim() ? { holdReason: reason.trim() } : {}),
+        } as GoalValues,
+        expectedVersion,
+      );
 
       record(goal, viewer, reason?.trim() ? `On hold — ${reason.trim()}` : "On hold.", "status");
       return saved;
     },
 
-    resume(viewer: Viewer, id: string): Goal {
+    resume(viewer: Viewer, id: string, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
 
-      const saved = repo.saveGoal(id, {
-        ...values(goal),
-        status: "active",
-        holdSince: undefined,
-        holdReason: undefined,
-      } as GoalValues);
-      if (!saved) throw ApiError.notFound("That goal");
+      const saved = commit(
+        id,
+        {
+          ...values(goal),
+          status: "active",
+          holdSince: undefined,
+          holdReason: undefined,
+        } as GoalValues,
+        expectedVersion,
+      );
 
       record(goal, viewer, "Picked up again.", "status");
       return saved;
@@ -248,10 +277,17 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
      * what that year intended; rewriting it in January would lose exactly the
      * thing the record is for.
      */
-    carryForward(viewer: Viewer, id: string, toYear: number): Goal {
+    carryForward(viewer: Viewer, id: string, toYear: number, expectedVersion?: number): Goal {
       const goal = requireWritable(viewer, id);
       if (toYear <= goal.year) {
         throw ApiError.validation({ toYear: "A goal carries forward, not back." });
+      }
+      /* Checked before the new year's copy exists, so a stale carry leaves
+         nothing half-made behind. */
+      if (expectedVersion !== undefined && goal.version !== expectedVersion) {
+        throw ApiError.conflict(
+          "This goal was changed somewhere else while you were working. Reopen it to see the current version.",
+        );
       }
 
       const { number: _position, ...carriedValues } = values(goal);
@@ -267,7 +303,7 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
         holdReason: undefined,
       } as Omit<GoalValues, "number">);
 
-      repo.saveGoal(id, { ...values(goal), status: "carried-forward" } as GoalValues);
+      commit(id, { ...values(goal), status: "carried-forward" } as GoalValues);
       record(goal, viewer, `Carried forward to ${toYear}.`, "status");
 
       return carried;

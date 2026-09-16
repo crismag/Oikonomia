@@ -43,6 +43,7 @@ interface GatheringRow {
   report_completed_by: string | null;
   created_by: string | null;
   updated_by: string | null;
+  version: number;
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +88,7 @@ function toGathering(row: GatheringRow): Gathering {
     date: row.date,
     assignedLeaderIds: list<string>(row.assigned_leaders),
     status: row.status,
+    version: row.version,
     ...has(row.venue_id, "venueId"),
     ...has(row.primary_leader_id, "primaryLeaderId"),
     ...has(row.start_time, "startTime"),
@@ -155,7 +157,7 @@ function toEntry(row: EntryRow): LifegroupEntry {
   } as LifegroupEntry;
 }
 
-export type GatheringValues = Writable<Omit<Gathering, "id">>;
+export type GatheringValues = Writable<Omit<Gathering, "id" | "version">>;
 export type EntryValues = Writable<Omit<LifegroupEntry, "id" | "createdAt">>;
 
 function gatheringColumns(values: GatheringValues) {
@@ -185,10 +187,16 @@ export function createLifegroupRepository(db: Db) {
   );
 
   /* Only when, where and who. The exhortation and report have their own
-     writers, so a change of date can never quietly erase the write-up. */
+     writers, so a change of date can never quietly erase the write-up.
+
+     The version is part of the WHERE when a caller states one, so the check
+     and the write are one statement. The exhortation and summary writers do
+     not move it: they touch none of these columns, and a leader settling the
+     venue should not be told their save conflicted with somebody's notes. */
   const replace = db.prepare(
-    `UPDATE gathering SET ${columns.map((c) => `${c} = @${c}`).join(", ")}, updated_at = @updated_at
-      WHERE id = @id`,
+    `UPDATE gathering SET ${columns.map((c) => `${c} = @${c}`).join(", ")},
+            updated_at = @updated_at, version = version + 1
+      WHERE id = @id AND (@version IS NULL OR version = @version)`,
   );
 
   const find = (id: string) =>
@@ -235,17 +243,32 @@ export function createLifegroupRepository(db: Db) {
       return this.findGathering(id)!;
     },
 
-    saveGathering(id: string, values: GatheringValues): Gathering | undefined {
-      replace.run({ id, ...gatheringColumns(values), updated_at: nowIso() });
+    /**
+     * Save, if nobody else has saved since the stated version.
+     *
+     * `"stale"` means somebody else moved it on; `undefined` means it is gone.
+     * No version keeps the old last-writer behaviour for callers that have
+     * none to offer.
+     */
+    saveGathering(
+      id: string,
+      values: GatheringValues,
+      version?: number,
+    ): Gathering | "stale" | undefined {
+      const result = replace.run({
+        id,
+        ...gatheringColumns(values),
+        updated_at: nowIso(),
+        version: version ?? null,
+      });
+      if (result.changes === 0) return find(id) ? "stale" : undefined;
       return this.findGathering(id);
     },
 
     setStatus(id: string, status: string): void {
-      db.prepare("UPDATE gathering SET status = ?, updated_at = ? WHERE id = ?").run(
-        status,
-        nowIso(),
-        id,
-      );
+      db.prepare(
+        "UPDATE gathering SET status = ?, updated_at = ?, version = version + 1 WHERE id = ?",
+      ).run(status, nowIso(), id);
     },
 
     setExhortation(

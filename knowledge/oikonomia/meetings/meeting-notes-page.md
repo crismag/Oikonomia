@@ -14,13 +14,7 @@ aliases:
   - can I delete a meeting note
 capabilities: []
 hideWhen: []
-related:
-  - meeting-notes.write
-  - meeting-notes.decisions-follow-ups
-  - meeting-notes.tasks
-  - meeting-notes.find
-  - meeting-notes.personal-vs-minutes
-  - meeting-notes.record.walkthrough
+related: [meeting-notes.write, meeting-notes.decisions-follow-ups, meeting-notes.tasks, meeting-notes.find, meeting-notes.personal-vs-minutes, meeting-notes.record.walkthrough, meeting-notes.write-report]
 destinations: [meeting-notes]
 ---
 
@@ -36,6 +30,7 @@ Only notes you may read are listed, newest first. Each row shows the date, the t
 - Write in lines; the toolbar changes a line into a heading, list, checklist, decision or follow-up. See [Write a meeting note](topic:meeting-notes.write).
 - **Create task** turns a line into a task that can reach someone's week. See [Tasks from a meeting](topic:meeting-notes.tasks).
 - **Mark complete**, **Print**, and *Does this need anything from leadership?* sit on the note. See [Finish, print or ask leadership](topic:meeting-notes.complete-and-print).
+- **Write a report from this meeting** starts a Leadership Report that points back at the note. See [Write a report from a meeting](topic:meeting-notes.write-report).
 
 Writing saves as you go; the indicator beside **Print** says **Saving…**, **Saved** or **Up to date**, or shows what went wrong with **Try again**.
 

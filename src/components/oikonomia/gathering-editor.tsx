@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/oikonomia/combobox";
 import { VenuePicker } from "@/components/oikonomia/venue-picker";
-import { errorMessage } from "@/lib/calendar-client";
+import { errorMessage, isConflict } from "@/lib/calendar-client";
 import { useLifegroup } from "@/components/oikonomia/lifegroup-provider";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { useOrganization } from "./organization-provider";
@@ -56,6 +56,14 @@ export function GatheringEditor({
   const [touched, setTouched] = useState(false);
 
   /*
+   * The version this form was opened on — not whatever the book holds now.
+   * The gathering prop refreshes underneath an open editor, and saving against
+   * the newer version would overwrite somebody else's change with this form's
+   * older values while claiming nothing conflicted.
+   */
+  const [loadedVersion, setLoadedVersion] = useState(gathering?.version);
+
+  /*
    * Only what the server itself requires. A row on the shared schedule may be
    * saved with no venue and nobody leading it yet — that is how a roster is
    * prepared — so demanding either here offered a Save that could never
@@ -87,14 +95,18 @@ export function GatheringEditor({
      something that does not exist — §20. */
   const saveGathering = async () => {
     if (gathering) {
-      await store.updateGathering(gathering.id, {
-        date,
-        ...(venueId ? { venueId } : {}),
-        /* Naming leaders is campus oversight's; anybody else leaves the list as it is. */
-        ...(mayAssignOthers ? { assignedLeaderIds: leaderIds } : {}),
-        startTime: startTime || undefined,
-        endTime: endTime || undefined,
-      });
+      await store.updateGathering(
+        gathering.id,
+        {
+          date,
+          ...(venueId ? { venueId } : {}),
+          /* Naming leaders is campus oversight's; anybody else leaves the list as it is. */
+          ...(mayAssignOthers ? { assignedLeaderIds: leaderIds } : {}),
+          startTime: startTime || undefined,
+          endTime: endTime || undefined,
+        },
+        loadedVersion,
+      );
       onDone(gathering.id);
       return;
     }
@@ -108,6 +120,19 @@ export function GatheringEditor({
       ...(endTime ? { endTime } : {}),
     });
     onDone(id);
+  };
+
+  /* After a conflict: take what is stored now, dropping what was typed. The
+     person chooses this; nothing is thrown away on their behalf. */
+  const takeCurrent = () => {
+    if (!gathering) return;
+    setDate(gathering.date);
+    setStartTime(gathering.startTime ?? "");
+    setEndTime(gathering.endTime ?? "");
+    setVenueId(gathering.venueId ?? "");
+    setLeaderIds(gathering.assignedLeaderIds);
+    setLoadedVersion(gathering.version);
+    setFailure(null);
   };
 
   const addLeader = (personId: string) =>
@@ -217,7 +242,27 @@ export function GatheringEditor({
         )}
       </div>
 
-      {failure ? (
+      {failure && isConflict(failure) ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-status-overdue/40 bg-status-overdue/5 px-3 py-2.5 text-[13px] leading-relaxed"
+        >
+          <p className="font-medium">
+            This gathering was changed somewhere else while you were working.
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            Your changes are still here and have not been saved. Load the current version to see
+            what changed, then make your change again.
+          </p>
+          <button
+            type="button"
+            onClick={takeCurrent}
+            className="mt-1.5 font-medium underline underline-offset-2"
+          >
+            Load the current version
+          </button>
+        </div>
+      ) : failure ? (
         <p role="alert" className="text-[13px] text-status-overdue">
           {errorMessage(failure)}
         </p>

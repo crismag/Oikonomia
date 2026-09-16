@@ -71,9 +71,11 @@ export const createGoal = createServerFn({ method: "POST" })
   .handler(({ data }) => withGoals((service, viewer) => service.createGoal(viewer, data)));
 
 export const updateGoal = createServerFn({ method: "POST" })
-  .validator((input: { id: string; patch: unknown }) => input)
+  .validator((input: { id: string; patch: unknown; expectedVersion?: number }) => input)
   .handler(({ data }) =>
-    withGoals((service, viewer) => service.updateGoal(viewer, data.id, data.patch)),
+    withGoals((service, viewer) =>
+      service.updateGoal(viewer, data.id, data.patch, data.expectedVersion),
+    ),
   );
 
 export const deleteGoal = createServerFn({ method: "POST" })
@@ -90,23 +92,37 @@ export const addGoalUpdate = createServerFn({ method: "POST" })
   .handler(({ data }) => withGoals((service, viewer) => service.addUpdate(viewer, data)));
 
 export const completeGoal = createServerFn({ method: "POST" })
-  .validator((input: { id: string; note?: string | undefined }) => input)
+  .validator(
+    (input: { id: string; note?: string | undefined; expectedVersion?: number | undefined }) =>
+      input,
+  )
   .handler(({ data }) =>
-    withGoals((service, viewer) => service.complete(viewer, data.id, data.note)),
+    withGoals((service, viewer) =>
+      service.complete(viewer, data.id, data.note, data.expectedVersion),
+    ),
   );
 
 export const holdGoal = createServerFn({ method: "POST" })
-  .validator((input: { id: string; reason?: string | undefined }) => input)
+  .validator(
+    (input: { id: string; reason?: string | undefined; expectedVersion?: number | undefined }) =>
+      input,
+  )
   .handler(({ data }) =>
-    withGoals((service, viewer) => service.hold(viewer, data.id, data.reason)),
+    withGoals((service, viewer) =>
+      service.hold(viewer, data.id, data.reason, data.expectedVersion),
+    ),
   );
 
 export const resumeGoal = createServerFn({ method: "POST" })
-  .validator((input: { id: string }) => input)
-  .handler(({ data }) => withGoals((service, viewer) => service.resume(viewer, data.id)));
+  .validator((input: { id: string; expectedVersion?: number | undefined }) => input)
+  .handler(({ data }) =>
+    withGoals((service, viewer) => service.resume(viewer, data.id, data.expectedVersion)),
+  );
 
 export const carryGoalForward = createServerFn({ method: "POST" })
-  .validator((input: { id: string; toYear: number }) => input)
+  .validator((input: { id: string; toYear: number; expectedVersion?: number | undefined }) => input)
   .handler(({ data }) =>
-    withGoals((service, viewer) => service.carryForward(viewer, data.id, data.toYear)),
+    withGoals((service, viewer) =>
+      service.carryForward(viewer, data.id, data.toYear, data.expectedVersion),
+    ),
   );
