@@ -75,6 +75,11 @@ function toReport(row: ReportRow, comments: Comment[]): ReachOutReport {
   } as ReachOutReport;
 }
 
+export interface ReportFilters {
+  search?: string | undefined;
+  personId?: string | undefined;
+}
+
 export type ReportValues = Writable<
   Omit<ReachOutReport, "id" | "comments" | "createdAt" | "updatedAt" | "version">
 >;
@@ -116,19 +121,28 @@ export function createReachOutRepository(db: Db) {
     return rows.map((row) => toReport(row, comments.get(row.id) ?? []));
   };
 
-  function where(search: string | undefined) {
-    if (!search) return { sql: "", params: [] as unknown[] };
-    const q = `%${search.toLowerCase()}%`;
-    /* What it is called and what it says — the two a leader would mean. */
-    return {
-      sql: "WHERE LOWER(title) LIKE ? OR LOWER(content) LIKE ?",
-      params: [q, q] as unknown[],
-    };
+  function where({ search, personId }: ReportFilters) {
+    const clauses: string[] = [];
+    const params: unknown[] = [];
+    if (search) {
+      const q = `%${search.toLowerCase()}%`;
+      /* What it is called and what it says — the two a leader would mean. */
+      clauses.push("(LOWER(title) LIKE ? OR LOWER(content) LIKE ?)");
+      params.push(q, q);
+    }
+    if (personId) {
+      /* Who wrote it first, or who has worked on it since — `contributorsOf`. */
+      clauses.push(
+        "(author_id = ? OR EXISTS (SELECT 1 FROM json_each(IFNULL(contributors, '[]')) WHERE value = ?))",
+      );
+      params.push(personId, personId);
+    }
+    return { sql: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", params };
   }
 
   return {
-    count(search?: string): number {
-      const { sql, params } = where(search);
+    count(filters: ReportFilters = {}): number {
+      const { sql, params } = where(filters);
       const row = db
         .prepare(`SELECT COUNT(*) AS n FROM reach_out_report ${sql}`)
         .get(...params) as { n: number };
@@ -136,8 +150,8 @@ export function createReachOutRepository(db: Db) {
     },
 
     /** Newest report first — the binder is read from the back. */
-    list(search: string | undefined, limit: number, offset: number): ReachOutReport[] {
-      const { sql, params } = where(search);
+    list(filters: ReportFilters, limit: number, offset: number): ReachOutReport[] {
+      const { sql, params } = where(filters);
       const rows = db
         .prepare(
           `SELECT * FROM reach_out_report ${sql}

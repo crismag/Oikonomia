@@ -200,7 +200,7 @@ export function createDashboardService(repos: {
        * record, and there is no pipeline behind it.
        */
       const reachOutThisWeek = repos.reachOut
-        .list(undefined, 200, 0)
+        .list({}, 200, 0)
         .filter((r) => r.reportDate >= weekStart && r.reportDate <= weekEnd);
       const written = reachOutThisWeek.find((r) => r.content.trim().length > 0);
       const reachSteps = [

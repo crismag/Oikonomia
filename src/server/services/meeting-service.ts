@@ -81,6 +81,7 @@ export function createMeetingService(repo: MeetingRepository) {
         noteType: query.noteType,
         tag: query.tag,
         ministryId: query.ministryId,
+        personId: query.personId,
         /* Readability narrows the query, so the count is the viewer's count. */
         readableBy: viewer.person.id,
       };

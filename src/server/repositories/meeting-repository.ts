@@ -142,6 +142,8 @@ export interface NoteFilters {
   noteType?: string | undefined;
   tag?: string | undefined;
   ministryId?: string | undefined;
+  /** Written or taken down by this person. */
+  personId?: string | undefined;
   /**
    * Restrict to notes this person may read.
    *
@@ -202,6 +204,10 @@ export function createMeetingRepository(db: Db) {
       /* A context link, not a tag: `{"kind":"ministry","id":"min-music"}`. */
       clauses.push("links LIKE ?");
       params.push(`%"ministry"%"${filters.ministryId}"%`);
+    }
+    if (filters.personId) {
+      clauses.push("(author_id = ? OR note_taker_id = ?)");
+      params.push(filters.personId, filters.personId);
     }
     if (filters.readableBy) {
       /* One copy of this rule, shared with the document registry. */

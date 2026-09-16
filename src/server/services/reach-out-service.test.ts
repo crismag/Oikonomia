@@ -165,6 +165,17 @@ describe("listing", () => {
     ]);
   });
 
+  it("narrows to one person: what they wrote first and what they worked on since", () => {
+    service.createReport(maria, report({ title: "Maria's" }));
+    const joels = service.createReport(joel, report({ title: "Joel's, continued by Maria" }));
+    service.updateReport(maria, joels.id, { content: "Followed up." });
+    service.createReport(bishop, report({ title: "Bishop's" }));
+
+    const titles = service.list(bishop, { personId: maria.person.id }).reports.map((r) => r.title);
+    expect(titles.sort()).toEqual(["Joel's, continued by Maria", "Maria's"]);
+    expect(service.list(bishop, { personId: maria.person.id }).page.total).toBe(2);
+  });
+
   /**
    * Every leader sees every report, and that is a **stated absence of a rule**
    * rather than a decision — sharing for Reach-Out is an open product question.
