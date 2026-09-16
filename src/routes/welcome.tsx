@@ -226,7 +226,8 @@ function StepBody({
     case "welcome":
       return (
         <>
-          <Heading title={`Welcome, ${context.person.name.split(" ")[0]}`}>
+          {/* The whole name, as Home greets them: one way of addressing a leader. */}
+          <Heading title={`Welcome, ${context.person.name}`}>
             Let us set up your workspace. Oikonomia already knows some of this — you are here to
             check it, not to type it in again.
           </Heading>
