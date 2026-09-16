@@ -117,6 +117,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  /* The request's CSP nonce: without it the browser refuses this script. */
+  const nonce = useRouter().options.ssr?.nonce;
   return (
     /* The theme is set on <html> by the script below before React hydrates,
        so the server's markup and the browser's differ there on purpose. */
@@ -124,7 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         {/* Before first paint: a dark or themed page must never flash the
             default first. */}
-        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT_SCRIPT }} />
         <HeadContent />
       </head>
       <body>

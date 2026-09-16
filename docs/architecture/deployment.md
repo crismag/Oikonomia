@@ -291,14 +291,19 @@ renders or a crawler indexes — pages, error pages, `/healthz`, server-function
 responses, refusals — does.
 
 **What the CSP does and does not do**, stated precisely because overstating it
-is a reason not to look at the real defences: the framework streams an inline
-script whose contents differ per request, so it cannot be allowed by hash and
-needs `'unsafe-inline'`. That keyword also permits inline event handlers, so
-the policy would **not** stop injected script from running. What it stops is
-the half that makes such a bug worth exploiting — `connect-src 'self'` refuses
-the exfiltration, `script-src 'self'` refuses a larger payload from elsewhere,
-and `frame-ancestors 'none'` refuses framing. Moving to a nonce would remove
-the caveat.
+is a reason not to look at the real defences: `script-src` is `'self'` plus a
+fresh random nonce per response (`'nonce-…'`), with no `'unsafe-inline'`. Every
+inline script the page streams — the framework's dehydrated state, React's
+streaming scripts, the appearance boot script — carries that nonce, so injected
+markup cannot run: an inline event handler such as `onerror=` is refused, and so
+is a `<script>` without the nonce. `style-src` still allows `'unsafe-inline'`,
+because React renders `style` attributes; inline style cannot run script. Beyond
+that, `connect-src 'self'` refuses exfiltration, `script-src 'self'` refuses a
+payload from elsewhere, and `frame-ancestors 'none'` refuses framing.
+
+A proxy that rewrites or caches HTML must not replay one response's page with
+another response's header: the nonce in the page and in the header must match,
+or the browser refuses the page's scripts and it does not start.
 
 No policy is sent in development: Vite needs `eval` and a websocket, and a
 policy loosened until it permits those is not the policy production runs.
