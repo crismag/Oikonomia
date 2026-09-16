@@ -32,6 +32,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { RegisterDocument } from "@/components/oikonomia/register-document";
+import { DriveBrowser } from "@/components/oikonomia/drive-browser";
+import { DriveFileIcon, driveLine, useDriveDetails } from "@/components/oikonomia/drive-details";
+import { useAuth } from "@/components/oikonomia/auth-provider";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { goalCounts, goalsForYear, ministryGoals, personalGoalsRelatingTo } from "@/domain/goals";
@@ -52,6 +55,7 @@ import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
 import type { Goal, Ministry, ResourceSearchResult } from "@/domain/types";
+import type { DriveDetails } from "@/domain/drive";
 
 type View = "overview" | "goals" | "documents" | "activity";
 
@@ -131,6 +135,7 @@ function MinistryWorkspace() {
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <NewMenu
               ministryId={ministry.id}
+              ministryName={ministry.name}
               manage={canManage(relationship)}
               contribute={canContribute(relationship)}
             />
@@ -440,6 +445,7 @@ function Documents({
 }) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<string | null>(null);
+  const drive = useDriveDetails(documents);
 
   const q = query.trim().toLowerCase();
   const visible = documents
@@ -497,13 +503,13 @@ function Documents({
         ) : visible.length > 0 ? (
           <ul className="divide-y divide-border">
             {visible.map((doc) => (
-              <DocumentRow key={doc.id} document={doc} showMeta />
+              <DocumentRow key={doc.id} document={doc} showMeta drive={drive.get(doc.id)} />
             ))}
           </ul>
         ) : (
           <EmptyState icon={FolderOpen} title="No documents match">
             {canEdit
-              ? "Register a document from Documents & Forms and file it under this ministry."
+              ? "Use New to add from Drive, register a link, or start a plan the binder keeps."
               : "Nothing has been shared with you here yet."}
           </EmptyState>
         )}
@@ -524,19 +530,30 @@ function Documents({
 function DocumentRow({
   document,
   showMeta,
+  drive,
 }: {
   document: ResourceSearchResult;
   showMeta?: boolean;
+  /** What Drive says now, when this is a Drive document and Drive answered. */
+  drive?: DriveDetails | undefined;
 }) {
   /* Binder-native documents open here; the rest open where they live. */
   const openable = !!document.openUrl || !!document.openRoute;
   const Icon = document.external ? Cloud : NotebookPen;
+  const live = driveLine(drive);
 
   const body = (
     <>
-      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+      {drive?.available ? (
+        <DriveFileIcon mimeType={drive.file.mimeType} className="mt-0.5" />
+      ) : (
+        <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px]">{document.title}</span>
+        {live ? (
+          <span className="block truncate text-[12px] text-area-ink">In Drive: {live}</span>
+        ) : null}
         <span className="block truncate text-[12px] text-muted-foreground">
           {[document.kind, document.provider].filter(Boolean).join(" · ")}
           {showMeta && document.addedById ? (
@@ -549,7 +566,10 @@ function DocumentRow({
         </span>
       </span>
       {document.openUrl ? (
-        <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
+          {document.driveFileId ? <span className="hidden sm:inline">Open in Drive</span> : null}
+          <ExternalLink className="size-3.5" aria-hidden />
+        </span>
       ) : null}
     </>
   );
@@ -679,20 +699,28 @@ type NewItem = {
  * Only what works is listed: a control that looks operational must be.
  *
  * Plan, Report, Announcement and Checklist create a document the binder keeps
- * and open it for writing. "Add link" and "Add from Drive" register a document
- * that lives elsewhere, filed under this ministry — the binder records where it
- * is, and nothing is copied. There is no upload: the binder does not store
- * files, and a control that suggested it did would be a promise it cannot keep.
+ * and open it for writing. "Add link" registers a document that lives
+ * elsewhere, filed under this ministry. "Add from Drive" browses Google Drive
+ * as this leader where Drive is connected — choose, upload into the ministry's
+ * folder, or start a Google Doc, Sheet or Slides file — and registers a pasted
+ * Drive address where it is not. Files always stay in Drive: the binder keeps
+ * the record, never the bytes.
  */
 function NewMenu({
   ministryId,
+  ministryName,
   manage,
   contribute,
 }: {
   ministryId: string;
+  ministryName: string;
   manage: boolean;
   contribute: boolean;
 }) {
+  /* With Drive connected, "Add from Drive" browses Drive as this leader;
+     without it, it registers a pasted Drive address as before. */
+  const { methods } = useAuth();
+  const driveConnected = methods.workspace.drive;
   const [open, setOpen] = useState(false);
   const [failure, setFailure] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -730,9 +758,16 @@ function NewMenu({
     { label: "Checklist", icon: FileText, kind: "Checklist" },
   ];
 
+  /*
+   * Registering existing material has been the lead's. With Drive connected,
+   * everyone who contributes may also add from Drive — uploading into the
+   * ministry's folder is contributing, and the server checks exactly that.
+   */
   const existing: { label: string; icon: typeof FileText; register: "link" | "drive" }[] = [
-    { label: "Add from Drive", icon: Cloud, register: "drive" },
-    { label: "Add link", icon: Link2, register: "link" },
+    ...(manage || (contribute && driveConnected)
+      ? [{ label: "Add from Drive", icon: Cloud, register: "drive" as const }]
+      : []),
+    ...(manage ? [{ label: "Add link", icon: Link2, register: "link" as const }] : []),
   ];
 
   return (
@@ -770,7 +805,7 @@ function NewMenu({
           </p>
         ) : null}
 
-        {manage ? (
+        {existing.length > 0 ? (
           <>
             <div className="my-1.5 h-px bg-border" />
             <p className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
@@ -794,7 +829,9 @@ function NewMenu({
               ))}
             </ul>
             <p className="px-2 pt-1.5 text-[11px] leading-relaxed text-muted-foreground">
-              A link is registered, not copied: the document stays where it is.
+              {driveConnected
+                ? "Files stay in Drive. The binder keeps a record of each, never a copy."
+                : "A link is registered, not copied: the document stays where it is."}
             </p>
           </>
         ) : null}
@@ -808,7 +845,16 @@ function NewMenu({
             <SheetTitle>Add existing material</SheetTitle>
             <SheetDescription>Register a document that lives elsewhere</SheetDescription>
           </SheetHeader>
-          {registering ? (
+          {registering === "drive" && driveConnected ? (
+            <div className="mt-6">
+              <DriveBrowser
+                ministryId={ministryId}
+                ministryName={ministryName}
+                mayAdd={contribute}
+                onDone={() => setRegistering(null)}
+              />
+            </div>
+          ) : registering ? (
             <div className="mt-6">
               <RegisterDocument
                 ministryId={ministryId}

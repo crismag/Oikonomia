@@ -119,6 +119,25 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
     because: "integrations",
   },
 
+  /* drive-api.ts — every call acts as the leader in Google Drive */
+  "src/lib/drive-api.ts#browseDrive": { method: "GET", demo: "read" },
+  "src/lib/drive-api.ts#fetchDriveDetails": { method: "GET", demo: "read" },
+  "src/lib/drive-api.ts#registerDriveFile": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+  "src/lib/drive-api.ts#uploadDriveFile": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+  "src/lib/drive-api.ts#createDriveFile": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+
   /* calendar-api.ts */
   "src/lib/calendar-api.ts#fetchCalendarRange": { method: "GET", demo: "read" },
   "src/lib/calendar-api.ts#createCalendarEntry": { method: "POST", demo: "allowed" },

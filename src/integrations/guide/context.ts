@@ -182,6 +182,7 @@ export const routeGuides: RouteGuide[] = [
       "ministries.page",
       "ministries.add-goal",
       "ministries.find-documents",
+      "documents.drive",
       "ministries.add-link",
       "ministries.relationship",
       "goals.scope",
@@ -192,7 +193,7 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/documents",
     module: "documents",
     page: "documents",
-    topics: ["documents.page", "documents.register"],
+    topics: ["documents.page", "documents.register", "documents.drive"],
   },
   {
     pattern: "/documents/$",

@@ -13,11 +13,11 @@ aliases:
   - how do I upload a document
 capabilities: []
 hideWhen: []
-related: [documents.page, ministries.add-link]
+related: [documents.page, documents.drive, ministries.add-link]
 destinations: [documents]
 ---
 
-Registering records a document that lives somewhere else — Google Drive, a website, a shared folder. Nothing is copied into Oikonomia, and uploading a file is not possible.
+Registering records a document that lives somewhere else — Google Drive, a website, a shared folder. Nothing is copied into Oikonomia. To upload a file or pick one from Drive, use **Add from Drive** on a ministry where Drive is connected; see [Documents in Google Drive](topic:documents.drive).
 
 ### Steps
 
@@ -34,5 +34,5 @@ It appears under **Reference documents** and in Resource Search.
 ### Worth knowing
 
 - The document's own sharing still decides who can open it. Registering it does not share it.
-- Oikonomia does not connect to Google Drive. Copy the link from Drive and paste it.
+- Here you paste an address; nothing is looked up in Drive. A pasted Drive address still shows its owner and last change on lists where Drive is connected and Drive lets you see it.
 - If a required field is missing or the save is refused, the form stays open with what you typed and says what to fix.

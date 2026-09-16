@@ -21,8 +21,8 @@ const relationship = z.enum(["filed-in", "supporting", "report-content"]);
  * have to complete a metadata form to do it.
  *
  * `url` is required: the only resources a leader can register today are ones
- * kept somewhere else. Uploading a file into the binder is not built, so it is
- * not offered.
+ * kept somewhere else. The binder never stores a file: an upload goes straight
+ * to Google Drive (`drive-service.ts`) and is registered from there.
  */
 export const registerDocument = z.object({
   title: z.string().trim().min(1, "Give it a name you would look for it by.").max(200),

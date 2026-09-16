@@ -70,11 +70,27 @@ disturb its work.
 Each ministry keeps its own documents, goals and reports. Who may write in them
 is the ministry's own question — its lead and the people on its team.
 
-A ministry's lead can add material that lives elsewhere from **New → Add link**
-or **Add from Drive**. Both register the document's address and file it under
-the ministry; nothing is copied, and Oikonomia does not connect to Drive — the
-document's own sharing still decides who can open it. There is no upload: the
-binder does not store files.
+Files live where they are kept, never in the binder. A ministry's lead can
+file a web address from **New → Add link**.
+
+**Add from Drive** depends on the installation:
+
+- **Where the church has connected Google Workspace**, it opens Google Drive
+  as you, with three tabs — **Ministry folder**, **My Drive** and **Shared
+  with me** — a search box and folders you can open. Choosing a file files it
+  under the ministry. The ministry's lead and team can also **Upload file**
+  (up to 25 MB) or start a **New Google Doc**, **Sheet** or **Slides** file;
+  both go into the ministry's own folder in the church's Drive, made the first
+  time it is needed, and the new Google file opens in a new tab. The file
+  stays in Drive: Oikonomia keeps a record of it, not a copy.
+- **Where it has not**, it asks for the document's link, and says Drive is not
+  connected on this installation.
+
+Either way the file's own sharing in Drive decides who can open it; filing it
+under a ministry shares nothing. Drive documents on a ministry's **Documents**
+view show who owns them and when they last changed, and **Open in Drive**.
+Oikonomia acts as you in Drive only when your person record carries your
+church Google address; otherwise it says so.
 
 > **Being shared with a ministry is not membership.** A leader who can read a
 > ministry's document may not have a cursor in it, and is told so plainly

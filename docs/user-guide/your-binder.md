@@ -215,7 +215,10 @@ material. Two different things live here:
 
 - **Register a document** — the binder records what it is and where it lives.
   The document itself stays where it is; nothing is copied in, and whoever
-  keeps it still decides who may open it. Opening it takes you there.
+  keeps it still decides who may open it. Opening it takes you there. Where
+  Google Drive is connected, a Drive document also shows its owner and when it
+  last changed, and uploading or choosing Drive files happens from a
+  ministry's **New → Add from Drive**.
 - **Create a form** — built in Oikonomia, with sections and fields.
 
 A filled-in form keeps its own copy of the form as it was, so changing the
