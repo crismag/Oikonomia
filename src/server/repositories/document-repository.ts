@@ -36,6 +36,8 @@ interface DocumentRow {
   url: string | null;
   file_name: string | null;
   open_route: string | null;
+  drive_file_id: string | null;
+  drive_mime_type: string | null;
   tags: string | null;
   registered_by: string;
   created_at: string;
@@ -86,6 +88,8 @@ function toDocument(row: DocumentRow, associations: DocumentAssociation[]): Regi
     ...has(row.url, "url"),
     ...has(row.file_name, "fileName"),
     ...has(row.open_route, "openRoute"),
+    ...has(row.drive_file_id, "driveFileId"),
+    ...has(row.drive_mime_type, "driveMimeType"),
   } as RegisteredDocument;
 }
 
@@ -97,6 +101,8 @@ export interface DocumentValues {
   url?: string | undefined;
   fileName?: string | undefined;
   openRoute?: string | undefined;
+  driveFileId?: string | undefined;
+  driveMimeType?: string | undefined;
   tags?: string[] | undefined;
   registeredById: string;
 }
@@ -246,9 +252,9 @@ export function createDocumentRepository(db: Db) {
       db.prepare(
         `INSERT INTO document
            (id, title, description, kind, origin, url, file_name, open_route,
-            tags, registered_by, created_at, updated_at)
+            drive_file_id, drive_mime_type, tags, registered_by, created_at, updated_at)
          VALUES (@id, @title, @description, @kind, @origin, @url, @file_name, @open_route,
-                 @tags, @registered_by, @created_at, @updated_at)`,
+                 @drive_file_id, @drive_mime_type, @tags, @registered_by, @created_at, @updated_at)`,
       ).run({
         id,
         title: values.title,
@@ -258,6 +264,8 @@ export function createDocumentRepository(db: Db) {
         url: values.url ?? null,
         file_name: values.fileName ?? null,
         open_route: values.openRoute ?? null,
+        drive_file_id: values.driveFileId ?? null,
+        drive_mime_type: values.driveMimeType ?? null,
         tags: pack(values.tags ?? []),
         registered_by: values.registeredById,
         created_at: at,
@@ -285,6 +293,19 @@ export function createDocumentRepository(db: Db) {
         updated_at: nowIso(),
       });
       return this.findUnguarded(id);
+    },
+
+    /**
+     * The record already kept for a Drive file, if any.
+     *
+     * Without the gate, like `findUnguarded`: used to avoid registering one
+     * Drive file twice, never returned as it is.
+     */
+    findByDriveFile(fileId: string): RegisteredDocument | undefined {
+      const row = db
+        .prepare("SELECT * FROM document WHERE drive_file_id = ? ORDER BY created_at LIMIT 1")
+        .get(fileId) as DocumentRow | undefined;
+      return row ? attach([row])[0] : undefined;
     },
 
     delete(id: string): boolean {

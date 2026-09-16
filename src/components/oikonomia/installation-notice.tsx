@@ -25,6 +25,7 @@ const WHAT: Record<InstallationRestriction, string> = {
   identity: "Adding people and editing who they are — name, email, access role — is",
   configuration: "Changing configuration is",
   data: "Backups, exports, retention and package checks are",
+  integrations: "Google Workspace — mail, Drive and calendar — is",
 };
 
 export function InstallationNotice({

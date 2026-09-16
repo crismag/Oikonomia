@@ -22,6 +22,7 @@ import {
   type RegisteredDocument,
 } from "@/domain/registry";
 import { sectionLabel } from "@/domain/resources";
+import { driveFileIdFromUrl } from "@/domain/drive";
 import { dayLabel, venueName } from "@/domain/lifegroup";
 import type { OrganizationRepository } from "../repositories/organization-repository";
 import type { LeadershipReportRepository } from "../repositories/leadership-report-repository";
@@ -93,6 +94,12 @@ import type { Viewer } from "@/domain/viewer";
  * is why a document could be attached to a ministry that existed only in the
  * source code.
  */
+/** The Drive file behind a document: recorded, or read from its pasted Drive address. */
+const driveIdOf = (document: RegisteredDocument) =>
+  document.origin === "drive"
+    ? (document.driveFileId ?? driveFileIdFromUrl(document.url))
+    : undefined;
+
 export interface RegistryContext {
   organization: OrganizationRepository;
   reports: LeadershipReportRepository;
@@ -206,6 +213,7 @@ export function createDocumentService(
       ...(document.description ? { description: document.description } : {}),
       ...(document.url ? { openUrl: document.url } : {}),
       ...(document.openRoute ? { openRoute: document.openRoute } : {}),
+      ...(driveIdOf(document) ? { driveFileId: driveIdOf(document) } : {}),
     } as ResourceSearchResult;
   }
 
@@ -506,9 +514,10 @@ export function createDocumentService(
     /**
      * Register a resource.
      *
-     * The origin is read off the address and nothing more is claimed: there is
-     * no Google Workspace integration here (§37), so the binder records where a
-     * leader says the resource lives and never pretends to have checked.
+     * The origin is read off the address and nothing more is claimed: a pasted
+     * address is recorded as the leader gave it, and never pretends to have been
+     * checked. Choosing a file through Drive is `drive-service.ts`, which asks
+     * Drive first.
      */
     register(viewer: Viewer, input: unknown): RegisteredDocument {
       const parsed = parse(registerDocument, input);

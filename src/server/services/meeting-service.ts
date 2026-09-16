@@ -15,6 +15,9 @@ import type { MeetingRepository, NoteValues } from "../repositories/meeting-repo
 import type { PageMeta } from "@/lib/api-envelope";
 import type { MeetingNote, MeetingTask } from "@/domain/types";
 import type { Viewer } from "@/domain/viewer";
+import { viewerOf } from "@/domain/viewer";
+import { meetingTaskEmail } from "@/domain/email-notices";
+import type { NoticeMailer } from "../notices/notice-mailer";
 
 /**
  * Meeting Notes decisions.
@@ -31,7 +34,11 @@ import type { Viewer } from "@/domain/viewer";
  * filtered for permission after paging would leak counts.
  */
 
-export function createMeetingService(repo: MeetingRepository) {
+export function createMeetingService(
+  repo: MeetingRepository,
+  /** Emails a leader given a task, when they chose that. Optional, and never fails a write. */
+  mailer?: NoticeMailer,
+) {
   function readable(viewer: Viewer, note: MeetingNote): boolean {
     return canView(viewer, { kind: "meeting-note", note });
   }
@@ -73,6 +80,53 @@ export function createMeetingService(repo: MeetingRepository) {
       throw ApiError.forbidden("This note belongs to whoever wrote it.");
     }
     return note;
+  }
+
+  /**
+   * Tell somebody, by email if they want it, that they were given a task.
+   *
+   * Only when the task names somebody other than the person saving it — a
+   * leader writing their own task is not news, and the mailer refuses the
+   * actor anyway. The meeting is named, and linked, only when the recipient
+   * may read the note; otherwise the email says "a meeting" and links to the
+   * task's day on their week, as the bell does.
+   */
+  function emailTheAssignee(viewer: Viewer, task: MeetingTask): void {
+    if (!mailer || !task.assigneeId || task.assigneeId === viewer.person.id) return;
+    try {
+      const note = repo.findNote(task.meetingId);
+      mailer.notify({
+        kind: "meeting-task",
+        actorId: viewer.person.id,
+        recipientIds: [task.assigneeId],
+        compose: ({ recipient, actor, base }) => {
+          const readable =
+            !!note &&
+            canView(viewerOf(recipient), {
+              kind: "meeting-note",
+              note,
+            });
+          return meetingTaskEmail({
+            base,
+            assignerName: actor?.name ?? viewer.person.name,
+            title: task.title,
+            ...(readable && note ? { meetingTitle: note.title || "Untitled meeting" } : {}),
+            ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+            link: readable
+              ? { to: "/meeting-notes", search: { note: task.meetingId } }
+              : {
+                  to: "/weekly-agenda",
+                  ...(task.dueDate ? { search: { date: task.dueDate } } : {}),
+                },
+          });
+        },
+      });
+    } catch (error) {
+      console.error(
+        "[notices] meeting task email not sent:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   return {
@@ -223,7 +277,13 @@ export function createMeetingService(repo: MeetingRepository) {
     createTask(viewer: Viewer, input: unknown): MeetingTask {
       const values = parse(createTask, input);
       requireWritable(viewer, values.meetingId);
-      return repo.insertTask({ ...values, status: "open", createdAt: new Date().toISOString() });
+      const task = repo.insertTask({
+        ...values,
+        status: "open",
+        createdAt: new Date().toISOString(),
+      });
+      emailTheAssignee(viewer, task);
+      return task;
     },
 
     updateTask(viewer: Viewer, id: string, input: unknown): MeetingTask {
@@ -252,6 +312,10 @@ export function createMeetingService(repo: MeetingRepository) {
         status: patch.status ?? existing.status,
       });
       if (!saved) throw ApiError.notFound("That task");
+      /* Only a change of hands is news; editing a task's title is not. */
+      if (saved.assigneeId && saved.assigneeId !== existing.assigneeId) {
+        emailTheAssignee(viewer, saved);
+      }
       return saved;
     },
 

@@ -72,6 +72,27 @@ tasks a meeting gave you. Open an event to see it in full; open a task to reach
 it where it lives: an agenda item on the week, a meeting task in its note when
 you may read that note.
 
+## Google Calendar
+
+Only where the church has connected Google Workspace (never on a
+demonstration):
+
+- **Church events are published** to a church Google Calendar that people can
+  subscribe to — every calendar event and every LifeGroup gathering, shortly
+  after it is saved, with changes, repeats and removed dates following. A
+  cancelled gathering is taken off. It is one way: change events in Oikonomia,
+  not in Google. If Google cannot be reached your change is still saved; an
+  administrator sees the failure under **Administration → Google Workspace**
+  and can **Publish all events** again.
+- **Your own Google Calendar beside your week.** Weekly Agenda (Agenda and
+  Calendar views) and the Monthly Calendar's day panel show your own events
+  under **From your Google Calendar**, read as you and not kept. They are not
+  tasks, cannot be edited here and do not count on Home or My Progress; church
+  events Oikonomia published are left out so nothing appears twice.
+  **Google Calendar** in the toolbar shows or hides them, remembered on that
+  browser. Your record in People needs your church Workspace address for this
+  to work.
+
 ## Meeting Notes
 
 > _What was said and decided, written down while it is fresh._
@@ -215,7 +236,10 @@ material. Two different things live here:
 
 - **Register a document** — the binder records what it is and where it lives.
   The document itself stays where it is; nothing is copied in, and whoever
-  keeps it still decides who may open it. Opening it takes you there.
+  keeps it still decides who may open it. Opening it takes you there. Where
+  Google Drive is connected, a Drive document also shows its owner and when it
+  last changed, and uploading or choosing Drive files happens from a
+  ministry's **New → Add from Drive**.
 - **Create a form** — built in Oikonomia, with sections and fields.
 
 A filled-in form keeps its own copy of the form as it was, so changing the

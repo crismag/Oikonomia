@@ -21,6 +21,13 @@ import { PlanningList, WeekCalendar } from "@/components/oikonomia/planning-view
 import { AgendaSheet, weekOfLabel } from "@/components/oikonomia/agenda-sheet";
 import { TaskDetail } from "@/components/oikonomia/task-detail";
 import {
+  OverlayEvents,
+  OverlayNotice,
+  OverlayToggle,
+  useGoogleCalendarOverlay,
+} from "@/components/oikonomia/google-calendar-overlay";
+import type { OverlayEvent } from "@/domain/google-calendar";
+import {
   completionFor,
   filterPlanning,
   groupPlanning,
@@ -138,6 +145,8 @@ function WeeklyAgendaPage() {
   const store = useCalendarPeriod(days);
   /* Tasks a meeting gave this leader. The same records, in their week. */
   const myTasks = useMyMeetingTasks();
+  /* Their own Google Calendar beside it, when the church reads calendars. */
+  const google = useGoogleCalendarOverlay(days);
 
   const detail = useOverlay<ScheduleOccurrence>();
   /* A task is a record too, and until now clicking one did nothing. */
@@ -253,7 +262,7 @@ function WeeklyAgendaPage() {
    * them "nothing scheduled" while they owe somebody a venue by Saturday is
    * the page contradicting itself.
    */
-  const busy = days.some((iso) => dayItems(iso).length > 0);
+  const busy = days.some((iso) => dayItems(iso).length > 0 || google.eventsOn(iso).length > 0);
 
   /*
    * The binder page this collection came from.
@@ -332,6 +341,10 @@ function WeeklyAgendaPage() {
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <WorkspaceSearch value={search} onChange={setSearch} />
+
+          {/* The List view is Oikonomia's own items; the leader's Google
+              Calendar is context for the days, so it is offered where days are. */}
+          {view !== "list" ? <OverlayToggle overlay={google} /> : null}
 
           {/* The binder page this collection came from. */}
           <Link
@@ -417,6 +430,8 @@ function WeeklyAgendaPage() {
         </div>
       </div>
 
+      {view !== "list" && store.status === "ready" ? <OverlayNotice overlay={google} /> : null}
+
       {store.status === "error" ? (
         /* One workspace, not one apology: the tabs and the toolbar above stay
            usable, and only the view says it could not be drawn. */
@@ -431,6 +446,7 @@ function WeeklyAgendaPage() {
                 key={iso}
                 iso={iso}
                 today={today}
+                google={google.eventsOn(iso)}
                 onOpen={detail.open}
                 onAdd={() => adding.open(iso)}
               />
@@ -464,7 +480,18 @@ function WeeklyAgendaPage() {
           </p>
         )
       ) : (
-        <WeekCalendar days={days} today={today} itemsByDay={dayItems} onOpen={openItem} />
+        <WeekCalendar
+          days={days}
+          today={today}
+          itemsByDay={dayItems}
+          onOpen={openItem}
+          extraByDay={(iso) => {
+            const events = google.eventsOn(iso);
+            return events.length > 0 ? (
+              <OverlayEvents events={events} compact className="mt-1.5" />
+            ) : null;
+          }}
+        />
       )}
 
       {/* The binder's notes area: belongs to the week, not to any one day. */}
@@ -518,11 +545,14 @@ function WeeklyAgendaPage() {
 function Day({
   iso,
   today,
+  google,
   onOpen,
   onAdd,
 }: {
   iso: string;
   today: string;
+  /** From the leader's own Google Calendar: context, never a task. */
+  google: OverlayEvent[];
   onOpen: (occurrence: ScheduleOccurrence) => void;
   onAdd: () => void;
 }) {
@@ -566,7 +596,8 @@ function Day({
         {allDay.length === 0 &&
         timed.length === 0 &&
         tasks.length === 0 &&
-        meetingTasks.length === 0 ? (
+        meetingTasks.length === 0 &&
+        google.length === 0 ? (
           <button
             type="button"
             onClick={onAdd}
@@ -582,6 +613,8 @@ function Day({
         {timed.map((occurrence) => (
           <EntryLine key={occurrence.key} occurrence={occurrence} onOpen={onOpen} />
         ))}
+
+        <OverlayEvents events={google} className="my-1.5" />
 
         {tasks.length > 0 || meetingTasks.length > 0 ? (
           <div className="mt-2">
@@ -599,7 +632,11 @@ function Day({
           </div>
         ) : null}
 
-        {allDay.length > 0 || timed.length > 0 || tasks.length > 0 || meetingTasks.length > 0 ? (
+        {allDay.length > 0 ||
+        timed.length > 0 ||
+        tasks.length > 0 ||
+        meetingTasks.length > 0 ||
+        google.length > 0 ? (
           <button
             type="button"
             onClick={onAdd}

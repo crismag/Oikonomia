@@ -10,7 +10,7 @@
 
 /** The groups of operations an installation policy can remove. */
 export type InstallationRestriction =
-  "authentication" | "sessions" | "identity" | "configuration" | "data";
+  "authentication" | "sessions" | "identity" | "configuration" | "data" | "integrations";
 
 export interface InstallationView {
   /** A public demonstration. */

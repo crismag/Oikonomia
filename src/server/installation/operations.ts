@@ -32,7 +32,9 @@
  *     without being able to change the others);
  *   - `configuration` — the installation's vocabulary, roles and capabilities;
  *   - `data` — backups, exports, retention and package checks: copies of
- *     everything, and files on the server's disk.
+ *     everything, and files on the server's disk;
+ *   - `integrations` — anything that reaches Google Workspace: a
+ *     demonstration never acts as a real church's accounts.
  *
  * This says nothing about *who* may do something; services still decide that.
  * It only removes operations from an installation altogether.
@@ -108,6 +110,43 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
     demo: "denied",
     because: "authentication",
   },
+
+  /* workspace-api.ts */
+  "src/lib/workspace-api.ts#fetchWorkspaceStatus": { method: "GET", demo: "read" },
+  "src/lib/workspace-api.ts#checkWorkspaceConnection": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+
+  /* drive-api.ts — every call acts as the leader in Google Drive */
+  "src/lib/drive-api.ts#browseDrive": { method: "GET", demo: "read" },
+  "src/lib/drive-api.ts#fetchDriveDetails": { method: "GET", demo: "read" },
+  "src/lib/drive-api.ts#registerDriveFile": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+  "src/lib/drive-api.ts#uploadDriveFile": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+  "src/lib/drive-api.ts#createDriveFile": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+
+  /* google-calendar-api.ts */
+  "src/lib/google-calendar-api.ts#fetchCalendarPublishing": { method: "GET", demo: "read" },
+  "src/lib/google-calendar-api.ts#publishAllCalendarEvents": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+  /* A demonstration has no Workspace, so this answers "not set up" there. */
+  "src/lib/google-calendar-api.ts#fetchGoogleCalendarOverlay": { method: "GET", demo: "read" },
 
   /* calendar-api.ts */
   "src/lib/calendar-api.ts#fetchCalendarRange": { method: "GET", demo: "read" },
@@ -325,6 +364,15 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/reports-api.ts#transitionReport": { method: "POST", demo: "allowed" },
   "src/lib/reports-api.ts#commentOnReport": { method: "POST", demo: "allowed" },
   "src/lib/reports-api.ts#removeReport": { method: "POST", demo: "allowed" },
+
+  /* notice-email-api.ts */
+  "src/lib/notice-email-api.ts#fetchEmailNotices": { method: "GET", demo: "read" },
+  /*
+   * Allowed: it records a person's own preference and sends nothing. On a
+   * demonstration `delivery()` is suppressed before any adapter, so a switch
+   * turned on there reaches nobody — and the page says mail cannot be sent.
+   */
+  "src/lib/notice-email-api.ts#setEmailNotice": { method: "POST", demo: "allowed" },
 
   /* starred-api.ts */
   "src/lib/starred-api.ts#fetchStarred": { method: "GET", demo: "read" },

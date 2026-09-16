@@ -65,6 +65,7 @@ async function withCalendar<T>(
     { createOrganizationRepository },
     { createEscalationService },
     { createLeadershipReportRepository },
+    { calendarPublisherFor },
     { getRequest },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -77,6 +78,7 @@ async function withCalendar<T>(
     import("@/server/repositories/organization-repository"),
     import("@/server/services/escalation-service"),
     import("@/server/repositories/leadership-report-repository"),
+    import("@/server/google/calendar-publishing"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -112,6 +114,8 @@ async function withCalendar<T>(
           );
         },
       },
+      /* The church's Google Calendar, when it publishes one. */
+      calendarPublisherFor(db),
     );
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {

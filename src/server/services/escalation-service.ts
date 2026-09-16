@@ -25,6 +25,9 @@ import { categoryLabelOf, triggersAttention } from "@/domain/categories";
 import { isCurrent, reportContextLabel } from "@/domain/leadership-report";
 import type { LeadershipReport } from "@/domain/types";
 import type { Viewer } from "@/domain/viewer";
+import { askEmail } from "@/domain/email-notices";
+import { escalationHref } from "@/domain/escalation";
+import type { NoticeMailer } from "../notices/notice-mailer";
 
 const contextLabel = (report: LeadershipReport) => reportContextLabel(report);
 
@@ -183,6 +186,13 @@ export function createEscalationService(
    * read it anyway, and to everyone else it does not exist.
    */
   reports?: { discoverable: (viewer: Viewer) => LeadershipReport[] },
+  /**
+   * Emails the people asked, when they chose to be emailed about asks.
+   *
+   * Optional so the inbox and its tests work without mail. Whatever it does,
+   * the ask is already saved: see `notice-mailer.ts`.
+   */
+  mailer?: NoticeMailer,
 ) {
   /**
    * Which positions this person holds.
@@ -286,6 +296,53 @@ export function createEscalationService(
       throw ApiError.notFound("That request");
     }
     return { current, held };
+  }
+
+  /**
+   * Tell the people asked, by email, if they want to be told.
+   *
+   * A named person is emailed. An ask made of a position emails the people
+   * `resolveRecipients` says hold it for *this requester* — their reporting
+   * leader, the heads of their ministries, their campus's or the church's
+   * leadership body. That is narrower than the inbox, which shows a position's
+   * asks to everyone holding that kind of position anywhere; email goes only
+   * to the people the ask means, and every one of them can also see it in the
+   * inbox. A position nobody holds emails nobody.
+   *
+   * The email says what was asked and links to the record. It carries no
+   * content of the record, and the link is checked like any other request.
+   */
+  function emailTheAsked(viewer: Viewer, escalation: Escalation): void {
+    if (!mailer) return;
+    try {
+      const recipientIds = [
+        ...(escalation.requestedFromPersonId ? [escalation.requestedFromPersonId] : []),
+        ...(escalation.requestedFromRole
+          ? resolveRecipients(escalation.requestedFromRole, viewer.person.id)
+          : []),
+      ];
+      const link = escalationHref(escalation.sourceType, escalation.sourceId) ?? { to: "/inbox" };
+      mailer.notify({
+        kind: "ask",
+        actorId: viewer.person.id,
+        recipientIds,
+        compose: ({ actor, base }) =>
+          askEmail({
+            base,
+            askerName: actor?.name ?? viewer.person.name,
+            type: escalation.type,
+            request: escalation.request,
+            ...(escalation.neededBy ? { neededBy: escalation.neededBy } : {}),
+            link,
+          }),
+      });
+    } catch (error) {
+      /* The ask is saved; an email about it is never a reason to say otherwise. */
+      console.error(
+        "[notices] ask email not sent:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   return {
@@ -418,6 +475,7 @@ export function createEscalationService(
         note: parsed.request,
       });
 
+      emailTheAsked(viewer, escalation);
       return escalation;
     },
 

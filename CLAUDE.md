@@ -80,8 +80,10 @@ work.
    “enable” these in the UI when the server will refuse. Adding a server
    function requires an entry in that table
    (`src/installation-policy-classified.test.ts` fails otherwise).
-5. **Documents are links, not uploads.** The binder records where a document
-   lives. Do not add file storage.
+5. **Files live in Drive; Oikonomia never stores file bytes.** The binder
+   records where a document lives (a link, plus Drive's file id for Drive
+   documents). Uploads stream through to Google Drive and are not kept. Do not
+   add file storage.
 6. **Status is computed.** Nothing lets a leader paint an obligation green.
    Done means done (attendance without a gathering report is still in progress).
 7. **exactOptionalPropertyTypes is on.** Do not pass `prop={maybeUndefined}`;
@@ -317,10 +319,10 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 | Hold | Prerequisite |
 | --- | --- |
 | Merge **Leadership Reports** with **Reports to you** | Explicit decision: what *is* a ministry report? They are different records. |
-| Email or push reminders | In-app notices exist (`notices-bell.tsx`, `src/domain/notices.ts`): the bell counts only unseen asks and meeting tasks from someone else; past-due is listed, never counted; opening marks seen via `markSeen`. Do not add email/push or count overdue on the bell without Cris. |
-| Calendar sync (Google) | Real OAuth, not a fake “connected” badge. Demo must stay disconnected. |
+| Push, or email reminders beyond notices | In-app notices (`notices-bell.tsx`, `src/domain/notices.ts`): the bell counts only unseen asks and meeting tasks from someone else; past-due is listed, never counted; opening marks seen via `markSeen`. **Email notices exist** (Cris's decision) for those same two kinds only, opt-in — see *Email notices* below. Do not add push, email about past-due or reports, or count overdue on the bell without Cris. |
+| Two-way calendar sync (Google) | **Built: publish + overlay** through Workspace delegation (`src/server/google/calendar.ts`, migration 045): church events and gatherings are published one way to `OIKONOMIA_GOOGLE_CALENDAR_ID`; a leader's own calendar is a read-only overlay on the week and month day panel, never counted. Oikonomia stays the source of truth. **Two-way sync is not built** and needs Cris's decision. Demo stays disconnected. |
 | CSV import / member import | Church setup journey first, or you import into a shapeless org. |
-| File uploads | Contradicts “documents are links”. |
+| File storage in Oikonomia | Files live in Drive. Uploads exist only as a pass-through to Drive (`drive-service.ts`). |
 | Replace “My Binder” | The metaphor *is* the product. It needed a sentence, not a rename. |
 | Sunday service attendance, giving, volunteer rotas | Other products. |
 | Custom workflow engine / enterprise RBAC UI | Roles are already church-defined capability bundles. |
@@ -366,6 +368,25 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
 - **Document registration** does not check the ministry on the server, by
   decision: documents live anywhere and are linked by their leader.
 
+## Drive-backed documents (Cris's decision)
+
+Files always live in Google Drive; the registry keeps a record with
+`document.drive_file_id` / `drive_mime_type` (migration 044) and shows live
+metadata. `src/server/google/drive.ts` (requests), `drive-service.ts` (rules),
+`drive-api.ts` (browse, register, upload via FormData, create Doc/Sheet/Slides,
+details), `drive-browser.tsx` / `drive-details.tsx` (UI, only when
+`methods.workspace.drive`; otherwise the paste-link form says Drive is not
+connected on this installation).
+
+- Everything acts **as the viewer** (`person.email`, must be in the domain);
+  only the ministry folder is created as the church mailbox, under
+  `driveRoot`, on first upload/create (`ministry_drive_folder`). Browsing never
+  creates it. No `driveRoot` → no ministry folder features.
+- Choosing a file follows the registration rule (signed in); upload/create
+  require `canContribute`. One Drive file = one record (re-choosing associates).
+- Drive icons are drawn locally: CSP `img-src` does not load Google's
+  `iconLink`, and should not be loosened for it.
+
 ## Access and accounts (Cris's decisions)
 
 - **Nobody grants themselves access.** `refuseSelfGrant` in
@@ -380,6 +401,38 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
   name once (`awaitsOwnName`, `giveOwnName`), refused afterwards.
 - **Change password** is on Account & security (`changePassword`; keeps this
   session, ends the others).
+
+## Email notices (opt-in)
+
+System mail goes through `delivery()` (`src/server/auth/delivery.ts`): Demo
+Mode suppressed → Gmail as the church mailbox when Google Workspace is
+configured (`src/server/google/gmail.ts`) → SMTP → console. Gmail counts as
+able to deliver, so `canDeliver()` / `methods.emailDelivery` are true with it.
+
+A leader chooses on **Account & security** which notices are also emailed
+(`notice_email_preference`, migration 043; `fetchEmailNotices` /
+`setEmailNotice` in `notice-email-api.ts`, demo `allowed` because delivery is
+suppressed there). Kinds today: `ask` and `meeting-task`, default off.
+
+- Services send at write time through an injected `NoticeMailer`
+  (`src/server/notices/notice-mailer.ts`): escalation `raise`; meeting
+  `createTask`, and `updateTask` when the assignee changes. The mailer drops
+  the actor, anyone not opted in, anyone without an address or inactive, and
+  never throws or waits — a failed send is logged, the write stands.
+- An ask to a position emails `resolveRecipients(role, requester)` — the
+  holders *for that requester* — which is narrower than the inbox's
+  `addressedTo` (any holder of that kind of position). Everyone emailed can
+  also see it in the inbox.
+- Content (`src/domain/email-notices.ts`): who, what was asked/assigned, date,
+  link (`siteUrl()` + `escalationHref` or the note / week path). No record
+  content; a meeting note the recipient may not read is neither named nor
+  linked.
+- **Adding a kind:** add it to `EMAIL_NOTICE_KINDS` and `emailNoticeKinds`
+  (the switch appears on its own), compose it in `email-notices.ts`, call
+  `mailer.notify({ kind, actorId, recipientIds, compose })` from the service
+  that makes the write, pass `noticeMailerFor(db)` in that API file, and
+  update `knowledge/oikonomia/account/email-notices.md` and
+  `docs/user-guide/getting-in.md`. No migration: kinds are stored as text.
 
 ## Appearance and themes
 

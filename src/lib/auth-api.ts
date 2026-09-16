@@ -29,6 +29,8 @@ export interface SessionView {
   emailDeliveryConfigured: boolean;
   /** Whether Google sign-in is configured here. */
   googleConfigured: boolean;
+  /** What Google Workspace offers here; nothing about how it is configured. */
+  workspace: import("@/domain/auth").AuthMethods["workspace"];
   /** What this installation's own policy has switched off, for everyone. */
   installation: import("@/domain/installation").InstallationView;
 }
@@ -113,6 +115,14 @@ export const fetchSession = createServerFn({ method: "GET" })
         ...(account?.email ? { email: account.email } : {}),
         emailDeliveryConfigured: canDeliver(),
         googleConfigured: googleConfigured(),
+        workspace: await import("@/server/google/workspace").then(({ workspaceStatus }) => {
+          const status = workspaceStatus();
+          return {
+            drive: status.drive,
+            calendarPublish: status.calendarPublish,
+            calendarOverlay: status.calendarOverlay,
+          };
+        }),
         installation: installationView(currentInstallation()),
       };
     }),

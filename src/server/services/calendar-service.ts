@@ -13,6 +13,7 @@ import {
 import { canEdit } from "@/domain/authorize";
 import { endBefore, skipOccurrence } from "@/domain/schedule";
 import type { CalendarRepository, EntryValues } from "../repositories/calendar-repository";
+import type { CalendarPublisher } from "../google/calendar";
 import type { AgendaItem, RecurrenceScope, ScheduleEntry } from "@/domain/types";
 import type { Viewer } from "@/domain/viewer";
 
@@ -49,7 +50,26 @@ export function createCalendarService(
    * for. Anything else is answered as if the report did not exist.
    */
   reports?: { authorsFollowUp: (viewer: Viewer, reportId: string, blockId: string) => boolean },
+  /**
+   * Copies the calendar to the church's Google Calendar, when one is set up.
+   *
+   * Told only after a write has succeeded, and it cannot fail the write: a
+   * leader's change is the record, and Google is a copy of it.
+   */
+  publisher?: Pick<CalendarPublisher, "entrySaved" | "entryRemoved">,
 ) {
+  /** Saved, and — if the church publishes its calendar — on its way to Google. */
+  const published = (entry: ScheduleEntry): ScheduleEntry => {
+    publisher?.entrySaved(entry);
+    return entry;
+  };
+
+  /** The series changed shape (a skipped day, an earlier end): publish it again. */
+  function savedSeries(id: string, values: EntryValues): void {
+    const saved = repo.saveEntry(id, values);
+    if (saved) published(saved);
+  }
+
   /** Load, or refuse in a way that does not confirm the record exists. */
   function require(id: string): ScheduleEntry {
     const entry = repo.findEntry(id);
@@ -106,12 +126,14 @@ export function createCalendarService(
 
     createEntry(viewer: Viewer, input: unknown): ScheduleEntry {
       const values = parse(createEntry, input);
-      return repo.insertEntry({
-        ...values,
-        /* Provenance, not classification: a leader's own entry. */
-        source: values.source ?? "leader",
-        createdBy: viewer.person.id,
-      } as EntryValues);
+      return published(
+        repo.insertEntry({
+          ...values,
+          /* Provenance, not classification: a leader's own entry. */
+          source: values.source ?? "leader",
+          createdBy: viewer.person.id,
+        } as EntryValues),
+      );
     },
 
     /**
@@ -140,7 +162,7 @@ export function createCalendarService(
       if (!entry.recurrence || scope === "series") {
         const saved = repo.saveEntry(id, { ...values, createdBy: entry.createdBy });
         if (!saved) throw ApiError.notFound("That calendar entry");
-        return saved;
+        return published(saved);
       }
 
       if (!occurrenceDate) {
@@ -151,7 +173,7 @@ export function createCalendarService(
       }
 
       if (scope === "occurrence") {
-        repo.saveEntry(id, {
+        savedSeries(id, {
           ...stripMeta(entry),
           recurrence: skipOccurrence(entry.recurrence, occurrenceDate),
           createdBy: entry.createdBy,
@@ -159,11 +181,13 @@ export function createCalendarService(
 
         const detached = { ...values, date: patch.date ?? occurrenceDate };
         delete (detached as { recurrence?: unknown }).recurrence;
-        return repo.insertEntry({ ...detached, createdBy: viewer.person.id } as EntryValues);
+        return published(
+          repo.insertEntry({ ...detached, createdBy: viewer.person.id } as EntryValues),
+        );
       }
 
       /* "This and following": stop the old rhythm, start a new one here. */
-      repo.saveEntry(id, {
+      savedSeries(id, {
         ...stripMeta(entry),
         recurrence: endBefore(entry.recurrence, occurrenceDate),
         createdBy: entry.createdBy,
@@ -174,7 +198,9 @@ export function createCalendarService(
         recurrence: { ...entry.recurrence, ...(patch.recurrence ?? {}), from: occurrenceDate },
       };
       delete (continued as { date?: unknown }).date;
-      return repo.insertEntry({ ...continued, createdBy: viewer.person.id } as EntryValues);
+      return published(
+        repo.insertEntry({ ...continued, createdBy: viewer.person.id } as EntryValues),
+      );
     },
 
     /**
@@ -193,6 +219,7 @@ export function createCalendarService(
 
       if (!entry.recurrence || scope === "series") {
         repo.deleteEntry(id);
+        publisher?.entryRemoved(id);
         return;
       }
       if (!occurrenceDate) {
@@ -209,9 +236,10 @@ export function createCalendarService(
 
       if (recurrence.until && recurrence.until < recurrence.from) {
         repo.deleteEntry(id);
+        publisher?.entryRemoved(id);
         return;
       }
-      repo.saveEntry(id, { ...stripMeta(entry), recurrence, createdBy: entry.createdBy });
+      savedSeries(id, { ...stripMeta(entry), recurrence, createdBy: entry.createdBy });
     },
 
     /** Church work repeats without being a formal series; copying is common. */
@@ -220,7 +248,7 @@ export function createCalendarService(
       const copy = { ...stripMeta(entry), title: `${entry.title} (copy)`, date };
       /* A copy is a one-off until the leader makes it a rhythm again. */
       delete (copy as { recurrence?: unknown }).recurrence;
-      return repo.insertEntry({ ...copy, createdBy: viewer.person.id } as EntryValues);
+      return published(repo.insertEntry({ ...copy, createdBy: viewer.person.id } as EntryValues));
     },
 
     /* ------------------------------------------------------------- agenda */

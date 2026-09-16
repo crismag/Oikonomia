@@ -53,6 +53,7 @@ export const routeGuides: RouteGuide[] = [
       "weekly-agenda.find-and-print",
       "planning.plan-week.walkthrough",
       "asks.put-on-week",
+      "planning.google-calendar",
     ],
   },
   {
@@ -65,6 +66,7 @@ export const routeGuides: RouteGuide[] = [
       "weekly-agenda.change-item",
       "planning.repeating-entry",
       "planning.cannot-edit-entry",
+      "planning.google-calendar",
     ],
   },
   {
@@ -182,6 +184,7 @@ export const routeGuides: RouteGuide[] = [
       "ministries.page",
       "ministries.add-goal",
       "ministries.find-documents",
+      "documents.drive",
       "ministries.add-link",
       "ministries.relationship",
       "goals.scope",
@@ -192,7 +195,7 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/documents",
     module: "documents",
     page: "documents",
-    topics: ["documents.page", "documents.register"],
+    topics: ["documents.page", "documents.register", "documents.drive"],
   },
   {
     pattern: "/documents/$",
@@ -308,7 +311,7 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/account-security",
     module: "account",
     page: "account-security",
-    topics: ["account.appearance", "account.password", "account.sign-in"],
+    topics: ["account.appearance", "account.email-notices", "account.password", "account.sign-in"],
   },
 ];
 

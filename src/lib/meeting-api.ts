@@ -32,6 +32,7 @@ async function withMeetings<T>(
     { createMeetingRepository },
     { createMeetingService },
     { getRequest },
+    { noticeMailerFor },
   ] = await Promise.all([
     import("@/server/api/response"),
     import("@/server/auth/require-user"),
@@ -40,6 +41,7 @@ async function withMeetings<T>(
     import("@/server/repositories/meeting-repository"),
     import("@/server/services/meeting-service"),
     import("@tanstack/react-start/server"),
+    import("@/server/notices/notice-mailer"),
   ]);
 
   try {
@@ -48,7 +50,8 @@ async function withMeetings<T>(
        not the next deployment. */
     refreshConfiguration(db);
 
-    const service = createMeetingService(createMeetingRepository(db));
+    /* A task given to somebody is emailed to them if they chose that. */
+    const service = createMeetingService(createMeetingRepository(db), await noticeMailerFor(db));
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {
     if (error instanceof ApiError) return { error: error.body() };

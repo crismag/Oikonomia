@@ -37,6 +37,7 @@ async function withLifegroup<T>(
     { refreshConfiguration },
     { createLifegroupRepository },
     { createLifegroupService },
+    { calendarPublisherFor },
     { getRequest },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -45,6 +46,7 @@ async function withLifegroup<T>(
     import("@/server/config/runtime"),
     import("@/server/repositories/lifegroup-repository"),
     import("@/server/services/lifegroup-service"),
+    import("@/server/google/calendar-publishing"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -54,7 +56,8 @@ async function withLifegroup<T>(
        not the next deployment. */
     refreshConfiguration(db);
 
-    const service = createLifegroupService(createLifegroupRepository(db));
+    /* Gatherings are published to the church's Google Calendar, when it has one. */
+    const service = createLifegroupService(createLifegroupRepository(db), calendarPublisherFor(db));
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {
     if (error instanceof ApiError) return { error: error.body() };

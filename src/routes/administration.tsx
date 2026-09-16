@@ -13,6 +13,7 @@ import { AssignmentsAdmin } from "@/components/oikonomia/assignments-admin";
 import { InvitePeople } from "@/components/oikonomia/invite-people";
 import { DataManagement } from "@/components/oikonomia/data-management";
 import { OrganizationAdmin } from "@/components/oikonomia/organization-admin";
+import { WorkspaceAdmin } from "@/components/oikonomia/workspace-admin";
 import { ConfigurationAdmin } from "@/components/oikonomia/configuration-admin";
 import { useViewer } from "@/domain/session";
 
@@ -101,6 +102,7 @@ function AdministrationPage() {
             <AssignmentsAdmin />
             <InvitePeople />
             <OrganizationAdmin />
+            <WorkspaceAdmin />
             <DataManagement />
           </>
         ) : (
