@@ -14,7 +14,7 @@ aliases:
   - what is the difference between a personal note and minutes
 capabilities: []
 hideWhen: []
-related: [meeting-notes.page, permissions.not-found, meeting-notes.tasks]
+related: [meeting-notes.page, meeting-notes.cant-see, permissions.not-found, meeting-notes.tasks]
 destinations: [meeting-notes]
 ---
 

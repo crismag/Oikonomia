@@ -14,7 +14,7 @@ aliases:
   - can I upload files
 capabilities: []
 hideWhen: []
-related: [documents.register, forms.page, ministries.add-link]
+related: [documents.register, documents.document-page, forms.page, forms.fill-record, ministries.add-link]
 destinations: [documents, resource-search]
 ---
 

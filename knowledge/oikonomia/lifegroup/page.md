@@ -3,31 +3,40 @@ id: lifegroup.page
 title: LifeGroup
 type: page
 category: lifegroup
-summary: The shared schedule of gatherings — add the week's rows, take the ones you can lead, and record what happened.
+summary: The shared schedule of gatherings — add the week's rows, take the ones you can lead, and open one to record what happened.
 modules: [lifegroup]
-pages: [lifegroups, gathering, attendance]
-keywords: [lifegroup, gathering, schedule, attendance, venue, claim, lead a gathering]
+pages: [lifegroups]
+keywords: [lifegroup, gathering, schedule, roster, leader needed, stage, already gathered]
 aliases:
-  - how do I lead a gathering
+  - where is the lifegroup schedule
   - who is leading this week
-  - how do I take attendance
-  - what is an unclaimed gathering
-related: [home.page, weekly-agenda.page, people.person-page]
+  - how do I see which gatherings need a leader
+capabilities: []
+hideWhen: []
+related: [lifegroup.add-gathering, lifegroup.claim, lifegroup.venue, lifegroup.gathering-page, lifegroup.lead.walkthrough, lifegroup.names]
 destinations: [lifegroups, attendance]
 ---
 
-LifeGroup is a **shared schedule**: one row for each gathering the week expects. Anyone may add rows with **Add schedule**, and a row can sit there needing a leader until someone picks it up — an unclaimed gathering is a normal, visible state, not an error.
+**LifeGroup** is under **Shared** in the sidebar. It is one **shared schedule**: a row for each gathering the week expects. Everyone who signs in sees the same rows, and a gathering is on the schedule for everyone as soon as it is added.
 
-### Taking a gathering
+### The schedule
 
-On a row, **Assign to me** takes a gathering nobody leads yet, and **Add me** joins one that already has a leader. **You're assigned** shows it is yours; **Step away** gives it back. Being assigned makes you responsible for the gathering; it does not make it yours alone — the row stays on the shared schedule.
+Runs forward from the start of this week. On a wide screen each row shows **Date**, **Time**, **Where**, **Leading**, **Stage** and **You**, with **Open** at the end. On a phone the same rows are stacked.
 
-### A gathering
+- **Leading** says **Leader needed** until someone takes the gathering.
+- **Stage** is one of **Needs leader**, **Assigned**, **Confirmed**, **Gathering**, **Completed** or **Cancelled**. It follows who is on the row and whether it has been written up; you do not set it by hand here.
+- **You** holds your own action: **Assign to me**, **Add me**, or **You're assigned** with **Step away**. See [Take or give back a gathering](topic:lifegroup.claim).
 
-**Open** a row to see its date, time, venue and leaders. A venue is reused across weeks, so renaming it once renames it everywhere.
+Where you may change a row, the date, time and place can be typed straight into it. See [Set the venue](topic:lifegroup.venue).
 
-After the gathering, record **who came**, the **exhortation**, and complete the **gathering report**. Home lists a gathering you led until its report is complete — attendance alone still shows it as in progress.
+### Adding and opening
 
-### Attendance
+**Add schedule** adds a row. See [Add a gathering to the schedule](topic:lifegroup.add-gathering). **Open** takes you to [the gathering's page](topic:lifegroup.gathering-page), where attendance and the write-up are recorded.
 
-[Attendance](destination:attendance) lists recorded participation, against the same person records used everywhere else in Oikonomia.
+### Already gathered
+
+Below the schedule, the most recent past gatherings, newest first. Open one to read or finish its record.
+
+### What LifeGroup is not
+
+A gathering is an occasion at a venue with the leaders assigned to it. There is no group membership list to maintain: who belongs is simply who came, recorded in attendance.

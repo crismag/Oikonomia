@@ -14,13 +14,13 @@ aliases:
   - can I set a reminder
 capabilities: []
 hideWhen: []
-related: [weekly-agenda.page, asks.put-on-week, reports.follow-ups, meeting-notes.tasks]
+related: [weekly-agenda.page, weekly-agenda.change-item, planning.plan-week.walkthrough, asks.put-on-week, reports.follow-ups, meeting-notes.tasks]
 destinations: [weekly-agenda]
 ---
 
 ### Add an entry
 
-1. On [Weekly Agenda](destination:weekly-agenda), choose **Add**. It starts on today if you are looking at this week, otherwise on the week's Monday. In the Agenda view, **Add** under a day starts on that day.
+1. On [Weekly Agenda](destination:weekly-agenda), choose **Add**. It starts on today if you are looking at this week, otherwise on the first day of that week. In the Agenda view, **Add** under a day starts on that day.
 2. Type what is happening. A time is optional.
 3. Choose **Add**, or press Enter.
 
@@ -36,4 +36,4 @@ When you add from Weekly Agenda, the item always has a day. Follow-ups you put o
 
 ### Tick it done
 
-Tick the box beside a task. Entries have no box. Ticking a meeting task completes that meeting's own task. Finished tasks stay on the week, struck through; **Hide completed** in the Filter menu hides them.
+Tick the box beside a task. Entries have no box. To rename, move or remove something, see [Change, move or remove something on the week](topic:weekly-agenda.change-item). Ticking a meeting task completes that meeting's own task. Finished tasks stay on the week, struck through; **Hide completed** in the Filter menu hides them.

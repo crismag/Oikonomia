@@ -21,9 +21,20 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/",
     module: "home",
     page: "home",
-    topics: ["home.page", "getting-started.overview", "getting-started.binder-and-leadership"],
+    topics: [
+      "home.page",
+      "home.open-your-work",
+      "planning.plan-week.walkthrough",
+      "getting-started.overview",
+      "getting-started.binder-and-leadership",
+    ],
   },
-  { pattern: "/my-progress", module: "home", page: "my-progress", topics: ["my-progress.page"] },
+  {
+    pattern: "/my-progress",
+    module: "home",
+    page: "my-progress",
+    topics: ["my-progress.page", "my-progress.why-not-done", "home.open-your-work"],
+  },
   {
     pattern: "/welcome",
     module: "onboarding",
@@ -34,26 +45,65 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/weekly-agenda",
     module: "planning",
     page: "weekly-agenda",
-    topics: ["weekly-agenda.page", "weekly-agenda.add-item", "asks.put-on-week"],
+    topics: [
+      "weekly-agenda.page",
+      "weekly-agenda.add-item",
+      "weekly-agenda.change-item",
+      "planning.not-on-week",
+      "weekly-agenda.find-and-print",
+      "planning.plan-week.walkthrough",
+      "asks.put-on-week",
+    ],
   },
   {
     pattern: "/monthly-calendar",
     module: "planning",
     page: "monthly-calendar",
-    topics: ["monthly-calendar.page"],
+    topics: [
+      "monthly-calendar.page",
+      "monthly-calendar.add-event",
+      "weekly-agenda.change-item",
+      "planning.repeating-entry",
+      "planning.cannot-edit-entry",
+    ],
   },
   {
     pattern: "/meeting-notes",
     module: "meetings",
     page: "meeting-notes",
-    topics: ["meeting-notes.page", "meeting-notes.personal-vs-minutes", "meeting-notes.tasks"],
+    topics: [
+      "meeting-notes.page",
+      "meeting-notes.write",
+      "meeting-notes.tasks",
+      "meeting-notes.decisions-follow-ups",
+      "meeting-notes.personal-vs-minutes",
+      "meeting-notes.find",
+      "meeting-notes.record.walkthrough",
+    ],
   },
-  { pattern: "/reach-out", module: "reach-out", page: "reach-out", topics: ["reach-out.page"] },
+  {
+    pattern: "/reach-out",
+    module: "reach-out",
+    page: "reach-out",
+    topics: [
+      "reach-out.page",
+      "reach-out.add-report",
+      "reach-out.find",
+      "reach-out.sharing",
+      "reach-out.write.walkthrough",
+    ],
+  },
   {
     pattern: "/reach-out/$",
     module: "reach-out",
     page: "reach-out-report",
-    topics: ["reach-out.page"],
+    topics: [
+      "reach-out.page",
+      "reach-out.contribute",
+      "reach-out.asks",
+      "reach-out.add-report",
+      "reach-out.sharing",
+    ],
     entityType: "reach-out-report",
   },
   {
@@ -76,7 +126,12 @@ export const routeGuides: RouteGuide[] = [
     ],
     entityType: "leadership-report",
   },
-  { pattern: "/goals", module: "goals", page: "goals", topics: ["goals.page", "goals.scope"] },
+  {
+    pattern: "/goals",
+    module: "goals",
+    page: "goals",
+    topics: ["goals.page", "goals.scope"],
+  },
   {
     pattern: "/goals/$",
     module: "goals",
@@ -84,20 +139,52 @@ export const routeGuides: RouteGuide[] = [
     topics: ["goals.scope", "goals.progress"],
     entityType: "goal",
   },
-  { pattern: "/lifegroups", module: "lifegroup", page: "lifegroups", topics: ["lifegroup.page"] },
+  {
+    pattern: "/lifegroups",
+    module: "lifegroup",
+    page: "lifegroups",
+    topics: [
+      "lifegroup.page",
+      "lifegroup.add-gathering",
+      "lifegroup.claim",
+      "lifegroup.venue",
+      "lifegroup.names",
+      "lifegroup.lead.walkthrough",
+    ],
+  },
   {
     pattern: "/lifegroups/$",
     module: "lifegroup",
     page: "gathering",
-    topics: ["lifegroup.page"],
+    topics: [
+      "lifegroup.gathering-page",
+      "lifegroup.record-attendance",
+      "lifegroup.write-up",
+      "lifegroup.entry-visibility",
+      "lifegroup.gathering-report",
+      "lifegroup.cannot-record",
+      "asks.raise",
+    ],
     entityType: "gathering",
   },
-  { pattern: "/ministries", module: "ministries", page: "ministries", topics: ["ministries.page"] },
+  {
+    pattern: "/ministries",
+    module: "ministries",
+    page: "ministries",
+    topics: ["ministries.page", "ministries.relationship", "ministries.working-on.walkthrough"],
+  },
   {
     pattern: "/ministries/$",
     module: "ministries",
     page: "ministry",
-    topics: ["ministries.page", "ministries.add-link", "goals.scope"],
+    topics: [
+      "ministries.page",
+      "ministries.add-goal",
+      "ministries.find-documents",
+      "ministries.add-link",
+      "ministries.relationship",
+      "goals.scope",
+    ],
     entityType: "ministry",
   },
   {
@@ -107,18 +194,30 @@ export const routeGuides: RouteGuide[] = [
     topics: ["documents.page", "documents.register"],
   },
   {
+    pattern: "/documents/$",
+    module: "documents",
+    page: "document",
+    topics: ["documents.document-page", "documents.register", "ministries.find-documents"],
+    entityType: "document",
+  },
+  {
     pattern: "/forms",
     module: "documents",
     page: "forms",
-    topics: ["forms.page", "forms.retire"],
+    topics: ["forms.page", "forms.fill-record", "forms.retire"],
   },
   {
     pattern: "/forms/$",
     module: "documents",
     page: "form",
-    topics: ["forms.page", "forms.retire"],
+    topics: ["forms.page", "forms.fill-record", "forms.retire"],
   },
-  { pattern: "/records/$", module: "documents", page: "form-record", topics: ["forms.page"] },
+  {
+    pattern: "/records/$",
+    module: "documents",
+    page: "form-record",
+    topics: ["forms.fill-record", "forms.page"],
+  },
   {
     pattern: "/resource-search",
     module: "documents",
@@ -129,29 +228,69 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/inbox",
     module: "leadership",
     page: "inbox",
-    topics: ["inbox.page", "asks.put-on-week"],
+    topics: [
+      "inbox.page",
+      "inbox.respond",
+      "asks.put-on-week",
+      "inbox.respond.walkthrough",
+      "inbox.troubleshooting",
+    ],
   },
-  { pattern: "/team", module: "leadership", page: "team", topics: ["team.page"] },
+  {
+    pattern: "/team",
+    module: "leadership",
+    page: "team",
+    topics: ["team.page", "team.follow-up"],
+  },
   {
     pattern: "/reports",
     module: "leadership",
     page: "reports-to-you",
-    topics: ["reports-to-you.page", "reports.confidential"],
+    topics: [
+      "reports-to-you.page",
+      "reports-to-you.find",
+      "reports.confidential",
+      "inbox.troubleshooting",
+    ],
   },
-  { pattern: "/people", module: "people", page: "people", topics: ["people.page"] },
+  {
+    pattern: "/work/$",
+    module: "leadership",
+    page: "work",
+    topics: ["work.record-page", "inbox.respond", "asks.put-on-week", "asks.raise"],
+    entityType: "work",
+  },
+  {
+    pattern: "/people",
+    module: "people",
+    page: "people",
+    topics: ["people.page", "people.troubleshooting"],
+  },
   {
     pattern: "/people/$",
     module: "people",
     page: "person",
-    topics: ["people.person-page"],
+    topics: ["people.person-page", "people.troubleshooting", "permissions.not-found"],
     entityType: "person",
   },
-  { pattern: "/attendance", module: "lifegroup", page: "attendance", topics: ["lifegroup.page"] },
+  {
+    pattern: "/attendance",
+    module: "lifegroup",
+    page: "attendance",
+    topics: ["lifegroup.attendance-page", "lifegroup.record-attendance"],
+  },
   {
     pattern: "/leadership",
     module: "journal",
     page: "leadership-journal",
-    topics: ["journal.page"],
+    topics: ["journal.page", "journal.write-entry", "journal.share-entry", "journal.walkthrough"],
+  },
+  {
+    pattern: "/leadership/$",
+    module: "journal",
+    page: "journal-entry",
+    topics: ["journal.write-entry", "journal.share-entry", "journal.delete-entry", "journal.page"],
+    entityType: "journal-entry",
   },
   {
     pattern: "/administration",
@@ -168,7 +307,7 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/account-security",
     module: "account",
     page: "account-security",
-    topics: ["account.sign-in", "account.password"],
+    topics: ["account.password", "account.sign-in"],
   },
 ];
 
@@ -177,6 +316,9 @@ const matches = (pattern: string, pathname: string) => {
   const have = pathname.split("/").filter(Boolean);
   return want.length === have.length && want.every((part, i) => part === "$" || part === have[i]);
 };
+
+/** "Where do I do…?" — offered on every page. */
+export const FINDER = "getting-started.where-to";
 
 export function routeGuideFor(pathname: string): (RouteGuide & { entityId?: string }) | undefined {
   const guide = routeGuides.find((candidate) => matches(candidate.pattern, pathname));
@@ -201,11 +343,13 @@ export function guideContextFor(input: {
   const route = routeGuideFor(input.pathname);
   return {
     route: input.pathname,
+    /* Finding where to do something is the question a leader brings to every
+       page, so every page offers it — last, after the page's own help. */
+    topics: [...(route?.topics ?? []).filter((id) => id !== FINDER), FINDER],
     ...(route
       ? {
           module: route.module,
           page: route.page,
-          topics: route.topics,
           ...(route.entityType
             ? {
                 entity: {

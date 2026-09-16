@@ -15,7 +15,7 @@ aliases:
   - how do I print a form
 capabilities: []
 hideWhen: []
-related: [forms.retire, documents.page]
+related: [forms.fill-record, forms.retire, documents.page]
 destinations: [forms, documents]
 ---
 
