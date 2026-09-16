@@ -17,6 +17,12 @@ data.
 A new Oikonomia is genuinely empty. There is no starter church, no sample
 ministry and no demonstration data to clear out before real work begins.
 
+Until it is set up, an administrator's Home shows **Set up your church**: add a
+campus, add the ministries, add the leaders, invite them in, and confirm where
+they serve. Each step is ticked by the records existing — there is nothing to
+mark done by hand — and each opens the part of Administration where it is
+done. Once every step is done the card is gone.
+
 Add, in roughly this order:
 
 1. **Campuses** — a place the church meets. Ministries and people are filed

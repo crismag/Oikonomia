@@ -15,6 +15,7 @@ import { useReports } from "@/components/oikonomia/report-provider";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { useMyMeetingTasks } from "@/components/oikonomia/meeting-provider";
 import { useLeadershipInbox } from "@/components/oikonomia/escalation-provider";
+import { ChurchSetupCard } from "@/components/oikonomia/church-setup-card";
 import { escalationHref, escalationLabel, isOverdue } from "@/domain/escalation";
 import { fetchDashboard, type Dashboard } from "@/lib/dashboard-api";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
@@ -209,6 +210,7 @@ function HomePage() {
         </div>
       </header>
 
+      <ChurchSetupCard />
       <HomeOrientation />
 
       {dashboard.isError ? (

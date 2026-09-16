@@ -295,6 +295,7 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/organization-api.ts#claimAssignment": { method: "POST", demo: "allowed" },
   "src/lib/organization-api.ts#requestAssignmentCorrection": { method: "POST", demo: "allowed" },
   "src/lib/organization-api.ts#fetchAssignmentsAwaitingDecision": { method: "GET", demo: "read" },
+  "src/lib/organization-api.ts#fetchChurchSetup": { method: "GET", demo: "read" },
 
   /* reach-out-api.ts */
   "src/lib/reach-out-api.ts#fetchReachOut": { method: "GET", demo: "read" },

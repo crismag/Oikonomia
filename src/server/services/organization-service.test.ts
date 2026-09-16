@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiError } from "../api/response";
 import { openDatabase } from "../db/connection";
+import { createAccountRepository } from "../repositories/account-repository";
 import { createOrganizationRepository } from "../repositories/organization-repository";
 import { createOrganizationService } from "./organization-service";
 import { canDiscover } from "@/domain/leadership-report";
@@ -576,5 +577,43 @@ describe("a leadership report reaches the group the church named", () => {
     expect(
       canDiscover(report(), refreshed.persona, refreshed.person, repo.leadershipGroupIds()),
     ).toBe(false);
+  });
+});
+
+/**
+ * The first-church checklist reads counts from the installation. It is for
+ * whoever administers the church, because one of those counts is accounts.
+ */
+describe("church setup progress", () => {
+  it("counts what exists, not counting the administrator as somebody invited", () => {
+    createAccountRepository(db).create({ personId: admin.person.id });
+    expect(service.setupProgress(admin)).toEqual({
+      campuses: 0,
+      ministries: 0,
+      people: 3,
+      othersWithAccounts: 0,
+      confirmedAssignments: 0,
+    });
+
+    const campus = repo.insertCampus({ name: "Northside" });
+    const ministry = repo.insertMinistry({ name: "Hospitality", campusId: campus.id });
+    createAccountRepository(db).create({ personId: leader.person.id });
+    service.setAssignment(admin, {
+      scope: "ministry",
+      targetId: ministry.id,
+      personId: leader.person.id,
+      status: "confirmed",
+    });
+
+    expect(service.setupProgress(admin)).toMatchObject({
+      campuses: 1,
+      ministries: 1,
+      othersWithAccounts: 1,
+      confirmedAssignments: 1,
+    });
+  });
+
+  it("is refused to somebody who does not administer the church", () => {
+    expect(() => service.setupProgress(leader)).toThrow(ApiError);
   });
 });

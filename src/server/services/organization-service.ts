@@ -9,6 +9,7 @@ import type { OrganizationRepository, PersonRecord } from "../repositories/organ
 import type { Assignment, AssignmentScope, AssignmentStatus } from "@/domain/assignment";
 import type { Campus, Ministry, ResponsibilityGroup, Venue } from "@/domain/types";
 import type { Viewer } from "@/domain/viewer";
+import type { ChurchSetupProgress } from "@/domain/church-setup";
 
 /**
  * The organisation: reading it, and who may change it.
@@ -497,6 +498,17 @@ export function createOrganizationService(repo: OrganizationRepository) {
     },
 
     /** Everything waiting on somebody who may decide. */
+    /** How far the church's setup has got. Administrative: it counts accounts. */
+    setupProgress(viewer: Viewer): ChurchSetupProgress {
+      requireAdmin(viewer);
+      return {
+        campuses: repo.campuses().filter((campus) => campus.active !== false).length,
+        ministries: repo.ministries().filter((ministry) => ministry.active !== false).length,
+        people: repo.people().filter((person) => person.active !== false).length,
+        ...repo.setupCounts(viewer.person.id),
+      };
+    },
+
     assignmentsAwaitingDecision(viewer: Viewer) {
       requireAdmin(viewer);
       return repo.assignmentsAwaitingDecision();

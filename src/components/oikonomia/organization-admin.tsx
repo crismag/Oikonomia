@@ -477,7 +477,7 @@ export function OrganizationAdmin() {
         </p>
       ) : null}
 
-      <Section title="Campuses" meta={`${organization.campuses.length}`}>
+      <Section id="campuses" title="Campuses" meta={`${organization.campuses.length}`}>
         <ul className="divide-y divide-border">
           {organization.campuses.map((campus) => (
             <li key={campus.id} className="px-4 py-2.5 text-[14px]">
@@ -526,7 +526,7 @@ export function OrganizationAdmin() {
         </div>
       </Section>
 
-      <Section title="People" meta={`${organization.people.length}`}>
+      <Section id="people" title="People" meta={`${organization.people.length}`}>
         <InstallationNotice restriction="identity" />
         <ul className="max-h-72 divide-y divide-border overflow-y-auto">
           {organization.people.map((person) => (
@@ -670,7 +670,7 @@ export function OrganizationAdmin() {
         </div>
       </Section>
 
-      <Section title="Ministries" meta={`${organization.ministries.length}`}>
+      <Section id="ministries" title="Ministries" meta={`${organization.ministries.length}`}>
         <ul className="divide-y divide-border">
           {organization.ministries.map((ministry) => (
             <li key={ministry.id} className="flex items-center gap-3 px-4 py-2.5">
