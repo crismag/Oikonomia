@@ -26,4 +26,5 @@ You return to Leadership Reports. The report and its discussion go with it. Ther
 ### Worth knowing
 
 - Only the report's author sees **Delete report**, and only while it is **Draft** or **Shared**.
+- A report that was ever **Published** stays a record, even after it is moved back to Draft to correct it — **Delete report** is not offered for it.
 - A **Published** or **Archived** report is the submitted record — leadership may already have read it. It cannot be deleted. Move it to **Archived** when it is no longer current. See [Report stages](topic:reports.statuses).

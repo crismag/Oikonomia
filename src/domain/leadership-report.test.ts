@@ -1255,6 +1255,11 @@ describe("removing a report", () => {
     expect(mayRemoveReport(report({ status: "archived" }), "p-maria")).toBe(false);
   });
 
+  it("does not let its author remove a report that was once submitted, even reopened", () => {
+    const reopened = report({ status: "draft", revisions: [{} as never] });
+    expect(mayRemoveReport(reopened, "p-maria")).toBe(false);
+  });
+
   it("does not let anyone else remove it", () => {
     expect(mayRemoveReport(report({ status: "draft" }), joel.personId)).toBe(false);
   });

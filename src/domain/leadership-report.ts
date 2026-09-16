@@ -354,9 +354,14 @@ export const isCurrent = (status: string) => statusBehavior(status).current;
  * same question, so the page never offers a delete the server would refuse.
  */
 export const mayRemoveReport = (
-  report: Pick<LeadershipReport, "authorId" | "status">,
+  report: Pick<LeadershipReport, "authorId" | "status" | "revisions">,
   personId: string,
-) => report.authorId === personId && statusBehavior(report.status).editable;
+) =>
+  report.authorId === personId &&
+  statusBehavior(report.status).editable &&
+  /* Once submitted, always a record. Reopening a published report to correct
+     it keeps its submitted copy; deleting it would erase what leadership read. */
+  (report.revisions?.length ?? 0) === 0;
 
 /**
  * What this person may do with this report.
