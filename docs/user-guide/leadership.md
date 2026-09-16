@@ -56,6 +56,12 @@ omniscience.
 
 Filter by **All**, **New** and **Read**.
 
+Above the reports, **this year's goals** are reached one person or ministry at
+a time: each person who reports to you, with the goals they own; each ministry
+you lead or serve in, with the goals that belong to the ministry itself; and
+shared goals. Every row opens that goal. A leader's goals are their own, so
+they are never merged into one list of everybody's progress.
+
 Read state is tracked, so you can tell what you have already seen. **Read state
 is not acknowledgement** — marking that you have read something is not the same
 as agreeing to it or acting on it, and Oikonomia does not conflate the two.

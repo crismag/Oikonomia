@@ -4,7 +4,7 @@ import { FileText } from "lucide-react";
 
 import { AccessNotice } from "@/components/oikonomia/access";
 import { EmptyState } from "@/components/oikonomia/empty-state";
-import { GoalProgressForReport } from "@/components/oikonomia/goal-progress";
+import { GoalsByWhose } from "@/components/oikonomia/goals-by-whose";
 import { FilterChip, ListToolbar, ResultCount } from "@/components/oikonomia/list-toolbar";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
@@ -106,7 +106,7 @@ function ReportsPage() {
       ) : null}
 
       <div className="mb-5">
-        <GoalProgressForReport year={new Date().getFullYear()} />
+        <GoalsByWhose year={new Date().getFullYear()} />
       </div>
 
       {mine.length > 0 ? (

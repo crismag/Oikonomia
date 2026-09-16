@@ -158,4 +158,66 @@ export function reportableFromGoals(goals: Goal[], updates: GoalUpdate[]): Repor
 }
 
 /** Today as an ISO date, for update stamps. */
+/**
+ * Goals as a leader who receives reports should reach them: one owner or one
+ * ministry at a time.
+ *
+ * A leader's goals are theirs. Pooled with everybody else's and sorted by
+ * progress they stop meaning anything — "In progress" across twelve people
+ * and four ministries is a list, not a picture of anyone. So they are grouped
+ * by whose they are, and each is a way into its own record:
+ *
+ * - **people who report to this leader** — every goal that person owns, even
+ *   one filed under a ministry: a goal with an owner is that leader's goal,
+ *   and the ministry is only its context;
+ * - **ministries** this leader leads or serves in, or that one of their
+ *   people leads — only the ministry's own goals, which nobody owns;
+ * - **shared** goals, which belong to no one person or ministry.
+ *
+ * Pass only goals the viewer may read. A group with no goals is omitted.
+ */
+export interface GoalsByWhose {
+  people: { personId: string; goals: Goal[] }[];
+  ministries: { ministryId: string; goals: Goal[] }[];
+  shared: Goal[];
+}
+
+export function goalsByWhose(
+  goals: Goal[],
+  context: {
+    year: number;
+    viewerId: string;
+    people: { id: string; reportsToId?: string | undefined }[];
+    ministries: { id: string; leadId: string; teamIds: string[] }[];
+  },
+): GoalsByWhose {
+  const ofYear = goalsForYear(goals, context.year);
+  const reportees = context.people.filter((person) => person.reportsToId === context.viewerId);
+  const reporteeIds = new Set(reportees.map((person) => person.id));
+
+  const people = reportees
+    .map((person) => ({
+      personId: person.id,
+      goals: ofYear.filter((goal) => goal.ownerId === person.id),
+    }))
+    .filter((group) => group.goals.length > 0);
+
+  const ministries = context.ministries
+    .filter(
+      (ministry) =>
+        ministry.leadId === context.viewerId ||
+        ministry.teamIds.includes(context.viewerId) ||
+        reporteeIds.has(ministry.leadId),
+    )
+    .map((ministry) => ({
+      ministryId: ministry.id,
+      goals: ofYear.filter((goal) => goal.ministryId === ministry.id && !goal.ownerId),
+    }))
+    .filter((group) => group.goals.length > 0);
+
+  const shared = ofYear.filter((goal) => !goal.ministryId && !goal.ownerId);
+
+  return { people, ministries, shared };
+}
+
 export const todayISO = () => toISO(new Date());
