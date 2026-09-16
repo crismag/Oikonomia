@@ -25,7 +25,7 @@ Leadership Inbox is under Oversight in the sidebar. Choose **Actions** to see on
 
 ## Read the ask where it came from
 
-Choose **Open context** on the row to open the report, note or record it came from. If you are on a leadership report or Reach-Out report, the **Asked of you** card there offers the same next step.
+Choose **Open context** on the row to open the report, note or record it came from. If you are on a leadership report, Reach-Out report or meeting note, the **Asked of you** card there offers the same next step.
 
 ## Put it on your week
 

@@ -11,7 +11,7 @@ import { ViewError } from "@/components/oikonomia/workspace";
 import { CalendarState, useCalendarPeriod } from "@/components/oikonomia/calendar-period";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { useMeetings, useMyMeetingTasks } from "@/components/oikonomia/meeting-provider";
-import { planningHref, tasksForDay, type PlanningItem } from "@/domain/planning";
+import { completionFor, planningHref, tasksForDay, type PlanningItem } from "@/domain/planning";
 import {
   Sheet,
   SheetContent,
@@ -593,9 +593,10 @@ function PanelTask({ item }: { item: PlanningItem }) {
   const href = planningHref(item);
 
   const toggle = () => {
-    if (item.source.type === "agenda-item") void store.toggleAgenda(item.source.id);
-    if (item.source.type === "meeting-task") {
-      void updateTask(item.source.id, { status: item.completed ? "open" : "done" });
+    const completion = completionFor(item);
+    if (completion?.kind === "agenda-item") void store.toggleAgenda(completion.id);
+    if (completion?.kind === "meeting-task") {
+      void updateTask(completion.id, { status: completion.status });
     }
   };
 

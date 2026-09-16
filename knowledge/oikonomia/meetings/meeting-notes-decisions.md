@@ -36,8 +36,10 @@ Open follow-ups show as *unresolved* on the note's row in the list.
 
 ### Bring unresolved items into this meeting
 
-When a note has a **meeting type**, Oikonomia looks for the most recent earlier meeting of the same type in your list. If that meeting left follow-ups open or tasks not done, a bar says how many, and from which date. Choose **Bring into this meeting** to add them at the end of this note: open follow-ups come in as follow-ups, and open tasks as checklist lines.
+When a note has a **meeting type**, Oikonomia looks for the most recent earlier meeting of the same type among all the notes you may read — not only those on the page of the list you last looked at. If that meeting left follow-ups open or tasks not done, a bar says how many, and from which date. Choose **Bring into this meeting** to add them at the end of this note, under a **Previous actions** heading: open follow-ups come in as follow-ups, and open tasks as checklist lines.
+
+Bringing items in is done once. Once the note has the **Previous actions** heading the bar goes away, and a line already in the note is never added a second time.
 
 The items are copied as text. The earlier meeting and its tasks are not changed, so close them there when they are done.
 
-The bar does not appear when this note has no meeting type, when there is no earlier meeting of that type among the notes listed, or when nothing was left open.
+The bar does not appear when this note has no meeting type, when there is no earlier meeting of that type that you may read, when nothing was left open, or when the items are already in this note. It is not shown to someone who may only read the note.

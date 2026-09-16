@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  completionFor,
   filterPlanning,
   groupPlanning,
   meetingTaskWeek,
@@ -351,5 +352,55 @@ describe("meetingTaskWeek", () => {
     expect(
       meetingTaskWeek(task({ assigneeId: "p-me", dueDate: "2026-09-18", status: "done" }), "p-me"),
     ).toEqual({ state: "done" });
+  });
+});
+
+/**
+ * Every view's tick box completes the record it came from. The List view once
+ * ignored meeting tasks while the Agenda view and the month completed them.
+ */
+describe("completionFor", () => {
+  const meetingTask = (status: "open" | "done") =>
+    tasksForDay("2026-09-10", [], ministryName, [
+      {
+        task: {
+          id: "t-9",
+          meetingId: "note-1",
+          title: "Book the hall",
+          dueDate: "2026-09-10",
+          status,
+          createdAt: "2026-09-09T12:00:00",
+        },
+        contextLabel: "Leaders meeting",
+        readable: true,
+      },
+    ])[0]!;
+
+  it("toggles an agenda item where it lives", () => {
+    const [item] = tasksForDay(
+      "2026-09-10",
+      [{ id: "a-1", text: "Buy chairs", date: "2026-09-10", completed: false }],
+      ministryName,
+      [],
+    );
+    expect(completionFor(item!)).toEqual({ kind: "agenda-item", id: "a-1" });
+  });
+
+  it("completes an open meeting task in its meeting", () => {
+    expect(completionFor(meetingTask("open"))).toEqual({
+      kind: "meeting-task",
+      id: "t-9",
+      status: "done",
+    });
+  });
+
+  it("reopens a done meeting task", () => {
+    expect(completionFor(meetingTask("done"))).toMatchObject({ status: "open" });
+  });
+
+  it("offers nothing for an item that cannot be completed", () => {
+    const [event] = planningForDays(["2026-09-10"], [entry()], [], ministryName);
+    expect(event?.may.complete).toBe(false);
+    expect(completionFor(event!)).toBeNull();
   });
 });

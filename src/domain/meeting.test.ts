@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   addTag,
+  bringForwardBlocks,
+  hasPreviousActions,
+  notYetBrought,
+  PREVIOUS_ACTIONS_HEADING,
   blockText,
   filterNotes,
   isMinutes,
@@ -436,5 +440,56 @@ describe("filtering the list", () => {
   it("returns the very same records a ministry view would show", () => {
     const fromList = filterNotes(notes, { ministryId: "min-music" })[0];
     expect(fromList).toBe(notes[0]);
+  });
+});
+
+/**
+ * Bringing an earlier meeting's open items in used to append them every time
+ * it was pressed: the offer looked for a heading that bringing never wrote.
+ */
+describe("bringing items forward", () => {
+  const items = [
+    { text: "Confirm the gym", kind: "follow-up" as const },
+    { text: "Call the school", kind: "task" as const },
+  ];
+  const start = [block("paragraph", "Opening prayer")];
+
+  it("writes the heading the offer looks for, then the items", () => {
+    const once = bringForwardBlocks(start, items);
+    expect(once.map(blockText)).toEqual([
+      "Opening prayer",
+      PREVIOUS_ACTIONS_HEADING,
+      "Confirm the gym",
+      "Call the school",
+    ]);
+    expect(once.map((b) => b.type)).toEqual(["paragraph", "heading-2", "follow-up", "checklist"]);
+    expect(hasPreviousActions({ blocks: once })).toBe(true);
+  });
+
+  it("adds nothing the second time", () => {
+    const once = bringForwardBlocks(start, items);
+    expect(bringForwardBlocks(once, items)).toBe(once);
+  });
+
+  it("brings only what is not already written, under one heading", () => {
+    const partly = [...start, block("checklist", "Call the school")];
+    const next = bringForwardBlocks(partly, items);
+    expect(next.map(blockText)).toEqual([
+      "Opening prayer",
+      "Call the school",
+      PREVIOUS_ACTIONS_HEADING,
+      "Confirm the gym",
+    ]);
+    expect(bringForwardBlocks(next, items)).toBe(next);
+  });
+
+  it("does not mistake an ordinary paragraph for the heading", () => {
+    expect(hasPreviousActions({ blocks: [block("paragraph", PREVIOUS_ACTIONS_HEADING)] })).toBe(
+      false,
+    );
+  });
+
+  it("matches text regardless of case and spacing", () => {
+    expect(notYetBrought([block("checklist", " call the school ")], items)).toEqual([items[0]]);
   });
 });

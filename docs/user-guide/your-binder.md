@@ -53,8 +53,9 @@ filter, and open a **printable page** — the binder is meant to be carried into
 a meeting on paper when that is easier.
 
 Tasks that come out of meeting notes appear here, in the week of whoever they
-were given to. Opening one takes you back to the meeting, not to a copy of the
-task.
+were given to. Ticking one, in the Agenda or the List view, completes the
+meeting's own task. Opening one takes you back to the meeting, not to a copy of
+the task.
 
 ## Monthly Calendar
 
@@ -91,6 +92,16 @@ turn one into a **task**. It starts as yours; give it a due date and it reaches
 the assignee's week — each task says whether it is on a week yet, and what it
 still needs if not. Nothing picks a date for you. This is the main way work travels from a meeting to a person,
 and it is explicit: nothing becomes somebody's task because a meeting happened.
+
+When a meeting has a type, the most recent earlier meeting of that type you may
+read is found, and what it left open can be brought in once, under a
+**Previous actions** heading.
+
+Only whoever wrote a note, or took it down, can change it. A participant
+reading minutes gets a reading page — the note and its tasks, **Print**, the
+tasks given to them to tick, and the request control — rather than an editor
+that would refuse their changes. An action somebody asked of you from a note
+shows there as **Asked of you**.
 
 Formatting is deliberately small — bold, italic, underline, links, headings,
 lists, quotes, checklists. Notes are documents to read, not pages to design.

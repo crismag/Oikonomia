@@ -36,4 +36,4 @@ When you add from Weekly Agenda, the item always has a day. Follow-ups you put o
 
 ### Tick it done
 
-Tick the box beside a task. Entries have no box. To rename, move or remove something, see [Change, move or remove something on the week](topic:weekly-agenda.change-item). Ticking a meeting task completes that meeting's own task. Finished tasks stay on the week, struck through; **Hide completed** in the Filter menu hides them.
+Tick the box beside a task. Entries have no box. To rename, move or remove something, see [Change, move or remove something on the week](topic:weekly-agenda.change-item). Ticking a meeting task — in the Agenda or the List view — completes that meeting's own task. Finished tasks stay on the week, struck through; **Hide completed** in the Filter menu hides them.
