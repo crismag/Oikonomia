@@ -336,6 +336,15 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/reports-api.ts#commentOnReport": { method: "POST", demo: "allowed" },
   "src/lib/reports-api.ts#removeReport": { method: "POST", demo: "allowed" },
 
+  /* notice-email-api.ts */
+  "src/lib/notice-email-api.ts#fetchEmailNotices": { method: "GET", demo: "read" },
+  /*
+   * Allowed: it records a person's own preference and sends nothing. On a
+   * demonstration `delivery()` is suppressed before any adapter, so a switch
+   * turned on there reaches nobody — and the page says mail cannot be sent.
+   */
+  "src/lib/notice-email-api.ts#setEmailNotice": { method: "POST", demo: "allowed" },
+
   /* starred-api.ts */
   "src/lib/starred-api.ts#fetchStarred": { method: "GET", demo: "read" },
   "src/lib/starred-api.ts#setStarred": { method: "POST", demo: "allowed" },

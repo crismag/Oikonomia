@@ -9,8 +9,12 @@
  *
  * ## What exists today
  *
- * Two adapters, and which one is in force is a deployment decision rather than
- * a code one.
+ * Three adapters, and which one is in force is a deployment decision rather
+ * than a code one.
+ *
+ * **Gmail**, when Google Workspace is configured (`src/server/google/`). Mail
+ * leaves as the church's application mailbox through the Gmail API, with the
+ * delegation the church already granted — nothing more to set up.
  *
  * **SMTP**, when `OIKONOMIA_SMTP_HOST` and `OIKONOMIA_MAIL_FROM` are set.
  * Every church already has SMTP — a Google Workspace account, an Exchange
@@ -28,6 +32,8 @@
  */
 
 import { currentInstallation } from "../installation/policy";
+import { GmailDelivery } from "../google/gmail";
+import { workspaceConfig } from "../google/workspace";
 import { siteUrl } from "./site-url";
 import { SmtpDelivery, smtpSettings } from "./smtp";
 
@@ -102,8 +108,9 @@ let adapter: DeliveryAdapter | undefined;
  *
  * Chosen from configuration on first use rather than at module load, so a
  * process that sets its own environment — a test, a script — is not stuck with
- * a decision made before it ran. SMTP when it is configured; the console
- * otherwise, which says on screen that nothing was sent.
+ * a decision made before it ran. Gmail when Google Workspace is configured;
+ * SMTP when that is; the console otherwise, which says on screen that nothing
+ * was sent.
  *
  * **Demo Mode comes first, and is asked every time.** The operations that send
  * mail are already refused before they run, but this is where mail actually
@@ -115,9 +122,33 @@ export function delivery(): DeliveryAdapter {
   if (currentInstallation().demoMode) return suppressed;
   if (adapter) return adapter;
 
+  const workspace = workspaceOrNothing();
+  if (workspace) {
+    adapter = new GmailDelivery(workspace);
+    return adapter;
+  }
   const settings = smtpSettings();
   adapter = settings ? new SmtpDelivery(settings) : new ConsoleDelivery();
   return adapter;
+}
+
+/**
+ * Workspace settings, or nothing when they are absent or broken.
+ *
+ * A broken Workspace configuration must not take sign-in down with it: it is
+ * reported on Administration → Google Workspace, and mail falls back to
+ * whatever else this installation has.
+ */
+function workspaceOrNothing() {
+  try {
+    return workspaceConfig();
+  } catch (error) {
+    console.error(
+      "Google Workspace is misconfigured, so mail does not go through Gmail:",
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
+  }
 }
 
 /** For a deployment that configures a real provider, and for tests. */

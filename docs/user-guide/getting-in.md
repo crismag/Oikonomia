@@ -85,6 +85,22 @@ change.
 Forgotten it? **Forgot password?** on the sign-in screen, where your church has
 email set up, or ask your administrator.
 
+### Email notices
+
+The bell in the top bar tells you when someone asks something of you or gives
+you a meeting task. Under **Email notices** you can choose to be emailed about
+either as well — each is **off until you turn it on**.
+
+- **When someone asks something of you** — an ask made of you by name, or of a
+  position you hold for the person asking.
+- **When someone gives you a meeting task** — a task in somebody else's
+  meeting note, assigned to you.
+
+The email says who, what and by when, with a link that opens the record in
+Oikonomia; it never carries the content of a report or note. You are not
+emailed about your own actions, and nothing else is emailed. Where your church
+has not set up email, or your record has no address, the section says so.
+
 ## What signing in does not give you
 
 An account is a way in and nothing else. It grants no ministry, no group, no

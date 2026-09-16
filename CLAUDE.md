@@ -317,7 +317,7 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 | Hold | Prerequisite |
 | --- | --- |
 | Merge **Leadership Reports** with **Reports to you** | Explicit decision: what *is* a ministry report? They are different records. |
-| Email or push reminders | In-app notices exist (`notices-bell.tsx`, `src/domain/notices.ts`): the bell counts only unseen asks and meeting tasks from someone else; past-due is listed, never counted; opening marks seen via `markSeen`. Do not add email/push or count overdue on the bell without Cris. |
+| Push, or email reminders beyond notices | In-app notices (`notices-bell.tsx`, `src/domain/notices.ts`): the bell counts only unseen asks and meeting tasks from someone else; past-due is listed, never counted; opening marks seen via `markSeen`. **Email notices exist** (Cris's decision) for those same two kinds only, opt-in — see *Email notices* below. Do not add push, email about past-due or reports, or count overdue on the bell without Cris. |
 | Calendar sync (Google) | Real OAuth, not a fake “connected” badge. Demo must stay disconnected. |
 | CSV import / member import | Church setup journey first, or you import into a shapeless org. |
 | File uploads | Contradicts “documents are links”. |
@@ -380,6 +380,38 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
   name once (`awaitsOwnName`, `giveOwnName`), refused afterwards.
 - **Change password** is on Account & security (`changePassword`; keeps this
   session, ends the others).
+
+## Email notices (opt-in)
+
+System mail goes through `delivery()` (`src/server/auth/delivery.ts`): Demo
+Mode suppressed → Gmail as the church mailbox when Google Workspace is
+configured (`src/server/google/gmail.ts`) → SMTP → console. Gmail counts as
+able to deliver, so `canDeliver()` / `methods.emailDelivery` are true with it.
+
+A leader chooses on **Account & security** which notices are also emailed
+(`notice_email_preference`, migration 043; `fetchEmailNotices` /
+`setEmailNotice` in `notice-email-api.ts`, demo `allowed` because delivery is
+suppressed there). Kinds today: `ask` and `meeting-task`, default off.
+
+- Services send at write time through an injected `NoticeMailer`
+  (`src/server/notices/notice-mailer.ts`): escalation `raise`; meeting
+  `createTask`, and `updateTask` when the assignee changes. The mailer drops
+  the actor, anyone not opted in, anyone without an address or inactive, and
+  never throws or waits — a failed send is logged, the write stands.
+- An ask to a position emails `resolveRecipients(role, requester)` — the
+  holders *for that requester* — which is narrower than the inbox's
+  `addressedTo` (any holder of that kind of position). Everyone emailed can
+  also see it in the inbox.
+- Content (`src/domain/email-notices.ts`): who, what was asked/assigned, date,
+  link (`siteUrl()` + `escalationHref` or the note / week path). No record
+  content; a meeting note the recipient may not read is neither named nor
+  linked.
+- **Adding a kind:** add it to `EMAIL_NOTICE_KINDS` and `emailNoticeKinds`
+  (the switch appears on its own), compose it in `email-notices.ts`, call
+  `mailer.notify({ kind, actorId, recipientIds, compose })` from the service
+  that makes the write, pass `noticeMailerFor(db)` in that API file, and
+  update `knowledge/oikonomia/account/email-notices.md` and
+  `docs/user-guide/getting-in.md`. No migration: kinds are stored as text.
 
 ## Appearance and themes
 

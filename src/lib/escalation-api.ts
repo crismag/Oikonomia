@@ -35,6 +35,7 @@ async function withEscalations<T>(
     { createLeadershipReportRepository },
     { createLeadershipReportService },
     { getRequest },
+    { noticeMailerFor },
   ] = await Promise.all([
     import("@/server/api/response"),
     import("@/server/auth/require-user"),
@@ -46,6 +47,7 @@ async function withEscalations<T>(
     import("@/server/repositories/leadership-report-repository"),
     import("@/server/services/leadership-report-service"),
     import("@tanstack/react-start/server"),
+    import("@/server/notices/notice-mailer"),
   ]);
 
   try {
@@ -68,6 +70,8 @@ async function withEscalations<T>(
             createOrganizationRepository(db),
           ).list(viewer).reports,
       },
+      /* Asks are emailed to the people asked who chose that; never fails the ask. */
+      await noticeMailerFor(db),
     );
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {

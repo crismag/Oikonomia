@@ -66,6 +66,46 @@ in memory until shortly before they expire.
 Leaders' **person records must carry their Workspace email address** for Drive
 and their calendar to work as them.
 
+## Mail
+
+When Workspace is configured, **all system mail goes through Gmail** as the
+church mailbox (`src/server/google/gmail.ts`), using only the `gmail.send`
+scope: invitations, sign-in links, password resets, data alerts and email
+notices. Messages appear in that mailbox's Sent folder.
+
+`delivery()` (`src/server/auth/delivery.ts`) chooses, in order:
+
+1. **Demo Mode** — suppressed; nothing is sent or logged about the message.
+2. **Gmail** — when Workspace is configured.
+3. **SMTP** — when `OIKONOMIA_SMTP_HOST` and `OIKONOMIA_MAIL_FROM` are set.
+4. **Console** — development only; nothing reaches anybody.
+
+A broken Workspace configuration (an unreadable key, say) is logged and mail
+falls back to SMTP or the console, so sign-in is not taken down with it.
+Gmail and SMTP both count as able to deliver, so the sign-in screen offers
+email links and **Account & security** says email notices can be sent.
+
+The message is built by Oikonomia as plain UTF-8 text. Line breaks in a
+subject are flattened and an address containing one is refused, so nothing
+supplied by a leader can add a header.
+
+### Email notices
+
+A leader can choose, on **Account & security**, to be emailed when someone
+asks something of them or gives them a meeting task — the two kinds the bell
+counts. Both are off by default (`notice_email_preference`, migration 043).
+The escalation and meeting services send at write time through a
+`NoticeMailer` (`src/server/notices/notice-mailer.ts`), which emails only
+people who opted in, never the person who acted, never a person without an
+address or who has left, and never fails or delays the write.
+
+An ask made of a position emails the people `resolveRecipients` names for
+the person asking (their reporting leader, their ministries' heads, their
+campus's or the church's leadership body). The email carries what was asked,
+by whom, the date and a link — never a record's content, and never the title
+of a meeting note the recipient may not read. `OIKONOMIA_URL` must be set for
+links; without it in production nothing is sent.
+
 ## Security notes
 
 - The key can act as any user in the domain for the listed scopes. Treat it

@@ -1,7 +1,7 @@
 # Migrations
 
 One `.sql` file per schema change, named `NNN_description.sql` — for example
-`001_calendar.sql`. There are 42, `001` to `042`.
+`001_calendar.sql`. There are 43, `001` to `043`.
 
 ## How they run
 

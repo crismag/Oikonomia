@@ -24,6 +24,9 @@ import {
   type AccountSessionView,
 } from "@/lib/auth-api";
 import { authMethodLabel } from "@/domain/auth";
+import { Switch } from "@/components/ui/switch";
+import { fetchEmailNotices, setEmailNotice } from "@/lib/notice-email-api";
+import { EMAIL_NOTICE_KINDS, emailNoticeKinds, type EmailNoticeKind } from "@/domain/email-notices";
 
 export const Route = createFileRoute("/account-security")({
   head: () => ({ meta: [{ title: "Account & security — Oikonomia" }] }),
@@ -99,6 +102,8 @@ function AccountSecurityPage() {
         <Section id="appearance" title="Appearance">
           <AppearancePicker />
         </Section>
+
+        <EmailNotices canSend={installation.emailDelivery} />
 
         <Section
           title="Sign-in methods"
@@ -348,6 +353,73 @@ function ChangePassword({ onChanged }: { onChanged: () => void }) {
           This device stays signed in. Every other device is signed out.
         </p>
       </form>
+    </Section>
+  );
+}
+
+/**
+ * Which notices also arrive by email.
+ *
+ * The same two kinds the bell counts, each off until this person turns it on.
+ * Where the installation cannot send mail the switches still record the
+ * choice — it takes effect once mail is set up — and the section says plainly
+ * that nothing is sent today, rather than letting a switch look like it works.
+ */
+function EmailNotices({ canSend }: { canSend: boolean }) {
+  const queryClient = useQueryClient();
+  const preferences = useQuery({
+    queryKey: ["email-notices"],
+    queryFn: async () => unwrap(await fetchEmailNotices({ data: {} })),
+  });
+
+  const change = useMutation({
+    mutationFn: async (input: { kind: EmailNoticeKind; enabled: boolean }) =>
+      unwrap(await setEmailNotice({ data: input })),
+    onSuccess: (next) => queryClient.setQueryData(["email-notices"], next),
+    onError: (error) =>
+      notify.error("That preference could not be saved.", undefined, String(error)),
+  });
+
+  return (
+    <Section title="Email notices">
+      <p className="px-4 pt-3 text-[13px] text-muted-foreground">
+        {!canSend
+          ? "This installation cannot send email, so nothing is emailed. Your choices are kept for when it can."
+          : !preferences.data
+            ? "Choose which notices also reach you by email."
+            : preferences.data.address
+              ? `Sent to ${preferences.data.address}, with a link to the record. The bell shows them either way.`
+              : "Your record has no email address, so nothing can be emailed to you. Your church administrator can add one."}
+      </p>
+      {preferences.isPending ? (
+        <p className="px-4 py-3 text-[13px] text-muted-foreground">Checking your preferences…</p>
+      ) : !preferences.data ? (
+        <p className="px-4 py-3 text-[13px] text-muted-foreground">
+          Your email preferences could not be read just now.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {EMAIL_NOTICE_KINDS.map((kind) => {
+            const id = `email-notice-${kind}`;
+            return (
+              <li key={kind} className="flex items-center justify-between gap-4 px-4 py-3">
+                <label htmlFor={id} className="min-w-0">
+                  <span className="block text-[14px]">{emailNoticeKinds[kind].label}</span>
+                  <span className="mt-0.5 block text-[12px] text-muted-foreground">
+                    {emailNoticeKinds[kind].description}
+                  </span>
+                </label>
+                <Switch
+                  id={id}
+                  checked={preferences.data.preferences[kind]}
+                  disabled={change.isPending}
+                  onCheckedChange={(enabled) => change.mutate({ kind, enabled })}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Section>
   );
 }

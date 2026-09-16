@@ -16,8 +16,10 @@ import type { MeetingTaskEntry } from "./planning";
  *   when the leader opens the bell, never counted on it, because a number that
  *   cannot go down until the work is finished is a queue by another name.
  *
- * Nothing here is sent anywhere. There is no email, no push and no reminder.
- * A report arriving is information and is not a notice at all.
+ * Nothing here is sent anywhere. The same two **new** kinds may also be
+ * emailed, to a leader who turned that on (`email-notices.ts`); past-due is
+ * never emailed, and there is no push and no reminder. A report arriving is
+ * information and is not a notice at all.
  */
 
 export type NoticeKind = "ask" | "meeting-task";
