@@ -14,6 +14,7 @@ import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "./organization-provider";
 import { useLeadershipInbox } from "./escalation-provider";
+import { useReports } from "./report-provider";
 import { PersonName } from "./person";
 import { escalationHref } from "@/domain/escalation";
 import { planningTime, type PlanningItem } from "@/domain/planning";
@@ -115,6 +116,7 @@ export function TaskDetail({
           ) : null}
 
           {task.escalationId ? <FromAnAsk escalationId={task.escalationId} /> : null}
+          {task.reportId ? <FromYourReport reportId={task.reportId} /> : null}
 
           {alsoThatDay.length > 0 ? (
             <div>
@@ -198,6 +200,26 @@ function FromAnAsk({ escalationId }: { escalationId: string }) {
           Open where it was asked
         </Link>
       ) : null}
+    </div>
+  );
+}
+
+/** The report whose follow-up this was, while this leader may still read it. */
+function FromYourReport({ reportId }: { reportId: string }) {
+  const reports = useReports();
+  const report = reports.byId(reportId);
+  if (!report) return null;
+
+  return (
+    <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-[13px]">
+      <p className="text-muted-foreground">A follow-up from your report.</p>
+      <Link
+        to="/leadership-reports/$reportId"
+        params={{ reportId: report.id }}
+        className="mt-1 inline-flex font-medium text-primary underline-offset-2 hover:underline"
+      >
+        {report.title || "Untitled report"}
+      </Link>
     </div>
   );
 }

@@ -485,3 +485,43 @@ describe("an agenda item from an ask", () => {
     ).toThrow(expect.objectContaining({ code: "not-found" }));
   });
 });
+
+/**
+ * A report's author can put its follow-ups on their week. Anybody else naming
+ * the report is answered as if it did not exist.
+ */
+describe("an agenda item from a report's follow-up", () => {
+  const reports = {
+    authorsFollowUp: (viewer: { person: { id: string } }, reportId: string, blockId: string) =>
+      viewer.person.id === maria.person.id && reportId === "lr-1" && blockId === "b2",
+  };
+
+  it("keeps the report and the line it came from", () => {
+    const withReports = createCalendarService(repo, undefined, reports);
+    const item = withReports.createAgendaItem(maria, {
+      text: "Call the Santos family",
+      weekOf: "2026-09-14",
+      reportId: "lr-1",
+      reportBlockId: "b2",
+    });
+    expect(repo.findAgendaItem(item.id)).toMatchObject({ reportId: "lr-1", reportBlockId: "b2" });
+  });
+
+  it("refuses a report this leader did not write, as not found", () => {
+    const withReports = createCalendarService(repo, undefined, reports);
+    expect(() =>
+      withReports.createAgendaItem(joel, {
+        text: "Call the Santos family",
+        weekOf: "2026-09-14",
+        reportId: "lr-1",
+        reportBlockId: "b2",
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+  });
+
+  it("refuses a report without the line in it", () => {
+    expect(() =>
+      service.createAgendaItem(maria, { text: "x", weekOf: "2026-09-14", reportId: "lr-1" }),
+    ).toThrow(ApiError);
+  });
+});

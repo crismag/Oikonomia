@@ -962,3 +962,41 @@ export function reportsToYou(
     shared: visible.filter((report) => report.authorId !== viewerId).sort(newest),
   };
 }
+
+/**
+ * The follow-ups a report's author wrote, still open.
+ *
+ * A follow-up line is the author saying something needs doing. These are what
+ * the author may put on their own week — the report stays information, and
+ * nobody else's week is touched.
+ */
+export function openFollowUps(report: Pick<LeadershipReport, "blocks">): {
+  blockId: string;
+  text: string;
+}[] {
+  return (report.blocks ?? [])
+    .filter((block) => block.type === "follow-up" && block.state !== "resolved")
+    .map((block) => ({ blockId: block.id, text: stripFollowUp(block.html) }))
+    .filter((item) => item.text.length > 0);
+}
+
+const stripFollowUp = (html: string) =>
+  html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** The agenda item a follow-up line was put on the week for, while it is open. */
+export function followUpOnWeek<
+  T extends {
+    reportId?: string | undefined;
+    reportBlockId?: string | undefined;
+    completed: boolean;
+  },
+>(agenda: readonly T[], reportId: string, blockId: string): T | undefined {
+  return agenda.find(
+    (entry) => entry.reportId === reportId && entry.reportBlockId === blockId && !entry.completed,
+  );
+}

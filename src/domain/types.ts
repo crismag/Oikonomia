@@ -693,6 +693,9 @@ export interface AgendaItem {
    * "Put on my week" knows it has already been done — never by matching text.
    */
   escalationId?: string;
+  /** The leadership report, and its follow-up line, this was put on the week for. */
+  reportId?: string;
+  reportBlockId?: string;
   dueAt?: string;
   assigneeId?: string;
   completedAt?: string;

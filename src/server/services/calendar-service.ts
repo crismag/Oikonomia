@@ -41,6 +41,14 @@ export function createCalendarService(
    * item naming an ask is then refused.
    */
   asks?: { askedOf: (viewer: Viewer, escalationId: string) => boolean },
+  /**
+   * Whether a follow-up line belongs to a report this viewer wrote.
+   *
+   * Only the author puts their own report's follow-ups on their week — a
+   * reader turning somebody else's report into their work is what asking is
+   * for. Anything else is answered as if the report did not exist.
+   */
+  reports?: { authorsFollowUp: (viewer: Viewer, reportId: string, blockId: string) => boolean },
 ) {
   /** Load, or refuse in a way that does not confirm the record exists. */
   function require(id: string): ScheduleEntry {
@@ -224,6 +232,12 @@ export function createCalendarService(
       }
       if (values.escalationId && !asks?.askedOf(viewer, values.escalationId)) {
         throw ApiError.notFound("That request");
+      }
+      if (
+        values.reportId &&
+        !reports?.authorsFollowUp(viewer, values.reportId, values.reportBlockId ?? "")
+      ) {
+        throw ApiError.notFound("That report");
       }
       return repo.insertAgendaItem({ ...values, createdBy: viewer.person.id });
     },

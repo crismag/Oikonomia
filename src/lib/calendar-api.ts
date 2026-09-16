@@ -64,6 +64,7 @@ async function withCalendar<T>(
     { createEscalationRepository },
     { createOrganizationRepository },
     { createEscalationService },
+    { createLeadershipReportRepository },
     { getRequest },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -75,6 +76,7 @@ async function withCalendar<T>(
     import("@/server/repositories/escalation-repository"),
     import("@/server/repositories/organization-repository"),
     import("@/server/services/escalation-service"),
+    import("@/server/repositories/leadership-report-repository"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -87,15 +89,30 @@ async function withCalendar<T>(
       createEscalationRepository(db),
       createOrganizationRepository(db),
     );
-    const service = createCalendarService(createCalendarRepository(db), {
-      askedOf: (viewer, escalationId) => {
-        try {
-          return escalations.get(viewer, escalationId).mine;
-        } catch {
-          return false;
-        }
+    const service = createCalendarService(
+      createCalendarRepository(db),
+      {
+        askedOf: (viewer, escalationId) => {
+          try {
+            return escalations.get(viewer, escalationId).mine;
+          } catch {
+            return false;
+          }
+        },
       },
-    });
+      {
+        authorsFollowUp: (viewer, reportId, blockId) => {
+          const report = createLeadershipReportRepository(db).find(reportId);
+          return (
+            !!report &&
+            report.authorId === viewer.person.id &&
+            (report.blocks ?? []).some(
+              (block) => block.id === blockId && block.type === "follow-up",
+            )
+          );
+        },
+      },
+    );
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {
     if (error instanceof ApiError) return { error: error.body() };

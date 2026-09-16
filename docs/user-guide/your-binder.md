@@ -107,6 +107,13 @@ has content, deleting asks first, because there is no undo and no trash.
 Filterable by **Status**, **Type** and **Visibility**, and split into **My
 Reports**, **Shared With Me** and **Documents**.
 
+Mark a line as a **follow-up** while writing, and your own report lists its
+open follow-ups under the text with **Put on my week**. It goes on this week's
+notes rather than on a day, so nothing is given a deadline you did not choose,
+and the report shows **On your week** once it is there. Only the author sees
+this: to ask somebody else for something, use _Does this need anything from
+leadership?_
+
 Four things are independent, and keeping them apart is the point:
 
 |               |                                     |
