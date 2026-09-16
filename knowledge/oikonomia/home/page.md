@@ -22,11 +22,11 @@ aliases:
   - what does needs your attention mean
   - why does home say nothing is waiting on me
 related:
-  [my-progress.page, notices.bell, weekly-agenda.page, inbox.page, administration.setup-church]
+  [home.open-your-work, planning.plan-week.walkthrough, my-progress.page, notices.bell, weekly-agenda.page, inbox.page, administration.setup-church]
 destinations: [home, my-progress, weekly-agenda, inbox]
 ---
 
-Home answers one question: what should I do in the next minute? Every row opens the record it belongs to; nothing is edited on Home itself.
+Home answers one question: what should I do in the next minute? Every row opens the record it belongs to; nothing is edited on Home itself. See [what each row does](topic:home.open-your-work).
 
 The header greets you, gives the date and says how many things need you — or that nothing is waiting on you. When something needs you, the primary button continues it. **Add to the week** is always there.
 

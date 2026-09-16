@@ -6,25 +6,36 @@ category: reach-out
 summary: Shared reports of outreach — what happened when leaders reached out, written so any leader can continue.
 modules: [reach-out]
 pages: [reach-out, reach-out-report]
-keywords: [reach-out, outreach, visits, weekly reach-out report, evangelism]
+keywords: [reach-out, outreach, visits, weekly reach-out report, evangelism, comments, documents, printable view]
 aliases:
-  - how do I write a reach-out report
-  - who can see reach-out reports
-  - can someone else edit my reach-out report
-related: [home.page, my-progress.page, people.person-page]
+  - what is reach-out for
+  - where do I write a reach-out report
+  - what are reach-out documents
+related:
+  - reach-out.add-report
+  - reach-out.contribute
+  - reach-out.find
+  - reach-out.sharing
+  - reach-out.asks
+  - reach-out.write.walkthrough
 destinations: [reach-out]
 ---
 
-Reach-Out holds reports of outreach — whatever you would tell another leader about a visit, a call, a park or an invitation. Home and My Progress count **this week's Reach-Out report** as part of your cycle.
+Reach-Out holds reports of outreach — whatever you would tell another leader about a visit, a call, a park or an invitation. It is under My Work in the sidebar. Nothing asks you to classify the outreach; you write what happened.
 
-### Writing one
+### Two tabs
 
-Choose **Add report**. Give it a date and a title, write what happened, and **Save report**. Reports save as you write and carry a version, so if two people edit the same report at once, the second is told rather than silently overwriting the first.
+- **Reports** — every report, newest first, with its date, title, who reported it, how many other leaders have added to it, a comment count and its opening words. See [Find a Reach-Out report](topic:reach-out.find).
+- **Documents** — working materials for Reach-Out in general, registered as links to where they live. See [Register a document](topic:documents.register).
 
-### Shared work
+### A report
 
-Reach-Out is shared: any leader may open and continue any report, and the report shows who wrote it first and who has worked on it since. Writing it first is provenance, not ownership — but only its author may delete it. A report nothing has been written in yet offers **Discard**; once it has content, deleting asks first, and there is no undo.
+- **Add report** starts one — see [Write a Reach-Out report](topic:reach-out.add-report).
+- **Edit** lets any leader continue it — see [Contributors](topic:reach-out.contribute).
+- **Printable view** shows the report alone, with a **Print** button.
+- *Does this need anything from leadership?* asks another leader for something — see [Asks on a Reach-Out report](topic:reach-out.asks).
+- **Comments** sit under the report, for discussion rather than a second report.
 
-Comments sit under the report, for discussion rather than a second report.
+Home and My Progress show **This week's Reach-Out report**: it is started once a report is dated this week, and written once one of them has something written in it.
 
-> Who may read Reach-Out reports is not narrowed yet: every leader sees every report. Do not write anything here that only some leaders should read — use a [Leadership Report](destination:leadership-reports) with the right audience instead.
+> Every leader can read every Reach-Out report — see [Who can see Reach-Out reports](topic:reach-out.sharing).

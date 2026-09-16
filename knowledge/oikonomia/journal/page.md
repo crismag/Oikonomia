@@ -22,7 +22,7 @@ aliases:
   - can my bishop read my journal
   - how do I share a journal entry
   - how do I turn journal entries into a report
-related: [reports.visibility, reports.create, permissions.capabilities]
+related: [journal.write-entry, journal.share-entry, journal.delete-entry, journal.walkthrough, reports.visibility, permissions.capabilities]
 destinations: [leadership-journal, leadership-reports]
 ---
 
@@ -34,10 +34,11 @@ An entry is private to you. Nobody else can open it, whatever their role — adm
 
 ### Writing
 
-1. Choose **New entry**.
-2. Give it a title and write. It saves as you go and shows **Saved**.
+Choose **New entry**, give it a title and write. It saves as you go and shows **Saved**. See [Write a journal entry](topic:journal.write-entry).
 
-Entries are listed under **My development**. **Delete entry** asks first and cannot be undone.
+Your entries are listed under **My development**. **Delete entry** asks first and cannot be undone — see [Delete a journal entry](topic:journal.delete-entry).
+
+If another leader's development record has been shared with you, it is listed under **Shared with you** and opens as a [work record](topic:work.record-page).
 
 ### Sharing lines in a summary
 
@@ -49,4 +50,4 @@ There is no button that shares an entry. Instead:
 
 The ticked lines are **copied** into a new leadership report, which starts private until you choose who may read it. Use **Open the summary** to do that. Everything you left unticked stays in the journal, and a reader of the report gains no access to the entry behind it.
 
-See [Who can read a report](topic:reports.visibility).
+See [Share lines from an entry](topic:journal.share-entry) and [Who can read a report](topic:reports.visibility).

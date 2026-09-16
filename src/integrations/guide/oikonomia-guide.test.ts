@@ -76,10 +76,20 @@ describe("context", () => {
       route: "/goals",
       module: "goals",
       page: "goals",
-      topics: ["goals.page", "goals.scope"],
+      topics: ["goals.page", "goals.scope", "getting-started.where-to"],
       capabilities: ["administration"],
       flags: ["demo", "restricted:identity", "restricted:data"],
     });
+  });
+
+  /* Finding where to do something is asked on every page, known or not. */
+  it("offers where to do things on every page", () => {
+    const none = { demo: false, restricted: [] };
+    for (const pathname of ["/", "/weekly-agenda", "/nowhere/at/all"]) {
+      const topics = guideContextFor({ pathname, capabilities: [], installation: none }).topics;
+      expect(topics?.at(-1)).toBe("getting-started.where-to");
+      expect(topics?.filter((id) => id === "getting-started.where-to")).toHaveLength(1);
+    }
   });
 });
 
@@ -132,6 +142,32 @@ describe("what a leader is shown", () => {
     expect(home.title).toBe(byId.get("reports.page")!.title);
     expect(home.suggestions.map((s) => s.id)).toContain("reports.visibility");
     expect(home.walkthroughs.map((s) => s.id)).toContain("reports.create.walkthrough");
+  });
+
+  /* The Guide is a user guide first: the questions leaders bring about their
+     own work must land on the article that answers them. */
+  it("answers a leader's everyday questions on the page they are on", async () => {
+    for (const [pathname, question, expected] of [
+      ["/lifegroups", "how do I record attendance", "lifegroup.record-attendance"],
+      ["/lifegroups/g-1", "how do I complete the gathering", "lifegroup.write-up"],
+      ["/inbox", "how do I approve something", "inbox.respond"],
+      ["/monthly-calendar", "how do I add an event", "monthly-calendar.add-event"],
+      ["/weekly-agenda", "move something to another day", "weekly-agenda.change-item"],
+      ["/weekly-agenda", "why isn't my task on my week", "planning.not-on-week"],
+      ["/meeting-notes", "how do I write minutes", "meeting-notes.write"],
+      ["/reach-out", "add a reach-out report", "reach-out.add-report"],
+      ["/leadership", "share a journal entry", "journal.share-entry"],
+      ["/ministries/m-1", "add a ministry goal", "ministries.add-goal"],
+      ["/team", "who is behind", "team.follow-up"],
+      ["/", "where do I record attendance", "lifegroup.record-attendance"],
+    ] as const) {
+      const response = await service(context(pathname)).ask(question);
+      const ids =
+        response.kind === "results"
+          ? [response.answer?.item.id, ...response.results.map((r) => r.id)]
+          : [];
+      expect(ids.slice(0, 4), `${question} @ ${pathname}`).toContain(expected);
+    }
   });
 
   it("answers ordinary questions from the corpus", async () => {

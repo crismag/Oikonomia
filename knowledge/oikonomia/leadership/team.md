@@ -13,7 +13,7 @@ aliases:
   - why can't I see names on Team Overview
 capabilities: []
 hideWhen: []
-related: [my-progress.page, reports-to-you.page, inbox.page, permissions.capabilities]
+related: [team.follow-up, my-progress.page, reports-to-you.page, inbox.page, permissions.capabilities]
 destinations: [team]
 ---
 
@@ -33,8 +33,8 @@ Leaders are people who lead a ministry or a gathering, or who write reports.
 ### What it shows
 
 - **Leaders**, **On track**, **Reporting**, **Need attention** and **Overdue**. Choose Need attention or Overdue to filter the page.
-- **Needs attention** — obligations due soon or overdue, with **Look into it**.
-- **Reporting** — expected, submitted, late, not submitted, and how many you have not read.
+- **Needs attention** — obligations due soon or overdue, with **Look into it**. See [Follow up from Team Overview](topic:team.follow-up).
+- **Reporting** — expected, submitted, late, not submitted, and how many you have not read. **Open Reports** goes to Reports to you.
 - **Leaders** (when names are visible) — each leader by work area. Select one for a quick view.
 - **Work areas**, **Reporting over time** and, when names are visible, **Reporting consistency**.
 

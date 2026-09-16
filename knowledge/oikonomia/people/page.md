@@ -12,7 +12,7 @@ aliases:
   - where is the church directory
 capabilities: []
 hideWhen: []
-related: [people.person-page, assignments.claims, permissions.capabilities]
+related: [people.person-page, people.troubleshooting, assignments.claims, permissions.capabilities]
 destinations: [people]
 ---
 
@@ -25,7 +25,7 @@ There is one record for each person, and the rest of Oikonomia refers to it. The
 - Type in **Search people by name or role**.
 - Choose a campus to narrow the list, or **All campuses** to see everyone.
 
-Each row shows the person's name, what they are called here and their campus, and on wider screens the ministries they serve in. Choose a row to open [their page](topic:people.person-page).
+Each row shows the person's name, what they are called here and their campus, and on wider screens the ministries they are on. Long lists are split into pages. Choose a row to open [their page](topic:people.person-page).
 
 The search and campus filter are kept in the page address, so a narrowed list can be bookmarked or shared.
 

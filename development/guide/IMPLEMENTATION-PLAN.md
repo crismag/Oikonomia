@@ -15,7 +15,7 @@
 | Deep links with `GuideHint` (first placement: Confidential on the editor)    | Done                                |
 | Lazy knowledge chunk                                                         | Done                                |
 | Events through `host.onEvent`                                                | Emitted; nothing listens yet        |
-| Oikonomia pack: 16 categories, 55 items, 6 walkthroughs                      | Done; kept current with the product |
+| Oikonomia pack: 16 categories, 106 items, 13 walkthroughs                    | Done; kept current with the product |
 | One switch to turn it off                                                    | `GUIDE_ENABLED`                     |
 
 ## Known limits

@@ -13,7 +13,7 @@ aliases:
   - who reports to this person
 capabilities: []
 hideWhen: []
-related: [people.page, permissions.not-found, assignments.claims]
+related: [people.page, people.troubleshooting, permissions.not-found, assignments.claims]
 destinations: [people]
 ---
 
@@ -28,10 +28,10 @@ A person's page gathers what the binder already holds about them. Every section 
 
 ### In the page
 
-- **Work and reports** — work records involving them that you may read. If some related records are closed to you, the page says how many and does not list them.
+- **Work and reports** — [work records](topic:work.record-page) involving them that you may read. If some related records are closed to you, the page says how many and does not list them.
 - **Leadership reports** they wrote that you may already read.
 - **Reach-Out** reports they wrote or worked on.
-- **Meeting notes** they wrote that you may read. Someone else's personal notes never appear here.
+- **Meeting notes** they wrote or took down that you may read. Someone else's personal notes never appear here.
 - **Gatherings they lead** and **Gatherings attended**.
 - **Activity** — their recent activity on work you may see.
 

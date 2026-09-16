@@ -14,7 +14,7 @@ aliases:
   - does the calendar sync with Google
 capabilities: []
 hideWhen: []
-related: [weekly-agenda.page, weekly-agenda.add-item]
+related: [monthly-calendar.add-event, planning.repeating-entry, weekly-agenda.change-item, planning.cannot-edit-entry, weekly-agenda.page]
 destinations: [monthly-calendar, weekly-agenda]
 ---
 
@@ -22,7 +22,14 @@ Monthly Calendar answers _when_ things happen. Weekly Agenda is where you run th
 
 ### Filters
 
-**All**, **Mine**, **Ministry**, **LifeGroup** and **Church** choose which events show, by where each entry came from. The filters apply to events only; tasks are always listed.
+**All**, **Mine**, **Ministry**, **LifeGroup** and **Church** choose which events show, by where each entry came from:
+
+- **Mine** — entries added by hand on the calendar. This is every leader's hand-added entries, not only yours.
+- **Ministry** — entries related to a ministry.
+- **LifeGroup** — LifeGroup entries.
+- **Church** — the church's own schedule and church events.
+
+The filters apply to events only; tasks are always listed.
 
 ### The grid and the day panel
 

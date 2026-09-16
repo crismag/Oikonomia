@@ -13,7 +13,7 @@ aliases:
   - where are reports my leaders wrote
 capabilities: []
 hideWhen: []
-related: [reports.page, inbox.page, reports.visibility, goals.page]
+related: [reports-to-you.find, reports.page, inbox.page, reports.visibility, goals.page]
 destinations: [reports-to-you, leadership-reports.shared]
 ---
 
@@ -35,6 +35,6 @@ This year's goals, grouped under **People who report to you**, **Ministries** an
 
 ### Work reports
 
-Listed only when there are any. These are a different kind of record from Leadership Reports.
+Listed only when there are any. These are a different kind of record from Leadership Reports; each opens as a [work record](topic:work.record-page).
 
 When some reports are closed to you, the page says how many — never which.
