@@ -153,6 +153,71 @@ Code: `src/server/google/drive.ts` (requests), `src/server/services/drive-servic
 (rules), `src/lib/drive-api.ts` (server functions),
 `src/components/oikonomia/drive-browser.tsx` and `drive-details.tsx` (screens).
 
+## Calendar
+
+Oikonomia stays the source of truth for church events. Google Calendar gets a
+**published copy** of the church calendar, and each leader gets a **read-only
+overlay** of their own calendar on their week. There is no two-way sync.
+
+### Publishing (`src/server/google/calendar.ts`)
+
+On only when `OIKONOMIA_GOOGLE_CALENDAR_ID` is set. As the church mailbox
+(`calendar.events`), into that calendar:
+
+- **What.** Every schedule entry, and every LifeGroup gathering that is not
+  cancelled. A gathering's location is its venue's name, never an address.
+- **Shape.** All-day (a date, exclusive end) when the entry is all day or has
+  no start time; otherwise local `dateTime` plus the site timezone
+  (`site.json` → `timezone`), an hour long if it has no end. Rhythms become an
+  `RRULE` — `DAILY`, `WEEKLY;BYDAY`, fortnightly as `WEEKLY;INTERVAL=2;BYDAY`,
+  `MONTHLY`, `YEARLY` — starting on the first date the schedule's own rule
+  lands on, with `UNTIL` from the series end (a date, or the last start in UTC
+  when timed). Dates removed from a series ("this occurrence" deleted or
+  lifted out as its own entry) become `EXDATE`s. The description carries the
+  note, the ministry, the meeting link and a link back (`OIKONOMIA_URL`).
+- **Recognisable.** Every event carries
+  `extendedProperties.private.oikonomiaSource` (`schedule-entry` | `gathering`)
+  and `oikonomiaId`.
+- **When.** The calendar and LifeGroup services are given a publisher at the
+  API composition edge (`calendarPublisherFor`, `calendar-publishing.ts`) and
+  tell it after each successful write: create, update at any scope, delete,
+  duplicate; gathering create, edit, join/leave, cancel (removes the event) and
+  restore. Publishing runs after the response is decided and never fails or
+  delays the write. Attempts for one record are serialised, so a quick
+  correction cannot race into a second event.
+- **Bookkeeping.** `calendar_publication` (migration 045): source type and id →
+  Google event id, calendar id, last synced, last attempt, last error. An update
+  uses the recorded event id (and inserts again if the event was deleted in
+  Google); a failure is recorded, not thrown.
+- **Publish all.** **Administration → Google Workspace → Publish all events**
+  (`publishAllCalendarEvents`, administrators only, refused in a demonstration)
+  publishes or updates every record through the recorded ids — running it twice
+  adds nothing — and removes events for records that no longer exist. The card
+  shows how many events are current, when the last one was published, and the
+  latest failure.
+
+Records written outside the services (an import) reach Google on the next
+**Publish all events**. Editing a published event in Google is overwritten by
+the next publish of that record.
+
+### Overlay (`readOverlay`)
+
+`fetchGoogleCalendarOverlay` reads the **viewer's own** primary calendar as
+them (`calendar.readonly`) for the range a screen shows (a week, or a month
+grid; at most 45 days): `singleEvents=true`, `orderBy=startTime`, bounds at
+midnight in the site timezone. It returns only title, date, start/end or
+all-day, location and the Google link, and keeps nothing. Events marked as
+published by Oikonomia are dropped so nothing appears twice.
+
+The address is the viewer's person record (or, failing that, their account). If
+it is not in the Workspace domain (`mayActAs`) nothing is asked of Google and
+the reply says `no-workspace-email`; if Google refuses, `google-refused`. The
+week shows that once and is otherwise unaffected. Weekly Agenda (Agenda and
+Calendar views) and the Monthly Calendar day panel draw these read-only, in a
+dashed box labelled _From your Google Calendar_, with a show/hide toggle kept
+in `localStorage`. They are never planning items and never counted on Home or
+My Progress.
+
 ## Security notes
 
 - The key can act as any user in the domain for the listed scopes. Treat it

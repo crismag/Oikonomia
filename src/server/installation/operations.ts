@@ -138,6 +138,16 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
     because: "integrations",
   },
 
+  /* google-calendar-api.ts */
+  "src/lib/google-calendar-api.ts#fetchCalendarPublishing": { method: "GET", demo: "read" },
+  "src/lib/google-calendar-api.ts#publishAllCalendarEvents": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
+  },
+  /* A demonstration has no Workspace, so this answers "not set up" there. */
+  "src/lib/google-calendar-api.ts#fetchGoogleCalendarOverlay": { method: "GET", demo: "read" },
+
   /* calendar-api.ts */
   "src/lib/calendar-api.ts#fetchCalendarRange": { method: "GET", demo: "read" },
   "src/lib/calendar-api.ts#createCalendarEntry": { method: "POST", demo: "allowed" },

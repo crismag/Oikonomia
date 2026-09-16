@@ -13,7 +13,7 @@ aliases:
   - how do I add an event for next month
 capabilities: []
 hideWhen: []
-related: [monthly-calendar.page, planning.repeating-entry, weekly-agenda.add-item, weekly-agenda.change-item]
+related: [monthly-calendar.page, planning.repeating-entry, weekly-agenda.add-item, weekly-agenda.change-item, planning.google-calendar]
 destinations: [monthly-calendar]
 ---
 
@@ -27,6 +27,6 @@ destinations: [monthly-calendar]
 
 For more, choose **More options** before adding: **Date**, **Start**, **End**, **All day**, **Description**, **Location or meeting link**, **Meeting link**, **Related to** (a ministry), **Repeats** and **People**.
 
-The event is on the shared calendar, so it also shows on Weekly Agenda and to other leaders. There is no reminder setting — Oikonomia does not send reminders — and it does not sync with Google or any other calendar.
+The event is on the shared calendar, so it also shows on Weekly Agenda and to other leaders. There is no reminder setting — Oikonomia does not send reminders. Where your church publishes a church Google Calendar, the event is published there too; see [Google Calendar and Oikonomia](topic:planning.google-calendar).
 
 To add something to do rather than something happening, open the event and type under **Tasks**.

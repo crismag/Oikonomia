@@ -34,6 +34,7 @@ import type {
   LifegroupRepository,
 } from "../repositories/lifegroup-repository";
 import type { Gathering, LifegroupEntry } from "@/domain/types";
+import type { CalendarPublisher } from "../google/calendar";
 import type { Viewer } from "@/domain/viewer";
 
 /**
@@ -60,7 +61,19 @@ import type { Viewer } from "@/domain/viewer";
  * campus oversight may move it and may not record it (`authorize.ts`).
  */
 
-export function createLifegroupService(repo: LifegroupRepository) {
+export function createLifegroupService(
+  repo: LifegroupRepository,
+  /**
+   * Copies gatherings to the church's Google Calendar, when one is set up — and
+   * takes a cancelled one off it. Told after the write; it cannot fail it.
+   */
+  publisher?: Pick<CalendarPublisher, "gatheringSaved">,
+) {
+  const published = (gathering: Gathering): Gathering => {
+    publisher?.gatheringSaved(gathering);
+    return gathering;
+  };
+
   function requireGathering(id: string): Gathering {
     const gathering = repo.findGathering(id);
     if (!gathering) throw ApiError.notFound("That gathering");
@@ -135,7 +148,7 @@ export function createLifegroupService(repo: LifegroupRepository) {
       updatedBy: viewer.person.id,
     } as GatheringValues);
     if (!saved) throw ApiError.notFound("That gathering");
-    return saved;
+    return published(saved);
   }
 
   function readableEntries(viewer: Viewer, gathering: Gathering, entries: LifegroupEntry[]) {
@@ -206,12 +219,14 @@ export function createLifegroupService(repo: LifegroupRepository) {
     createGathering(viewer: Viewer, input: unknown): Gathering {
       const values = parse(createGathering, input);
       const assignedLeaderIds = values.assignedLeaderIds ?? [];
-      return repo.insertGathering({
-        ...values,
-        assignedLeaderIds,
-        status: statusForLeaders("planned", assignedLeaderIds),
-        createdBy: viewer.person.id,
-      } as GatheringValues);
+      return published(
+        repo.insertGathering({
+          ...values,
+          assignedLeaderIds,
+          status: statusForLeaders("planned", assignedLeaderIds),
+          createdBy: viewer.person.id,
+        } as GatheringValues),
+      );
     },
 
     /**
@@ -271,7 +286,7 @@ export function createLifegroupService(repo: LifegroupRepository) {
         updatedBy: me,
       } as GatheringValues);
       if (!saved) throw ApiError.notFound("That gathering");
-      return saved;
+      return published(saved);
     },
 
     /**
@@ -327,7 +342,7 @@ export function createLifegroupService(repo: LifegroupRepository) {
         updatedBy: viewer.person.id,
       } as GatheringValues);
       if (!saved) throw ApiError.notFound("That gathering");
-      return saved;
+      return published(saved);
     },
 
     /**

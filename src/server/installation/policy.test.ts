@@ -218,16 +218,17 @@ describe("with Demo Mode on", () => {
     ["src/lib/drive-api.ts#registerDriveFile", "integrations"],
     ["src/lib/drive-api.ts#uploadDriveFile", "integrations"],
     ["src/lib/drive-api.ts#createDriveFile", "integrations"],
+    ["src/lib/google-calendar-api.ts#publishAllCalendarEvents", "integrations"],
   ])("refuses %s", (key, because) => {
     const method = SERVER_FUNCTIONS[key]!.method;
     expect(decideServerFunction(ON, fn(key), method)).toEqual({ allowed: false, because });
   });
 
-  it("refuses exactly those 30 and nothing else that is classified", () => {
+  it("refuses exactly those 31 and nothing else that is classified", () => {
     const refused = Object.entries(SERVER_FUNCTIONS)
       .filter(([key, policy]) => !decideServerFunction(ON, fn(key), policy.method).allowed)
       .map(([key]) => key);
-    expect(refused).toHaveLength(30);
+    expect(refused).toHaveLength(31);
   });
 
   it.each([

@@ -24,6 +24,7 @@ related:
     meeting-notes.tasks,
     asks.put-on-week,
     reports.follow-ups,
+    planning.google-calendar,
   ]
 destinations: [weekly-agenda, monthly-calendar]
 ---
@@ -38,6 +39,7 @@ Weekly Agenda is the week you are running. It has three views of the same items;
 
 - **Entries** are things that happen: an event, a gathering, an activity. They are not ticked off.
 - **Tasks** are things to do, with a box to tick. Tasks a meeting gave you appear on their due date, labelled with the meeting — or "From a meeting" if you may not read that note.
+- **From your Google Calendar** — where your church uses Google Workspace, your own Google Calendar events show in a dashed box on each day in the Agenda and Calendar views. They are read-only: open one to go to Google Calendar. **Google Calendar** in the toolbar shows or hides them. See [Google Calendar and Oikonomia](topic:planning.google-calendar).
 - **This week** under the days holds items filed to the week rather than a day, such as follow-ups you put on your week from your own leadership report.
 
 ### Opening an item

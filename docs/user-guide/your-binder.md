@@ -72,6 +72,27 @@ tasks a meeting gave you. Open an event to see it in full; open a task to reach
 it where it lives: an agenda item on the week, a meeting task in its note when
 you may read that note.
 
+## Google Calendar
+
+Only where the church has connected Google Workspace (never on a
+demonstration):
+
+- **Church events are published** to a church Google Calendar that people can
+  subscribe to — every calendar event and every LifeGroup gathering, shortly
+  after it is saved, with changes, repeats and removed dates following. A
+  cancelled gathering is taken off. It is one way: change events in Oikonomia,
+  not in Google. If Google cannot be reached your change is still saved; an
+  administrator sees the failure under **Administration → Google Workspace**
+  and can **Publish all events** again.
+- **Your own Google Calendar beside your week.** Weekly Agenda (Agenda and
+  Calendar views) and the Monthly Calendar's day panel show your own events
+  under **From your Google Calendar**, read as you and not kept. They are not
+  tasks, cannot be edited here and do not count on Home or My Progress; church
+  events Oikonomia published are left out so nothing appears twice.
+  **Google Calendar** in the toolbar shows or hides them, remembered on that
+  browser. Your record in People needs your church Workspace address for this
+  to work.
+
 ## Meeting Notes
 
 > _What was said and decided, written down while it is fresh._

@@ -22,6 +22,13 @@ import {
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import {
+  OverlayEvents,
+  OverlayNotice,
+  OverlayToggle,
+  useGoogleCalendarOverlay,
+  type GoogleCalendarOverlayState,
+} from "@/components/oikonomia/google-calendar-overlay";
+import {
   dayNumber,
   formatTime,
   fromISO,
@@ -109,6 +116,9 @@ function MonthlyCalendarPage() {
 
   /* Tells the provider which month to fetch, so moving months moves the data. */
   useCalendarPeriod(days);
+  /* The leader's own Google Calendar, for the selected day — not the grid,
+     which stays about the church's events. */
+  const google = useGoogleCalendarOverlay(days);
 
   return (
     <Page width="workspace">
@@ -123,6 +133,8 @@ function MonthlyCalendarPage() {
              * who selects the 23rd and asks for the week should get the week
              * the 23rd is in, not this one.
              */}
+            <OverlayToggle overlay={google} />
+
             <Link
               to="/weekly-agenda"
               search={{ date: selected }}
@@ -199,11 +211,13 @@ function MonthlyCalendarPage() {
        * "what is coming up", not "what shape is this month".
        */}
       {store.status === "error" ? <ViewError what="The month" onRetry={store.retry} /> : null}
+      <OverlayNotice overlay={google} />
       <CalendarState lines={6}>
         <MonthAgenda
           anchor={anchor}
           today={today}
           keep={keep}
+          google={google}
           onOpenEntry={detail.open}
           onAdd={(iso) => adding.open(iso)}
         />
@@ -241,6 +255,7 @@ function MonthlyCalendarPage() {
           <DayPanel
             iso={selected}
             keep={keep}
+            google={google}
             onOpenEntry={detail.open}
             onAdd={() => adding.open(selected)}
           />
@@ -368,12 +383,14 @@ function MonthAgenda({
   anchor,
   today,
   keep,
+  google,
   onOpenEntry,
   onAdd,
 }: {
   anchor: string;
   today: string;
   keep: (occurrence: ScheduleOccurrence) => boolean;
+  google: GoogleCalendarOverlayState;
   onOpenEntry: (occurrence: ScheduleOccurrence) => void;
   onAdd: (iso: string) => void;
 }) {
@@ -389,8 +406,9 @@ function MonthAgenda({
       iso,
       occurrences: occurrencesOn(store.entries, iso).filter(keep),
       tasks: tasksForDay(iso, store.agenda, ministryName, myTasks.tasks),
+      google: google.eventsOn(iso),
     }))
-    .filter((day) => day.occurrences.length > 0 || day.tasks.length > 0);
+    .filter((day) => day.occurrences.length > 0 || day.tasks.length > 0 || day.google.length > 0);
 
   return (
     <div className="lg:hidden">
@@ -464,6 +482,12 @@ function MonthAgenda({
                 })}
               </ul>
 
+              {day.google.length > 0 ? (
+                <div className="px-3 py-2">
+                  <OverlayEvents events={day.google} />
+                </div>
+              ) : null}
+
               {day.tasks.length > 0 ? (
                 <div className="border-t border-border px-3 py-2">
                   <h3 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -488,11 +512,13 @@ function MonthAgenda({
 function DayPanel({
   iso,
   keep,
+  google,
   onOpenEntry,
   onAdd,
 }: {
   iso: string;
   keep: (occurrence: ScheduleOccurrence) => boolean;
+  google: GoogleCalendarOverlayState;
   onOpenEntry: (occurrence: ScheduleOccurrence) => void;
   onAdd: () => void;
 }) {
@@ -552,6 +578,8 @@ function DayPanel({
         ) : (
           <p className="text-[13px] text-muted-foreground">Nothing scheduled.</p>
         )}
+
+        <OverlayEvents events={google.eventsOn(iso)} className="mt-3" />
 
         {tasks.length > 0 ? (
           <div className="mt-3">
