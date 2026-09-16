@@ -121,6 +121,7 @@ export const routeGuides: RouteGuide[] = [
       "reports.visibility",
       "reports.confidential",
       "reports.statuses",
+      "reports.delete",
       "reports.follow-ups",
       "asks.raise",
     ],

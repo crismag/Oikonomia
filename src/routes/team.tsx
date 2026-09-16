@@ -268,7 +268,7 @@ function TeamOverviewPage() {
                   to="/reports"
                   className="text-[13px] text-primary underline-offset-2 hover:underline"
                 >
-                  Open Reports
+                  Open Reports to you
                 </Link>
               </div>
             </Section>

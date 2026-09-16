@@ -119,7 +119,12 @@ export interface ReportStore {
   }) => Promise<string>;
   updateReport: (id: string, patch: EditablePatch) => void;
   setBlocks: (id: string, blocks: MeetingBlock[]) => void;
-  removeReport: (id: string) => void;
+  /**
+   * Delete a report outright. Resolves once the server has removed it and
+   * rejects with its refusal, so the page leaves only when there is nothing
+   * left to come back to.
+   */
+  removeReport: (id: string) => Promise<void>;
 
   /**
    * Move a report to another stage.
@@ -388,7 +393,26 @@ export function ReportProvider({ children }: { children: ReactNode }) {
 
       setBlocks: (id, blocks) => edit(id, (report) => ({ ...report, blocks }), ["blocks"]),
 
-      removeReport: (id) => act(() => removeReportCall({ data: { id } })),
+      removeReport: async (id) => {
+        /* A pending save of a report being deleted would race the delete, and
+           landing after it would be refused. Hold it; if the delete is refused
+           the edits are still the leader's and are saved as usual. */
+        const timer = timers.current.get(id);
+        if (timer) clearTimeout(timer);
+        timers.current.delete(id);
+        setSaveError(null);
+        try {
+          await mutate.mutateAsync(() => removeReportCall({ data: { id } }));
+        } catch (error) {
+          if (pending.current.has(id)) schedule(id);
+          throw error;
+        }
+        pending.current.delete(id);
+        setDrafts((current) => {
+          const { [id]: _gone, ...rest } = current;
+          return rest;
+        });
+      },
 
       moveTo: (id, to) => act(() => transitionReport({ data: { id, to } })),
 
@@ -396,7 +420,21 @@ export function ReportProvider({ children }: { children: ReactNode }) {
       addComment: (id, _authorId, body) =>
         act(() => commentOnReport({ data: { reportId: id, body } })),
     }),
-    [visible, query, byId, can, saveState, saveError, flush, edit, act, invalidate, queryClient],
+    [
+      visible,
+      query,
+      byId,
+      can,
+      saveState,
+      saveError,
+      flush,
+      edit,
+      act,
+      invalidate,
+      queryClient,
+      mutate,
+      schedule,
+    ],
   );
 
   return <ReportContext.Provider value={value}>{children}</ReportContext.Provider>;

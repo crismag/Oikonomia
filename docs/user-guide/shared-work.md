@@ -59,8 +59,8 @@ is the ministry's own question — its lead and the people on its team.
 A ministry's lead can add material that lives elsewhere from **New → Add link**
 or **Add from Drive**. Both register the document's address and file it under
 the ministry; nothing is copied, and Oikonomia does not connect to Drive — the
-document's own sharing still decides who can open it. **Upload file** is marked
-Soon: the binder does not store files.
+document's own sharing still decides who can open it. There is no upload: the
+binder does not store files.
 
 > **Being shared with a ministry is not membership.** A leader who can read a
 > ministry's document may not have a cursor in it, and is told so plainly

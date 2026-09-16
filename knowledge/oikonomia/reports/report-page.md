@@ -21,6 +21,7 @@ related:
     reports.follow-ups,
     asks.raise,
     asks.put-on-week,
+    reports.delete,
   ]
 destinations: [leadership-reports]
 ---
@@ -30,6 +31,8 @@ destinations: [leadership-reports]
 The title, then type, period and stage. A category is shown when it is not general; where the report came from (a gathering, a meeting, Reach-Out) links back there. **Confidential** appears when the author marked it. The lock label shows _Who can read this_ — select it to see who can reach the report. Below: the author, and who or what it is about.
 
 Buttons on the right: **Print** for everyone; **Edit** for the author while the content can still change; and the stages the author may move it to. See [Report stages](topic:reports.statuses).
+
+Under the header the author of a Draft or Shared report sees **Delete report**. See [Delete a leadership report](topic:reports.delete).
 
 If you wrote a confidential report, **Confidential · who has opened it** sits under the header.
 
