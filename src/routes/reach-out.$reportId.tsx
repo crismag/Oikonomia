@@ -11,6 +11,7 @@ import { Page } from "@/components/oikonomia/page";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { useReachOut } from "@/components/oikonomia/reach-out-provider";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
+import { AskedOfYou } from "@/components/oikonomia/put-on-week";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import {
   canContribute,
@@ -132,7 +133,8 @@ function Reading({ report, canEdit }: { report: ReachOutReport; canEdit: boolean
         )}
       </article>
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-3">
+        <AskedOfYou sourceType="reach-out-report" sourceId={report.id} />
         <EscalationControl
           sourceType="reach-out-report"
           sourceId={report.id}

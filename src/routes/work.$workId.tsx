@@ -16,6 +16,7 @@ import { DetailSkeleton, ErrorState } from "@/components/oikonomia/async-state";
 import { useWork } from "@/components/oikonomia/work-provider";
 import { useFiledDocuments } from "@/components/oikonomia/filed-documents";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
+import { AskedOfYou } from "@/components/oikonomia/put-on-week";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/calendar-client";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
@@ -176,6 +177,7 @@ function WorkPage() {
            * this record into a review, and reading it has never obliged
            * anybody to do either.
            */}
+          <AskedOfYou sourceType="work" sourceId={work.id} />
           <EscalationControl
             sourceType="work"
             sourceId={work.id}

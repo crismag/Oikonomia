@@ -32,9 +32,7 @@ import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useFiledDocuments } from "@/components/oikonomia/filed-documents";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
-import { useLeadershipInbox } from "@/components/oikonomia/escalation-provider";
-import { PutOnWeekButton } from "@/components/oikonomia/put-on-week";
-import { actionsAskedOn, isOverdue } from "@/domain/escalation";
+import { AskedOfYou } from "@/components/oikonomia/put-on-week";
 import { useResourceSearch } from "@/components/oikonomia/resource-search-provider";
 import { documentTypeLabel, originNote } from "@/domain/documents";
 import {
@@ -170,7 +168,7 @@ function ReportPage() {
       {tab === "report" ? (
         <div className="space-y-4">
           <ReportBody report={report} />
-          <AskedOfYou reportId={report.id} />
+          <AskedOfYou sourceType="leadership-report" sourceId={report.id} />
           {/*
            * A report is information. This is where its author says that one
            * part of it needs something from leadership, and where a leader who
@@ -188,71 +186,6 @@ function ReportPage() {
       {tab === "documents" ? <Documents report={report} /> : null}
       {tab === "activity" ? <Activity report={report} /> : null}
     </Page>
-  );
-}
-
-/**
- * Actions somebody asked of this viewer about this report.
- *
- * A leader who followed an ask here should be able to date the work without
- * going back to the inbox. Only the recipient's own unsettled actions appear,
- * and nothing is filed until they choose to: opening a report is reading it.
- * Every other response to the ask still lives in the Leadership Inbox.
- */
-function AskedOfYou({ reportId }: { reportId: string }) {
-  const inbox = useLeadershipInbox();
-  const [failure, setFailure] = useState<string | null>(null);
-  const asks = actionsAskedOn(inbox.mine, "leadership-report", reportId);
-  if (asks.length === 0) return null;
-
-  const today = toISO(new Date());
-
-  return (
-    <section
-      aria-label="Asked of you"
-      className="rounded-lg border border-border bg-surface px-4 py-3.5"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-[13px] font-medium">Asked of you</h3>
-        <Link
-          to="/inbox"
-          className="text-[12px] text-muted-foreground underline-offset-2 hover:underline"
-        >
-          Respond in Leadership Inbox
-        </Link>
-      </div>
-      <ul className="mt-2 divide-y divide-border">
-        {asks.map((item) => {
-          const overdue = isOverdue(item, today);
-          return (
-            <li
-              key={item.id}
-              className="flex flex-wrap items-start justify-between gap-2 py-2 first:pt-0 last:pb-0"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] leading-6">{item.request}</p>
-                <p className="text-[12px] text-muted-foreground">
-                  Requested by <PersonName personId={item.requestedById} />
-                  {item.neededBy ? (
-                    <span className={cn(overdue && "text-status-overdue")}>
-                      {" · "}
-                      {overdue ? "Was needed by " : "Needed by "}
-                      {item.neededBy}
-                    </span>
-                  ) : null}
-                </p>
-              </div>
-              <PutOnWeekButton item={item} today={today} onFailure={setFailure} />
-            </li>
-          );
-        })}
-      </ul>
-      {failure ? (
-        <p role="alert" className="mt-1.5 text-[12px] text-status-overdue">
-          {failure}
-        </p>
-      ) : null}
-    </section>
   );
 }
 
