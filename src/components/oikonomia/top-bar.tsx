@@ -5,6 +5,7 @@ import { useOrganization } from "./organization-provider";
 import { useViewer } from "@/domain/session";
 import { GlobalSearch } from "./global-search";
 import { NoticesBell } from "./notices-bell";
+import { GuideToggle } from "@/features/guide";
 import { AccountMenu } from "./account-menu";
 import { areaLabelFor } from "./nav";
 
@@ -45,6 +46,7 @@ export function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
 
         <div className="flex shrink-0 items-center gap-2">
           <NoticesBell />
+          <GuideToggle />
           <AccountMenu />
         </div>
       </div>

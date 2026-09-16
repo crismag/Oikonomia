@@ -15,6 +15,8 @@ import { ReportProvider } from "./report-provider";
 import { useOrganization } from "./organization-provider";
 import { ViewerContext } from "@/domain/session";
 import { cn } from "@/lib/utils";
+import { GuidePanel } from "@/features/guide";
+import { OikonomiaGuide } from "@/integrations/guide/oikonomia-guide";
 
 /**
  * Routes that are the way *in* to the application rather than part of it.
@@ -100,33 +102,38 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <ViewerContext.Provider value={viewer}>
-      <ModuleProviders>
-        <div className="flex min-h-[calc(100vh-var(--demo-bar))] w-full bg-background">
-          {/* Desktop / tablet rail — collapses to icons, never disappears */}
-          <aside
-            data-print="hide"
-            className={cn(
-              "sticky top-[var(--demo-bar)] hidden h-[calc(100vh-var(--demo-bar))] shrink-0 border-r border-sidebar-border transition-[width] duration-200 lg:block",
-              collapsed ? "w-14" : "w-60",
-            )}
-          >
-            <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
-          </aside>
+      <OikonomiaGuide>
+        <ModuleProviders>
+          <div className="flex min-h-[calc(100vh-var(--demo-bar))] w-full bg-background">
+            {/* Desktop / tablet rail — collapses to icons, never disappears */}
+            <aside
+              data-print="hide"
+              className={cn(
+                "sticky top-[var(--demo-bar)] hidden h-[calc(100vh-var(--demo-bar))] shrink-0 border-r border-sidebar-border transition-[width] duration-200 lg:block",
+                collapsed ? "w-14" : "w-60",
+              )}
+            >
+              <SidebarContent collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+            </aside>
 
-          {/* Mobile drawer */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <SidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
-            </SheetContent>
-          </Sheet>
+            {/* Mobile drawer */}
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetContent side="left" className="w-64 p-0">
+                <SheetTitle className="sr-only">Navigation</SheetTitle>
+                <SidebarContent collapsed={false} onNavigate={() => setMobileOpen(false)} />
+              </SheetContent>
+            </Sheet>
 
-          <div className="flex min-w-0 flex-1 flex-col">
-            <TopBar onOpenNav={() => setMobileOpen(true)} />
-            <main className="min-w-0 flex-1">{children}</main>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <TopBar onOpenNav={() => setMobileOpen(true)} />
+              <main className="min-w-0 flex-1">{children}</main>
+            </div>
+
+            {/* The Guide: a rail beside the page when wide, a sheet when not. */}
+            <GuidePanel />
           </div>
-        </div>
-      </ModuleProviders>
+        </ModuleProviders>
+      </OikonomiaGuide>
     </ViewerContext.Provider>
   );
 }

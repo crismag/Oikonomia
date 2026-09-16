@@ -27,6 +27,7 @@ import { Page } from "@/components/oikonomia/page";
 import { Combobox, type Suggestion } from "@/components/oikonomia/combobox";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { useOpenedReport, useReports } from "@/components/oikonomia/report-provider";
+import { GuideHint } from "@/features/guide";
 import { StatusTag } from "@/components/oikonomia/report-status";
 import {
   followUpOnWeek,
@@ -908,6 +909,7 @@ function Editor({ report }: { report: LeadershipReport }) {
             />
             Confidential
           </label>
+          <GuideHint topic="reports.confidential" label="What does Confidential do?" />
           <p className="basis-full text-[12px] text-muted-foreground">
             {report.confidential
               ? "Marked confidential. Anyone else who may read it opens it on its own, and each opening is recorded for you to see."
