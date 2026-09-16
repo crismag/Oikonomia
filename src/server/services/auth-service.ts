@@ -44,6 +44,26 @@ import type { OrganizationRepository } from "../repositories/organization-reposi
 /** How long a magic link or a reset is good for. */
 export const LINK_LIFETIME_MS = 15 * 60 * 1000;
 
+/**
+ * How long an invitation's link is good for.
+ *
+ * Longer than a reset, on purpose: somebody who asked for a reset is at the
+ * screen waiting for it; somebody invited is not, and an invitation sent to a
+ * whole leadership team on Monday is read through the week. It still works
+ * once, and "Forgot password?" issues a fresh one after it lapses.
+ */
+export const INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The most addresses one invitation run takes. */
+export const MAX_INVITATIONS = 200;
+
+const ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** What happened to one address in an invitation run. */
+export type InvitationOutcome =
+  | { email: string; outcome: "invited"; personId: string; accountId: string; created: boolean }
+  | { email: string; outcome: "already-has-access" | "invalid" | "conflict" };
+
 /** One sentence, whatever went wrong. */
 const REFUSED = "Those details were not recognised.";
 
@@ -488,6 +508,80 @@ export function createAuthService(
       const account = accounts.create({ personId, email, status: "invited" });
       accounts.record({ accountId: account.id, action: "auth.account.invited" });
       return account;
+    },
+
+    /**
+     * Invite many people by address.
+     *
+     * Each address becomes a person and an invited account. An address the
+     * directory already holds invites that person; an address nobody holds
+     * adds somebody, recorded under the address until they give their own
+     * name on their first visit (`awaitsOwnName`). Either way the invitation
+     * grants **nothing** beyond a way in, exactly as a single one does.
+     *
+     * Somebody who can already sign in is left alone: re-inviting would put an
+     * active account back to invited and hand out a new way in nobody asked
+     * for. Each address is decided on its own, so one bad line does not refuse
+     * the rest. Administrative; the caller checks.
+     */
+    inviteByEmail(addresses: readonly string[]): InvitationOutcome[] {
+      if (addresses.length > MAX_INVITATIONS) {
+        throw ApiError.validation({
+          emails: `Invite at most ${MAX_INVITATIONS} people at a time.`,
+        });
+      }
+
+      const seen = new Set<string>();
+      const outcomes: InvitationOutcome[] = [];
+
+      for (const raw of addresses) {
+        const email = raw.trim().toLowerCase();
+        if (!email || seen.has(email)) continue;
+        seen.add(email);
+
+        if (!ADDRESS.test(email) || email.length > 200) {
+          outcomes.push({ email, outcome: "invalid" });
+          continue;
+        }
+
+        /* The address may be on the person's record, or only on their account
+           — people entered before email was kept have one without the other. */
+        const account =
+          accounts.findByEmail(email) ?? accounts.findByEmail(raw.trim()) ?? undefined;
+        const known =
+          organization.findPersonByEmail(email) ??
+          organization.findPersonByEmail(raw.trim()) ??
+          (account ? organization.findPerson(account.personId) : undefined);
+        const theirs = known ? (accounts.findByPerson(known.id) ?? account) : account;
+
+        if (theirs && theirs.status === "active") {
+          outcomes.push({ email, outcome: "already-has-access" });
+          continue;
+        }
+        if (!known && theirs) {
+          /* An account whose person is gone: a merge for a person to decide,
+             not this loop. */
+          outcomes.push({ email, outcome: "conflict" });
+          continue;
+        }
+
+        const person = known ?? organization.insertPerson({ name: email, email });
+        try {
+          const invited = this.inviteAccount(person.id, person.email ?? email);
+          outcomes.push({
+            email,
+            outcome: "invited",
+            personId: person.id,
+            accountId: invited.id,
+            created: !known,
+          });
+        } catch (error) {
+          if (!(error instanceof ApiError)) throw error;
+          outcomes.push({ email, outcome: "conflict" });
+        }
+      }
+
+      return outcomes;
     },
 
     setAccountStatus(accountId: string, status: Account["status"]): Account {

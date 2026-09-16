@@ -220,6 +220,70 @@ describe("a claim still grants nothing", () => {
     ).not.toThrow();
   });
 
+  /* Administration decides where other people serve, never where the
+     administrator does: otherwise one account could reach anything. */
+  it("cannot be confirmed by an administrator who made it", () => {
+    const ministry = organization.addMinistry(viewerOf(admin), { name: "Music" });
+    organization.claimAssignment(viewerOf(admin), { scope: "ministry", targetId: ministry.id });
+
+    expect(() =>
+      organization.setAssignment(viewerOf(admin), {
+        scope: "ministry",
+        targetId: ministry.id,
+        personId: admin.personId,
+        status: "confirmed",
+      }),
+    ).toThrow(expect.objectContaining({ code: "forbidden" }));
+    expect(repo.findPerson(admin.personId)?.ministryIds ?? []).not.toContain(ministry.id);
+
+    /* Declining or ending their own claim narrows, so it is theirs to do. */
+    expect(() =>
+      organization.setAssignment(viewerOf(admin), {
+        scope: "ministry",
+        targetId: ministry.id,
+        personId: admin.personId,
+        status: "ended",
+      }),
+    ).not.toThrow();
+  });
+
+  it("refuses an administrator joining, leading or sitting in a group on their own say", () => {
+    const self = viewerOf(admin);
+    const ministry = organization.addMinistry(self, { name: "Music" });
+    const group = organization.addGroup(self, { name: "Elders", leadershipAudience: true });
+    const forbidden = expect.objectContaining({ code: "forbidden" });
+
+    expect(() =>
+      organization.setMembership(self, {
+        ministryId: ministry.id,
+        personId: admin.personId,
+        member: true,
+      }),
+    ).toThrow(forbidden);
+    expect(() =>
+      organization.setGroupMembership(self, {
+        groupId: group.id,
+        personId: admin.personId,
+        member: true,
+      }),
+    ).toThrow(forbidden);
+    expect(() =>
+      organization.updateMinistry(self, ministry.id, { leadId: admin.personId }),
+    ).toThrow(forbidden);
+    expect(() =>
+      organization.addMinistry(self, { name: "Hospitality", leadId: admin.personId }),
+    ).toThrow(forbidden);
+
+    /* The same administrator still decides for somebody else. */
+    expect(() =>
+      organization.setGroupMembership(self, {
+        groupId: group.id,
+        personId: maria.personId,
+        member: true,
+      }),
+    ).not.toThrow();
+  });
+
   it("cannot be confirmed by the person who made it", () => {
     const ministry = organization.addMinistry(viewerOf(admin), { name: "Music" });
     organization.claimAssignment(viewerOf(maria), { scope: "ministry", targetId: ministry.id });

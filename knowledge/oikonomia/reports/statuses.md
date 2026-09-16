@@ -19,7 +19,7 @@ destinations: [leadership-reports]
 
 A report moves through stages your church configures. The standard ones:
 
-- **Draft** — where every new report starts.
+- **Draft** — where every new report starts. Nobody but its author can read a draft, whoever _Who can read this_ names.
 - **Shared** — out to its audience, still open to changes by its author.
 - **Published** — the submitted record. Its content no longer changes.
 - **Archived** — kept, and no longer current.
@@ -36,4 +36,4 @@ The author can move a Published report back to Draft or Shared to correct it. Th
 
 An Archived report is not reopened from the report page.
 
-> A stage is not a review. Nobody approves a report. It goes to the people _Who can read this_ names, as information. Moving between stages does not change who may read it.
+> A stage is not a review. Nobody approves a report. It goes to the people _Who can read this_ names, as information. Moving between stages does not change who is named — but the people named read it only once it leaves Draft.

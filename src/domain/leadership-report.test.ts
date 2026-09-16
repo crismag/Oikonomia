@@ -215,10 +215,27 @@ describe("Scenario D — an evaluation about somebody else", () => {
       visibility: "restricted",
     });
     expect(caps(draft, joel).edit).toBe(true);
-    expect(caps(draft, maria).view).toBe(true);
     expect(caps(draft, maria).edit).toBe(false);
     expect(caps(draft, maria).manageAccess).toBe(false);
     expect(caps(draft, maria).publish).toBe(false);
+  });
+
+  /** Sharing a draft is not allowed: its audience is who will read it, not who does. */
+  it("is not readable by its audience until its author shares it", () => {
+    const draft = report({
+      authorId: "p-joel",
+      subjectId: "p-maria",
+      status: "draft",
+      visibility: "restricted",
+      audienceIds: ["p-maria"],
+    });
+    expect(caps(draft, maria).discover).toBe(false);
+    expect(caps(draft, maria).view).toBe(false);
+    expect(caps({ ...draft, status: "shared" }, maria).view).toBe(true);
+    expect(caps({ ...draft, visibility: "leadership" }, bishop).discover).toBe(false);
+    expect(caps({ ...draft, status: "published", visibility: "leadership" }, bishop).view).toBe(
+      true,
+    );
   });
 
   it("lets the subject respond in discussion", () => {

@@ -23,7 +23,7 @@ import type { LeadershipReport, MeetingBlock, MeetingBlockType } from "@/domain/
 export const Route = createFileRoute("/leadership/$entryId")({
   /* Generic, deliberately. A tab title is a leak surface like any other, and
      this one must never carry what a leader was reflecting on. */
-  head: () => ({ meta: [{ title: "Leadership — Oikonomia" }] }),
+  head: () => ({ meta: [{ title: "Leadership Journal — Oikonomia" }] }),
   component: EntryPage,
 });
 

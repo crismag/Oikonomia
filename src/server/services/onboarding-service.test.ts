@@ -101,6 +101,52 @@ describe("where somebody is in setting themselves up", () => {
   });
 });
 
+/** Somebody invited by address alone names themselves once, and only then. */
+describe("giving your own name", () => {
+  const invitedByAddress = () =>
+    viewerOf(
+      repo.findPerson(
+        repo.insertPerson({
+          name: "new@example.org",
+          email: "new@example.org",
+          accessRole: "leader",
+        }).id,
+      )!,
+    );
+
+  it("is asked of somebody whose name is still their address, and saved once", () => {
+    const invited = invitedByAddress();
+    expect(service.context(invited).person.awaitsName).toBe(true);
+
+    const after = service.giveOwnName(invited, { name: "Hana Mori" });
+    expect(after.person.name).toBe("Hana Mori");
+    expect(after.person.awaitsName).toBe(false);
+    expect(repo.findPerson(invited.person.id)?.name).toBe("Hana Mori");
+
+    /* After that the name is the church's record. */
+    expect(() => service.giveOwnName(invited, { name: "Someone Else" })).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+  });
+
+  it("is refused to somebody the church already named", () => {
+    expect(service.context(leader).person.awaitsName).toBe(false);
+    expect(() => service.giveOwnName(leader, { name: "A New Name" })).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+  });
+
+  it("wants a name, not another address", () => {
+    const invited = invitedByAddress();
+    expect(() => service.giveOwnName(invited, { name: "x" })).toThrow(
+      expect.objectContaining({ code: "validation" }),
+    );
+    expect(() => service.giveOwnName(invited, { name: "me@example.org" })).toThrow(
+      expect.objectContaining({ code: "validation" }),
+    );
+  });
+});
+
 describe("what onboarding shows somebody", () => {
   it("shows the organisation as it actually stands, not a copy", () => {
     const ministry = organization.addMinistry(admin, { name: "Music" });

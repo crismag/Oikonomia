@@ -39,7 +39,7 @@ The sidebar is arranged as a binder, in two contexts.
 ### Leadership — seeing how others are doing
 
 - **Oversight** — Leadership Inbox, Team Overview and Reports to you.
-- **Organization** — People, Attendance, Campuses, Leadership journal and Administration.
+- **Organization** — People, Attendance, Campuses, Leadership Journal and Administration.
 
 ### Why some items are missing
 

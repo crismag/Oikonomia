@@ -486,18 +486,7 @@ export const inviteToOikonomia = createServerFn({ method: "POST" })
   .validator((input: { personId: string }) => input)
   .handler(({ data }) =>
     withAuth(async ({ auth, accounts, db, request, ApiError }) => {
-      const [{ viewerFor }, { delivery, canDeliver, baseUrl }, { LINK_LIFETIME_MS }] =
-        await Promise.all([
-          import("@/server/auth/principal"),
-          import("@/server/auth/delivery"),
-          import("@/server/services/auth-service"),
-        ]);
-
-      const viewer = viewerFor(request, db);
-      if (!viewer) throw new ApiError("unauthenticated", "You are not signed in.");
-      if (!viewer.persona.capabilities.includes("administration")) {
-        throw new ApiError("forbidden", "Inviting somebody is an administrator's to do.");
-      }
+      const viewer = await requireAdministrator(request, db, ApiError);
 
       const { createOrganizationRepository } =
         await import("@/server/repositories/organization-repository");
@@ -511,34 +500,123 @@ export const inviteToOikonomia = createServerFn({ method: "POST" })
       }
 
       const account = auth.inviteAccount(person.id, person.email);
-
-      /* A password-reset token: setting a first password and replacing a
-         forgotten one are the same act, and a second token purpose that
-         behaved identically would be a second thing to get wrong. */
-      const token = accounts.issueToken({
-        accountId: account.id,
-        purpose: "password-reset",
-        lifetimeMs: LINK_LIFETIME_MS,
-      });
-
-      if (!canDeliver()) {
-        return { email: person.email, delivered: false };
-      }
-
-      await delivery().send({
-        to: person.email,
-        subject: "You have been given access to Oikonomia",
-        body: [
-          `${viewer.person.name} has given you access to Oikonomia.`,
-          "",
-          "Set a password to sign in:",
-          `${baseUrl()}/login?reset=${encodeURIComponent(token)}`,
-          "",
-          "The link works once and expires in 15 minutes. If it has expired, ask",
-          "for a new one from the sign-in screen.",
-        ].join("\n"),
-      });
-
-      return { email: person.email, delivered: true };
+      const delivered = await sendInvitation(
+        accounts,
+        account.id,
+        person.email,
+        viewer.person.name,
+      );
+      return { email: person.email, delivered };
     }),
   );
+
+/**
+ * Invite many people at once, by address.
+ *
+ * An administrator pastes the addresses; each becomes a person and an invited
+ * account (see `inviteByEmail`), and each is emailed a link that sets a
+ * password and leads into Welcome, where somebody added by address alone says
+ * what they are called. Nothing else is granted.
+ *
+ * When this installation cannot send email the accounts are still created —
+ * the administrator has registered them — and the reply says nothing was sent,
+ * so a password can be set with the operations tool. Links are never returned
+ * to the browser, for the reason given above.
+ */
+export const inviteManyToOikonomia = createServerFn({ method: "POST" })
+  .validator((input: { emails: string[] }) => input)
+  .handler(({ data }) =>
+    withAuth(async ({ auth, accounts, db, request, ApiError }) => {
+      const viewer = await requireAdministrator(request, db, ApiError);
+      if (!Array.isArray(data.emails) || data.emails.some((e) => typeof e !== "string")) {
+        throw new ApiError("validation", "Send a list of email addresses.");
+      }
+
+      const outcomes = auth.inviteByEmail(data.emails);
+      const results: InvitationResult[] = [];
+      for (const outcome of outcomes) {
+        if (outcome.outcome !== "invited") {
+          results.push({ email: outcome.email, outcome: outcome.outcome });
+          continue;
+        }
+        const delivered = await sendInvitation(
+          accounts,
+          outcome.accountId,
+          outcome.email,
+          viewer.person.name,
+        );
+        results.push({
+          email: outcome.email,
+          outcome: delivered ? "sent" : "registered",
+          created: outcome.created,
+        });
+      }
+      return results;
+    }),
+  );
+
+/** What the browser is told about one address. Never a link or a token. */
+export interface InvitationResult {
+  email: string;
+  /** `sent`: emailed. `registered`: account made, nothing could be sent. */
+  outcome: "sent" | "registered" | "already-has-access" | "invalid" | "conflict";
+  /** A new person was added to the directory for this address. */
+  created?: boolean;
+}
+
+async function requireAdministrator(
+  request: Request,
+  db: import("better-sqlite3").Database,
+  ApiError: typeof import("@/server/api/response").ApiError,
+) {
+  const { viewerFor } = await import("@/server/auth/principal");
+  const viewer = viewerFor(request, db);
+  if (!viewer) throw new ApiError("unauthenticated", "You are not signed in.");
+  if (!viewer.persona.capabilities.includes("administration")) {
+    throw new ApiError("forbidden", "Inviting somebody is an administrator's to do.");
+  }
+  return viewer;
+}
+
+/**
+ * Issue an invitation link and send it, if this installation can.
+ *
+ * A password-reset token: setting a first password and replacing a forgotten
+ * one are the same act, and a second token purpose that behaved identically
+ * would be a second thing to get wrong. It lives longer than a reset — see
+ * `INVITATION_LIFETIME_MS`.
+ */
+async function sendInvitation(
+  accounts: import("@/server/repositories/account-repository").AccountRepository,
+  accountId: string,
+  email: string,
+  inviterName: string,
+): Promise<boolean> {
+  const [{ delivery, canDeliver, baseUrl }, { INVITATION_LIFETIME_MS }] = await Promise.all([
+    import("@/server/auth/delivery"),
+    import("@/server/services/auth-service"),
+  ]);
+
+  const token = accounts.issueToken({
+    accountId,
+    purpose: "password-reset",
+    lifetimeMs: INVITATION_LIFETIME_MS,
+  });
+
+  if (!canDeliver()) return false;
+
+  await delivery().send({
+    to: email,
+    subject: "You have been given access to Oikonomia",
+    body: [
+      `${inviterName} has given you access to Oikonomia.`,
+      "",
+      "Set a password to sign in:",
+      `${baseUrl()}/login?reset=${encodeURIComponent(token)}`,
+      "",
+      "The link works once and expires in 7 days. If it has expired, ask for a",
+      "new one with Forgot password? on the sign-in screen.",
+    ].join("\n"),
+  });
+  return true;
+}

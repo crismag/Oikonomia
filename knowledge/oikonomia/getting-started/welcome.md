@@ -45,6 +45,8 @@ One question per screen, with **Back** and **Continue**:
 
 Steps with nothing to show are left out.
 
+If you were invited by email alone, Welcome first asks **Your name**. You give it once; after that an administrator changes it.
+
 ### Ticking is a claim
 
 Ticking a ministry or group records that you said so. **It grants nothing** until an administrator confirms it, and you cannot confirm your own. See [Claiming where you serve](topic:assignments.claims).

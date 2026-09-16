@@ -1,6 +1,6 @@
 ---
 id: journal.page
-title: Leadership journal
+title: Leadership Journal
 type: page
 category: leadership
 summary: Private reflection and development; lines you choose can be copied into a separate leadership report.
@@ -26,7 +26,7 @@ related: [reports.visibility, reports.create, permissions.capabilities]
 destinations: [leadership-journal, leadership-reports]
 ---
 
-The Leadership journal is where you write for yourself: reflection, development, goals. It is under **Organization** in the sidebar, and everyone has one.
+The Leadership Journal is where you write for yourself: reflection, development, goals. It is under **Organization** in the sidebar, and everyone has one.
 
 ### Private to you
 

@@ -920,6 +920,14 @@ function Editor({ report }: { report: LeadershipReport }) {
         <p className="mt-1.5 text-[12px] text-muted-foreground">
           {visibilityHint[report.visibility]}
         </p>
+        {/* A draft is not shared: the audience set here reads it only once the
+            author moves it on. The server refuses it to them until then. */}
+        {!statusBehavior(report.status).visibleToAudience && report.visibility !== "private" ? (
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            Nobody else can read it while it is a {config.label("reports.statuses", report.status)}.
+            Share or publish it when it is ready.
+          </p>
+        ) : null}
 
         {report.visibility === "restricted" || report.visibility === "shared" ? (
           <AudiencePicker report={report} />

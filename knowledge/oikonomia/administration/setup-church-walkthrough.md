@@ -37,9 +37,9 @@ In **People**, enter each leader's **Name**, **What they are called here**, **Wh
 
 ## Invite them in
 
-Destination: administration.people
+Destination: administration.invite
 
-Choose **Edit** on a person, enter their **Email address** and **Save**. Choose **Edit** again, then **Invite to Oikonomia**. If your installation cannot send email, the account is still created and you are told so — ask your installation's operator to set their password.
+In **Invite people**, list their email addresses and choose **Send invitations**. Anyone not yet in People is added and gives their name when they first sign in. If your installation cannot send email, the accounts are still created and you are told so — ask your installation's operator to set their passwords.
 
 ## Confirm where they serve
 

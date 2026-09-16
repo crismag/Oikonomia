@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useId, useState, type FormEvent } from "react";
 import { format } from "date-fns";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Laptop, Mail } from "lucide-react";
@@ -11,9 +12,11 @@ import {
 } from "@/components/oikonomia/installation-notice";
 import { Section } from "@/components/oikonomia/section";
 import { useAuth } from "@/components/oikonomia/auth-provider";
+import { AuthField } from "@/components/oikonomia/auth-panel";
 import { notify } from "@/config/messages/handlers";
-import { unwrap } from "@/lib/calendar-client";
+import { errorMessage, unwrap } from "@/lib/calendar-client";
 import {
+  changePassword,
   fetchAccountOverview,
   signOutOtherSessions,
   signOutSession,
@@ -147,6 +150,12 @@ function AccountSecurityPage() {
           )}
         </Section>
 
+        {data?.methods.some((m) => m.method === "password" && m.since) ? (
+          <ChangePassword
+            onChanged={() => void queryClient.invalidateQueries({ queryKey: ["account-overview"] })}
+          />
+        ) : null}
+
         <Section
           title="Where you are signed in"
           meta={data ? String(data.sessions.length) : undefined}
@@ -223,6 +232,118 @@ function AccountSecurityPage() {
         ) : null}
       </div>
     </Page>
+  );
+}
+
+/**
+ * Change your own password.
+ *
+ * Offered only to an account that has one: somebody who signs in with Google
+ * or an emailed link has nothing to change here, and "Forgot password?" on the
+ * sign-in screen is how a first one is set. The current password is asked for
+ * because an unattended browser must not be enough to take the account; the
+ * server checks it, and signs every other device out when the change is made.
+ */
+function ChangePassword({ onChanged }: { onChanged: () => void }) {
+  const restricted = useInstallationRestricted("authentication");
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [repeat, setRepeat] = useState("");
+  const [mismatch, setMismatch] = useState(false);
+  const currentId = useId();
+  const nextId = useId();
+  const repeatId = useId();
+
+  const change = useMutation({
+    mutationFn: async () => unwrap(await changePassword({ data: { current, next } })),
+    onSuccess: () => {
+      setCurrent("");
+      setNext("");
+      setRepeat("");
+      notify.success("Your password was changed. Every other device was signed out.");
+      onChanged();
+    },
+  });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (next !== repeat) {
+      setMismatch(true);
+      return;
+    }
+    setMismatch(false);
+    change.mutate();
+  };
+
+  const field =
+    "w-full rounded-md border border-border bg-surface px-3 py-2 text-[14px] outline-none focus:border-border-strong";
+
+  return (
+    <Section title="Change password">
+      <InstallationNotice restriction="authentication" />
+      <form onSubmit={submit} className="space-y-3 px-4 py-3">
+        <AuthField id={currentId} label="Current password">
+          <input
+            id={currentId}
+            type="password"
+            required
+            autoComplete="current-password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            disabled={restricted}
+            className={field}
+          />
+        </AuthField>
+        <AuthField id={nextId} label="New password" hint="At least 12 characters.">
+          <input
+            id={nextId}
+            type="password"
+            required
+            minLength={12}
+            autoComplete="new-password"
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+            disabled={restricted}
+            className={field}
+          />
+        </AuthField>
+        <AuthField id={repeatId} label="New password again">
+          <input
+            id={repeatId}
+            type="password"
+            required
+            autoComplete="new-password"
+            value={repeat}
+            onChange={(e) => setRepeat(e.target.value)}
+            aria-invalid={mismatch ? true : undefined}
+            disabled={restricted}
+            className={field}
+          />
+        </AuthField>
+
+        {mismatch ? (
+          <p role="alert" className="text-[13px] text-status-overdue">
+            The two new passwords are not the same.
+          </p>
+        ) : change.isError ? (
+          <p role="alert" className="text-[13px] text-status-overdue">
+            {errorMessage(change.error)}
+          </p>
+        ) : null}
+
+        <Button
+          type="submit"
+          variant="secondary"
+          disabled={restricted || change.isPending}
+          busy={change.isPending}
+        >
+          Change password
+        </Button>
+        <p className="text-[12px] text-muted-foreground">
+          This device stays signed in. Every other device is signed out.
+        </p>
+      </form>
+    </Section>
   );
 }
 

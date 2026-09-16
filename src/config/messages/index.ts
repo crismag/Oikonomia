@@ -185,6 +185,11 @@ export const messages = {
     title: "Only an administrator may change the organisation.",
     severity: "warning",
   },
+  "refusal.organization.self": {
+    title: "Nobody confirms their own place.",
+    body: "Another administrator decides where you serve, lead or belong.",
+    severity: "warning",
+  },
   "demo.reset.soon": {
     title: "The demo refreshes in about {minutes} minutes.",
     body: "Changes made in the demo will be reset then.",

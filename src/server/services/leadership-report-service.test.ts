@@ -260,6 +260,26 @@ describe("writing a report", () => {
   });
 });
 
+/** A draft is not shared, whoever its audience will be. */
+describe("a draft", () => {
+  it("does not reach its audience until its author shares it", () => {
+    const report = service.create(maria, {
+      reportType: "pastoral",
+      visibility: "restricted",
+      audienceIds: [joel.person.id],
+    });
+
+    expect(() => service.get(joel, report.id)).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+    expect(ids(joel)).not.toContain(report.id);
+
+    service.transition(maria, { id: report.id, to: "shared" });
+    expect(service.get(joel, report.id).id).toBe(report.id);
+    expect(ids(joel)).toContain(report.id);
+  });
+});
+
 /**
  * A submitted report is a record of what was said at the time.
  */
@@ -496,6 +516,7 @@ describe("an audience choice an administrator added", () => {
       visibility: ADDED,
       audienceIds: [joel.person.id],
     });
+    service.transition(maria, { id: report.id, to: "shared" });
 
     applyOverrides([
       {
@@ -585,6 +606,7 @@ describe("a report stage an administrator added", () => {
       visibility: "restricted",
       audienceIds: [joel.person.id],
     });
+    service.transition(maria, { id: report.id, to: "shared" });
 
     expect(() => service.transition(joel, { id: report.id, to: ADDED })).toThrow(
       expect.objectContaining({ code: "forbidden" }),
@@ -631,6 +653,7 @@ describe("a report its author marked confidential", () => {
       id: created.id,
       blocks: [{ id: "b1", type: "paragraph", html: "The family asked for discretion." }],
     });
+    audited.transition(maria, { id: created.id, to: "shared" });
     return repo.find(created.id)!;
   };
 
@@ -661,6 +684,7 @@ describe("a report its author marked confidential", () => {
       visibility: "restricted",
       audienceIds: [joel.person.id],
     });
+    audited.transition(maria, { id: plain.id, to: "shared" });
     audited.get(joel, plain.id);
     expect(reads).toEqual([]);
   });

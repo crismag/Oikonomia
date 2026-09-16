@@ -103,6 +103,11 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
     demo: "denied",
     because: "authentication",
   },
+  "src/lib/auth-api.ts#inviteManyToOikonomia": {
+    method: "POST",
+    demo: "denied",
+    because: "authentication",
+  },
 
   /* calendar-api.ts */
   "src/lib/calendar-api.ts#fetchCalendarRange": { method: "GET", demo: "read" },
@@ -269,6 +274,7 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/onboarding-api.ts#startOnboarding": { method: "POST", demo: "allowed" },
   "src/lib/onboarding-api.ts#moveOnboarding": { method: "POST", demo: "allowed" },
   "src/lib/onboarding-api.ts#completeOnboarding": { method: "POST", demo: "allowed" },
+  "src/lib/onboarding-api.ts#giveOwnName": { method: "POST", demo: "denied", because: "identity" },
 
   /* organization-api.ts */
   "src/lib/organization-api.ts#fetchSession": { method: "GET", demo: "read" },

@@ -84,6 +84,11 @@ export const moveOnboarding = createServerFn({ method: "POST" })
   .validator((input: { step: string }) => input)
   .handler(({ data }) => withOnboarding((service, viewer) => service.moveTo(viewer, data.step)));
 
+/** Say what you are called — only while an invitation left your address as your name. */
+export const giveOwnName = createServerFn({ method: "POST" })
+  .validator((input: { name: string }) => input)
+  .handler(({ data }) => withOnboarding((service, viewer) => service.giveOwnName(viewer, data)));
+
 export const completeOnboarding = createServerFn({ method: "POST" })
   .validator(() => ({}))
   .handler(() => withOnboarding((service, viewer) => service.complete(viewer)));

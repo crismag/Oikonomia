@@ -1,6 +1,7 @@
 import { ApiError } from "../api/response";
 import {
   ONBOARDING_VERSION,
+  awaitsOwnName,
   onboardingSteps,
   setupRequired,
   stepsFor,
@@ -44,7 +45,14 @@ export interface OnboardingContext {
   steps: OnboardingStep[];
   /** True when they still owe a pass — never started, or an older version. */
   required: boolean;
-  person: { id: string; name: string; role: string; campusId: string };
+  person: {
+    id: string;
+    name: string;
+    role: string;
+    campusId: string;
+    /** Invited by address, and has not yet said what they are called. */
+    awaitsName: boolean;
+  };
   roleLabel: string;
   campus?: Campus;
   /** Everywhere they serve, in whatever state. */
@@ -73,7 +81,8 @@ export function createOnboardingService(
     const groups = organization.groups().filter((g) => g.active);
 
     const people = organization.people();
-    const reportsToId = organization.findPerson(me)?.reportsToId;
+    const record = organization.findPerson(me);
+    const reportsToId = record?.reportsToId;
     const reportsTo = reportsToId ? people.find((p) => p.id === reportsToId) : undefined;
     const oversees = people
       .filter((person) => person.reportsToId === me && person.active !== false)
@@ -97,6 +106,7 @@ export function createOnboardingService(
         name: viewer.person.name,
         role: viewer.person.role,
         campusId: viewer.person.campusId,
+        awaitsName: !!record && awaitsOwnName(record),
       },
       roleLabel: viewer.persona.label,
       ...(campus ? { campus } : {}),
@@ -144,6 +154,30 @@ export function createOnboardingService(
         version: existing.version,
       });
       return context(viewer);
+    },
+
+    /**
+     * Say what you are called, once.
+     *
+     * Only for somebody invited by address alone, whose record still carries
+     * the address as its name (`awaitsOwnName`). After that their name is the
+     * organisation's record like everything else on it, changed by an
+     * administrator — so this refuses anybody who already has one.
+     */
+    giveOwnName(viewer: Viewer, input: unknown): OnboardingContext {
+      const person = organization.findPerson(viewer.person.id);
+      if (!person || !awaitsOwnName(person)) {
+        throw ApiError.forbidden(
+          "Your name is on the church's record. An administrator changes it.",
+        );
+      }
+      const name =
+        typeof input === "object" && input && "name" in input ? String(input.name).trim() : "";
+      if (name.length < 2 || name.length > 120 || name.includes("@")) {
+        throw ApiError.validation({ name: "Give the name people call you — first and last." });
+      }
+      organization.updatePerson(person.id, { name });
+      return context({ ...viewer, person: { ...viewer.person, name } });
     },
 
     /**

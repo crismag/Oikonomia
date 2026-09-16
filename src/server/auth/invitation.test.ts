@@ -134,3 +134,74 @@ describe("inviting somebody", () => {
     expect(accounts.findByPerson(person.id)?.id).toBe(account.id);
   });
 });
+
+/**
+ * Inviting a leadership team by address.
+ *
+ * Each address is decided on its own, grants a way in and nothing else, and
+ * never disturbs somebody who can already sign in.
+ */
+describe("inviting several people by address", () => {
+  it("adds somebody the directory does not know, under their address until they name themselves", () => {
+    const [outcome] = auth.inviteByEmail(["New.Leader@Example.org"]);
+
+    expect(outcome).toMatchObject({
+      email: "new.leader@example.org",
+      outcome: "invited",
+      created: true,
+    });
+    const person = organization.findPersonByEmail("new.leader@example.org")!;
+    expect(person.name).toBe("new.leader@example.org");
+    expect(accounts.findByPerson(person.id)?.status).toBe("invited");
+    /* A way in, and nothing else. */
+    expect(organization.assignmentsFor(person.id)).toEqual([]);
+  });
+
+  it("invites somebody already in the directory without adding them twice", () => {
+    const known = organization.insertPerson({
+      name: "Tobias Wren",
+      email: "tobias@example.org",
+    } as never);
+    const [outcome] = auth.inviteByEmail(["tobias@example.org"]);
+
+    expect(outcome).toMatchObject({ outcome: "invited", personId: known.id, created: false });
+    expect(organization.people().filter((p) => p.email === "tobias@example.org")).toHaveLength(1);
+  });
+
+  it("leaves somebody who can already sign in alone", () => {
+    const { account, token } = invite("Tobias Wren", "tobias@example.org");
+    auth.resetPassword({ token, password: "a long enough passphrase" });
+
+    expect(auth.inviteByEmail(["tobias@example.org"])).toEqual([
+      { email: "tobias@example.org", outcome: "already-has-access" },
+    ]);
+    expect(accounts.find(account.id)?.status).toBe("active");
+  });
+
+  /* People entered before email was kept have an address on their account
+     and none on their record. They are the same person, not a conflict. */
+  it("recognises somebody whose address is only on their account", () => {
+    const { person, token } = invite("Tobias Wren", "tobias@example.org");
+    auth.resetPassword({ token, password: "a long enough passphrase" });
+    organization.updatePerson(person.id, { email: undefined });
+
+    expect(auth.inviteByEmail(["tobias@example.org"])).toEqual([
+      { email: "tobias@example.org", outcome: "already-has-access" },
+    ]);
+    expect(organization.people()).toHaveLength(1);
+  });
+
+  it("decides each address on its own, once", () => {
+    const outcomes = auth.inviteByEmail(["not an address", "a@example.org", "A@example.org", ""]);
+    expect(outcomes.map((o) => [o.email, o.outcome])).toEqual([
+      ["not an address", "invalid"],
+      ["a@example.org", "invited"],
+    ]);
+  });
+
+  it("refuses a run too long to be one team", () => {
+    const many = Array.from({ length: 201 }, (_, i) => `p${i}@example.org`);
+    expect(() => auth.inviteByEmail(many)).toThrow(ApiError);
+    expect(organization.people()).toHaveLength(0);
+  });
+});

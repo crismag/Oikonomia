@@ -9,6 +9,7 @@ import { Page } from "@/components/oikonomia/page";
 import {
   completeOnboarding,
   fetchOnboarding,
+  giveOwnName,
   moveOnboarding,
   type OnboardingContext,
 } from "@/lib/onboarding-api";
@@ -186,7 +187,9 @@ function WelcomePage() {
               <Button
                 type="button"
                 variant="primary"
-                disabled={busy}
+                /* Somebody invited by address says what they are called first:
+                   every other page names them. */
+                disabled={busy || context.person.awaitsName}
                 onClick={() => go(nextStep(current, steps))}
               >
                 Continue
@@ -197,6 +200,52 @@ function WelcomePage() {
         </div>
       </div>
     </Page>
+  );
+}
+
+/**
+ * The first question for somebody invited by address alone.
+ *
+ * Their record carries their email address as a name until they say otherwise.
+ * This is the only name they set themselves; after it, the record is the
+ * church's, changed by an administrator.
+ */
+function GiveName({ busy, run }: { busy: boolean; run: (work: () => Promise<unknown>) => void }) {
+  const [name, setName] = useState("");
+  return (
+    <>
+      <Heading title="Welcome to Oikonomia">
+        You were invited by email. First, what do people call you?
+      </Heading>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (name.trim()) run(() => giveOwnName({ data: { name: name.trim() } }));
+        }}
+        className="space-y-3"
+      >
+        <label htmlFor="welcome-name" className="block text-[13px] font-medium">
+          Your name
+        </label>
+        <input
+          id="welcome-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
+          required
+          minLength={2}
+          maxLength={120}
+          placeholder="First and last name"
+          className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[15px] outline-none focus:border-border-strong"
+        />
+        <p className="text-[12px] text-muted-foreground">
+          This is how you are named across the binder. After today, an administrator changes it.
+        </p>
+        <Button type="submit" variant="primary" disabled={busy || name.trim().length < 2}>
+          Save my name
+        </Button>
+      </form>
+    </>
   );
 }
 
@@ -224,6 +273,9 @@ function StepBody({
 }) {
   switch (step) {
     case "welcome":
+      if (context.person.awaitsName) {
+        return <GiveName busy={busy} run={run} />;
+      }
       return (
         <>
           {/* The whole name, as Home greets them: one way of addressing a leader. */}

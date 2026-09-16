@@ -35,3 +35,7 @@ Confirming is an access decision. A confirmed ministry membership opens that min
 For a _correction requested_ row, speak to the person first: Confirm keeps the assignment as it is, Decline ends it.
 
 When nothing is waiting, the section says so.
+
+### Your own claims
+
+A claim you made yourself shows _Another administrator confirms this_ instead of **Confirm**. Nobody confirms their own place, administrators included: another administrator decides where you serve, lead or belong. For the same reason you are not offered as a ministry's lead or a group's new member in your own Administration screens.

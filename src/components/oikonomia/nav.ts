@@ -231,7 +231,7 @@ export const navGroups: NavGroup[] = [
          * service does not refuse anybody, and there is no capability to
          * check, because keeping one is not a permission.
          */
-        label: "Leadership journal",
+        label: "Leadership Journal",
         icon: BookLock,
         to: "/leadership",
       },
