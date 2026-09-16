@@ -70,6 +70,11 @@ export interface ReachOutStore {
 
   /** Which report is open, so it can be fetched even if it is not on this page. */
   select: (id: string | null) => void;
+  /**
+   * The report `select` last named. A page compares it with its own id before
+   * concluding a report is missing: until they match, nobody has asked yet.
+   */
+  selectedId: string | null;
 
   status: "loading" | "ready" | "error";
   error: unknown;
@@ -274,11 +279,14 @@ export function ReachOutProvider({ children }: { children: ReactNode }) {
       page: reportsQuery.data?.page ?? EMPTY,
 
       select: setSelectedId,
+      selectedId,
 
+      /* Still loading while the open report is on its way: a report created a
+         moment ago is on no page of the list yet. */
       status:
         reportsQuery.isError || openQuery.isError
           ? "error"
-          : reportsQuery.data
+          : reportsQuery.data && !(selectedId && openQuery.isPending)
             ? "ready"
             : "loading",
       error: reportsQuery.error,
@@ -324,6 +332,7 @@ export function ReachOutProvider({ children }: { children: ReactNode }) {
       drafts,
       reportsQuery,
       openQuery,
+      selectedId,
       query,
       mutation.isPending,
       saveState,
