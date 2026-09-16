@@ -15,7 +15,7 @@ import { useReports } from "@/components/oikonomia/report-provider";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { useMyMeetingTasks } from "@/components/oikonomia/meeting-provider";
 import { useLeadershipInbox } from "@/components/oikonomia/escalation-provider";
-import { escalationHref, escalationLabel } from "@/domain/escalation";
+import { escalationHref, escalationLabel, isOverdue } from "@/domain/escalation";
 import { fetchDashboard, type Dashboard } from "@/lib/dashboard-api";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
 import { cn } from "@/lib/utils";
@@ -145,6 +145,9 @@ function HomePage() {
    * claim that reading is owed.
    */
   const askedOfMe = inbox.mine.slice(0, 3);
+  /* Asks are not obligations, so they never enter "Needs your attention" — but
+     that card must not say nothing is overdue while one of them is. */
+  const askOverdue = inbox.mine.some((item) => isOverdue(item, today));
 
   const myMinistries = ministries.filter(
     (m) => m.leadId === person.id || m.teamIds.includes(person.id),
@@ -244,7 +247,9 @@ function HomePage() {
               </ul>
             ) : (
               <CardEmpty>
-                Nothing is overdue or close to it. What you are carrying is below.
+                {askOverdue
+                  ? "Nothing in your own cycle is overdue. Something asked of you is past the date it was needed by — it is below."
+                  : "Nothing is overdue or close to it. What you are carrying is below."}
               </CardEmpty>
             )}
           </WorkspaceCard>
@@ -275,7 +280,7 @@ function HomePage() {
                             ? "Act"
                             : "Consider"
                       }
-                      meta={escalationLabel[item.type]}
+                      meta={dueLabel(item.neededBy, today) ?? escalationLabel[item.type]}
                     />
                   );
                 })}
