@@ -43,10 +43,15 @@ import { canJoinGathering } from "@/domain/authorize";
 import { isCurrent, isFiled, reportStatusLabel } from "@/domain/leadership-report";
 import { planningForDays, planningHref, planningTime } from "@/domain/planning";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
-import { fromISO, toISO, weekDays, weekOf } from "@/domain/schedule";
+import { toISO, weekDays, weekOf } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import { daylight, type AreaId } from "@/domain/appearance";
+import {
+  formatTime,
+  formatWeekdayAbbrev,
+  formatWeekdayLong,
+  formatWeekdayShort,
+} from "@/domain/dates";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -202,7 +207,7 @@ function HomePage() {
                 light === "night" ? "text-white/75" : "text-muted-foreground",
               )}
             >
-              {format(fromISO(today), "EEEE, d MMMM")}
+              {formatWeekdayLong(today)}
             </p>
             <h1 className="mt-1 text-[32px] leading-[1.08] sm:text-[42px]">
               {greeting()}, <PersonName personId={person.id} />
@@ -390,7 +395,7 @@ function HomePage() {
                       context={[item.contextLabel, item.location].filter(Boolean).join(" · ")}
                       meta={
                         <>
-                          {format(fromISO(item.date), "EEE")}
+                          {formatWeekdayAbbrev(item.date)}
                           {planningTime(item) ? ` · ${planningTime(item)}` : ""}
                         </>
                       }
@@ -471,7 +476,7 @@ function HomePage() {
                         to={`/lifegroups/${gathering.id}`}
                         search={{}}
                         title={gatheringHeadline(venues, gathering)}
-                        context={`${format(fromISO(gathering.date), "EEE d MMM")}${gathering.startTime ? ` · ${gathering.startTime}` : ""}`}
+                        context={`${formatWeekdayShort(gathering.date)}${gathering.startTime ? ` · ${formatTime(gathering.startTime)}` : ""}`}
                         {...(action === "claim" ? { action: myActionLabel.claim } : {})}
                         meta="Needs a leader"
                       />
@@ -483,7 +488,7 @@ function HomePage() {
                       to={`/lifegroups/${gathering.id}`}
                       search={{}}
                       title={gatheringHeadline(venues, gathering)}
-                      context={`${format(fromISO(gathering.date), "EEE d MMM")}${gathering.startTime ? ` · ${gathering.startTime}` : ""}`}
+                      context={`${formatWeekdayShort(gathering.date)}${gathering.startTime ? ` · ${formatTime(gathering.startTime)}` : ""}`}
                       {...(action === "claim" ? { action: myActionLabel.claim } : {})}
                       {...(action === "leave"
                         ? { meta: "You are leading" }

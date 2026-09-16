@@ -51,11 +51,10 @@ import {
   relationshipLabel,
   relationshipTo,
 } from "@/domain/ministry";
-import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import type { Goal, Ministry, ResourceSearchResult } from "@/domain/types";
 import type { DriveDetails } from "@/domain/drive";
+import { formatDayMonthShort } from "@/domain/dates";
 
 type View = "overview" | "goals" | "documents" | "activity";
 
@@ -299,7 +298,7 @@ function Overview({
                       className="flex items-baseline gap-3 px-4 py-2.5"
                     >
                       <span className="w-11 shrink-0 text-[12px] tabular-nums text-muted-foreground">
-                        {format(fromISO(note.date), "d MMM")}
+                        {formatDayMonthShort(note.date)}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[14px]">{note.title}</span>
                     </Link>
@@ -562,7 +561,7 @@ function DocumentRow({
               <PersonName personId={document.addedById} />
             </>
           ) : null}
-          {document.updatedAt ? ` · ${format(fromISO(document.updatedAt), "d MMM")}` : ""}
+          {document.updatedAt ? ` · ${formatDayMonthShort(document.updatedAt)}` : ""}
         </span>
       </span>
       {document.openUrl ? (
@@ -668,7 +667,7 @@ function Activity({ ministry }: { ministry: Ministry }) {
           {entries.map((entry) => (
             <li key={entry.id} className="flex items-baseline gap-3 px-4 py-2.5">
               <span className="w-16 shrink-0 text-[12px] tabular-nums text-muted-foreground">
-                {format(fromISO(entry.at), "d MMM")}
+                {formatDayMonthShort(entry.at)}
               </span>
               <span className="min-w-0 flex-1 text-[14px]">
                 <PersonName personId={entry.actorId} /> {entry.summary}

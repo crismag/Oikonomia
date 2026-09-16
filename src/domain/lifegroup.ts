@@ -1,8 +1,5 @@
-import { format } from "date-fns";
-
 import { config, entryStrategies, type EntryStrategy } from "@/config";
 import { categoriesFor } from "./categories";
-import { fromISO } from "./schedule";
 import type {
   AttendanceStatus,
   EntryVisibility,
@@ -15,6 +12,7 @@ import type {
   LifegroupEntryCategory,
   Venue,
 } from "./types";
+import { formatDayMonth, formatDayMonthShort, formatWeekday } from "./dates";
 
 /**
  * LifeGroup logic.
@@ -49,7 +47,7 @@ export function venueName(venues: Venue[], gathering: Gathering): string {
  * alone is a place that hosts many gatherings, not the name of a group.
  */
 export function gatheringLabel(venues: Venue[], gathering: Gathering): string {
-  return `${venueName(venues, gathering)} · ${format(fromISO(gathering.date), "d MMM")}`;
+  return `${venueName(venues, gathering)} · ${formatDayMonthShort(gathering.date)}`;
 }
 
 /**
@@ -490,7 +488,7 @@ export function composeReport(
   };
 }
 
-export const dayLabel = (iso: string) => format(fromISO(iso), "EEEE · d MMMM");
+export const dayLabel = (iso: string) => `${formatWeekday(iso)} · ${formatDayMonth(iso)}`;
 
 /* ------------------------------------------------- the shared schedule */
 

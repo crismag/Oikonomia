@@ -66,9 +66,8 @@ import {
 } from "@/domain/leadership-report";
 import { categoryLabelOf, triggersAttention } from "@/domain/categories";
 import { emptyBlock, sanitizeInline } from "@/domain/meeting";
-import { fromISO, toISO, weekOf } from "@/domain/schedule";
+import { toISO, weekOf } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import type {
   DiscussionPolicy,
   LeadershipReport,
@@ -77,6 +76,7 @@ import type {
   ReportType,
   ReportVisibility,
 } from "@/domain/types";
+import { formatDate, formatDateTime, formatDayMonth } from "@/domain/dates";
 
 type Tab = "report" | "discussion" | "documents" | "activity";
 
@@ -467,10 +467,8 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
       {!statusBehavior(report.status).editable ? (
         <p className="mt-3 text-[12px] text-muted-foreground">
           {config.label("reports.statuses", report.status)}
-          {report.publishedAt
-            ? ` ${format(fromISO(report.publishedAt.slice(0, 10)), "d MMMM")}`
-            : ""}
-          . The report content is the submitted record; discussion continues below.
+          {report.publishedAt ? ` ${formatDayMonth(report.publishedAt)}` : ""}. The report content
+          is the submitted record; discussion continues below.
           {/* Said to the author, who is the one who would look for Delete. */}
           {report.authorId === person.id
             ? can.archive
@@ -706,8 +704,7 @@ function OpenedBy({ report }: { report: LeadershipReport }) {
         <ul className="mt-1 space-y-0.5 text-muted-foreground">
           {rows.slice(0, 20).map((row, index) => (
             <li key={`${row.actorId}-${row.at}-${index}`}>
-              <PersonName personId={row.actorId} /> ·{" "}
-              {format(new Date(row.at), "d MMM yyyy, HH:mm")}
+              <PersonName personId={row.actorId} /> · {formatDateTime(row.at)}
             </li>
           ))}
         </ul>
@@ -1360,9 +1357,7 @@ function PrintSheet({ report }: { report: LeadershipReport }) {
           {report.reportingPeriod ? (
             <p className="text-[13px]">Period: {report.reportingPeriod}</p>
           ) : null}
-          <p className="text-[13px]">
-            Date: {format(fromISO(report.updatedAt.slice(0, 10)), "d MMMM yyyy")}
-          </p>
+          <p className="text-[13px]">Date: {formatDate(report.updatedAt)}</p>
         </header>
 
         <div data-print="section" className="mt-4">

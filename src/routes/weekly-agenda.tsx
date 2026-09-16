@@ -56,7 +56,6 @@ import {
   agendaOn,
   dayLabel,
   formatTime,
-  fromISO,
   notesForWeek,
   occurrencesOn,
   shiftWeek,
@@ -64,10 +63,9 @@ import {
   toISO,
   weekDays,
   weekLabel,
-  weekOf,
 } from "@/domain/schedule";
-import { format } from "date-fns";
 import type { AgendaItem, ScheduleOccurrence } from "@/domain/types";
+import { formatDayNumber, formatMonth } from "@/domain/dates";
 
 export const Route = createFileRoute("/weekly-agenda")({
   /*
@@ -294,7 +292,7 @@ function WeeklyAgendaPage() {
           days={days}
           itemsByDay={dayItems}
           notes={notes}
-          monthLabel={format(fromISO(anchor), "MMMM")}
+          monthLabel={formatMonth(anchor)}
           weekOfLabel={weekOfLabel(days[0]!)}
         />
       </Page>
@@ -587,7 +585,7 @@ function Day({
             isToday ? "text-area-ink" : "text-muted-foreground",
           )}
         >
-          {dayLabel(iso).slice(0, 3)} {format(fromISO(iso), "d")}
+          {dayLabel(iso).slice(0, 3)} {formatDayNumber(iso)}
         </h2>
         {isToday ? <span className="text-[11px] text-area-ink sm:block">Today</span> : null}
       </div>

@@ -9,9 +9,8 @@ import { Page } from "@/components/oikonomia/page";
 import { PersonName } from "@/components/oikonomia/person";
 import { cn } from "@/lib/utils";
 import { reportableFromRecords } from "@/domain/forms";
-import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
+import { formatDate } from "@/domain/dates";
 
 export const Route = createFileRoute("/records/$recordId")({
   validateSearch: (search: Record<string, unknown>): { mode?: "print" } =>
@@ -59,7 +58,7 @@ function RecordPage() {
   const reportable = reportableFromRecords([record]);
   const completed = record.status === "completed";
 
-  const subtitle = [record.period, record.date ? format(fromISO(record.date), "d MMMM yyyy") : null]
+  const subtitle = [record.period, record.date ? formatDate(record.date) : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -128,8 +127,8 @@ function RecordPage() {
           {completed ? (
             <p className="mt-3 text-[13px] text-muted-foreground">
               Completed
-              {record.completedAt ? ` ${format(fromISO(record.completedAt), "d MMMM yyyy")}` : ""}.
-              Reopen it to make changes.
+              {record.completedAt ? ` ${formatDate(record.completedAt)}` : ""}. Reopen it to make
+              changes.
             </p>
           ) : null}
         </div>

@@ -12,8 +12,7 @@ import { useBinderDocument } from "@/components/oikonomia/binder-document-provid
 import { CalendarError, errorMessage } from "@/lib/calendar-client";
 import { removeDocument } from "@/lib/documents-api";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
-import { fromISO } from "@/domain/schedule";
-import { format } from "date-fns";
+import { formatDayMonthShort } from "@/domain/dates";
 
 export const Route = createFileRoute("/documents/$documentId")({
   head: () => ({ meta: [{ title: "Document — Oikonomia" }] }),
@@ -152,7 +151,7 @@ function BinderDocumentPage() {
           {document.kind}
           {ministry ? ` · ${ministry.name}` : ""} · started by{" "}
           <PersonName personId={document.registeredById} /> ·{" "}
-          {format(fromISO(document.updatedAt.slice(0, 10)), "d MMM")}
+          {formatDayMonthShort(document.updatedAt)}
         </p>
       </header>
 

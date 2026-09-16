@@ -8,8 +8,8 @@ import {
   type PlanningGroupResult,
   type PlanningItem,
 } from "@/domain/planning";
-import { dayNumber, fromISO, shortDayLabel } from "@/domain/schedule";
-import { format } from "date-fns";
+import { dayNumber, shortDayLabel } from "@/domain/schedule";
+import { formatDayMonthShort, formatWeekdayAbbrev } from "@/domain/dates";
 
 /**
  * The views. All three read the same projected items.
@@ -87,7 +87,7 @@ export function PlanningRow({
         </span>
 
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[12px] text-muted-foreground">
-          {showDate ? <span>{format(fromISO(item.date), "d MMM")}</span> : null}
+          {showDate ? <span>{formatDayMonthShort(item.date)}</span> : null}
           {time ? <span>{time}</span> : null}
           {showKind ? <span>{planningKindLabel[item.kind]}</span> : null}
           {item.contextLabel ? <span>{item.contextLabel}</span> : null}
@@ -183,7 +183,7 @@ export function WeekCalendar({
           <div key={iso} className={cn("min-h-[140px] bg-surface p-2", isToday && "bg-area-soft")}>
             <p className="mb-1.5 flex items-baseline gap-1.5">
               <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                {format(fromISO(iso), "EEE")}
+                {formatWeekdayAbbrev(iso)}
               </span>
               <span className={cn("text-[14px]", isToday && "font-medium")}>{dayNumber(iso)}</span>
               {isToday ? <span className="sr-only">Today</span> : null}

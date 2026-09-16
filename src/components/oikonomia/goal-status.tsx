@@ -1,6 +1,7 @@
 import { Check, PauseCircle, ArrowRightCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { formatMonthYear } from "@/domain/dates";
 import { formatTargetShort, goalStatusLabel, targetState } from "@/domain/goals";
 import type { Goal } from "@/domain/types";
 
@@ -69,6 +70,5 @@ export function GoalStatusLine({ goal, className }: { goal: Goal; className?: st
 function formatMonthOf(value: string): string {
   const [year, month] = value.split("-");
   if (!year || !month) return value;
-  const date = new Date(Number(year), Number(month) - 1, 1);
-  return date.toLocaleDateString("en", { month: "long", year: "numeric" });
+  return formatMonthYear(`${year}-${month}`);
 }

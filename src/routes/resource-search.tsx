@@ -13,9 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { contextPath, sectionLabel } from "@/domain/resources";
-import { fromISO } from "@/domain/schedule";
-import { format } from "date-fns";
 import type { BinderSection, ResourceSearchResult, ResourceSort } from "@/domain/types";
+import { formatDayMonthShort } from "@/domain/dates";
 
 type SearchState = {
   q?: string;
@@ -388,7 +387,7 @@ function ResultRow({ resource, query }: { resource: ResourceSearchResult; query:
         <span className="ml-auto">
           Updated{" "}
           {resource.updatedAt
-            ? format(fromISO(resource.updatedAt.slice(0, 10)), "d MMM")
+            ? formatDayMonthShort(resource.updatedAt)
             : (resource.updatedLabel ?? "recently")}
         </span>
       </p>

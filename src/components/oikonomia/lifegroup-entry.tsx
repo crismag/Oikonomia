@@ -19,9 +19,9 @@ import {
   visibilityOf,
   withheldCount,
 } from "@/domain/lifegroup";
-import { format } from "date-fns";
 import { config } from "@/config";
 import type { EntryVisibility, LifegroupEntry, LifegroupEntryCategory } from "@/domain/types";
+import { formatTime } from "@/domain/dates";
 
 /**
  * A recorded entry.
@@ -52,7 +52,7 @@ export function EntryItem({
 }) {
   const { personById } = useOrganization();
   const author = personById(entry.authorId);
-  const time = entry.createdAt.includes("T") ? format(new Date(entry.createdAt), "h:mm a") : "";
+  const time = entry.createdAt.includes("T") ? formatTime(entry.createdAt) : "";
   const visibility = visibilityOf(entry);
 
   return (
