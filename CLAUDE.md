@@ -319,6 +319,25 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 | Reach-Out access model | Open decision in `reach-out-service.ts` / `modules/REACH-OUT.md`. Do not guess. |
 | `relatedEscalationId` on agenda items | Would make Put on my week robust; it is also a schema change. Not required for P1. |
 
+## Goals are scoped (migration 038)
+
+`Goal.scope` is `personal | ministry | other`, chosen at creation
+(`createGoal` is a discriminated union in `goals-contract.ts`). Never infer
+whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
+`ministryId` as "relates to", and a ministry goal usually has an owner.
+
+- Edit: personal → owner only; ministry → `canContribute` in that ministry;
+  other → members of `groupId` (`authorize.ts`). Creation is checked with the
+  same rule.
+- Lists never pool goals across owners: `goalsForMyWork` (Goals tabs),
+  `goalsByWhose` (Reports to you), `ministryGoals` /
+  `personalGoalsRelatingTo` (ministry page). Home's goal obligation is goals
+  the viewer owns.
+- The Data Play importer sets scope from the file (`2026-goals.md` personal,
+  `content/ministry-goals/` ministry) and skips sections without `Status`.
+  The demo baseline must be re-imported for existing demo data to be right;
+  the migration's backfill guesses (ministry if filed under one).
+
 ## How to work in this codebase
 
 When adding a link between modules:

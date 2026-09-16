@@ -2064,6 +2064,7 @@ export const goals: Goal[] = [
   {
     id: "gl-training",
     number: 1,
+    scope: "ministry",
     year: YEAR,
     title: "Training for excellence",
     description:
@@ -2078,6 +2079,7 @@ export const goals: Goal[] = [
   {
     id: "gl-food-cert",
     number: 2,
+    scope: "ministry",
     year: YEAR,
     title: "Food handling certification",
     description: "Get the serving team certified before the camp season.",
@@ -2094,6 +2096,7 @@ export const goals: Goal[] = [
   {
     id: "gl-groupchat",
     number: 3,
+    scope: "ministry",
     year: YEAR,
     title: "More communication via group chat",
     // No target and no description: the binder often says only this much.
@@ -2106,6 +2109,7 @@ export const goals: Goal[] = [
   {
     id: "gl-outlet",
     number: 4,
+    scope: "ministry",
     year: YEAR,
     title: "Kitchen electrical outlet",
     description: "Second outlet by the prep counter so two urns can run at once.",
@@ -2121,6 +2125,7 @@ export const goals: Goal[] = [
   {
     id: "gl-fellowship",
     number: 5,
+    scope: "ministry",
     year: YEAR,
     title: "Team-building fellowship",
     description: "One whole-team gathering away from a serving day.",
@@ -2134,6 +2139,7 @@ export const goals: Goal[] = [
   {
     id: "gl-storage",
     number: 6,
+    scope: "ministry",
     year: YEAR,
     title: "Reorganize the storage room",
     description: "Label shelving and set a fixed home for every serving item.",
@@ -2146,6 +2152,7 @@ export const goals: Goal[] = [
   {
     id: "gl-procedures",
     number: 7,
+    scope: "ministry",
     year: YEAR,
     title: "Write down the serving procedure",
     description: "A one-page procedure so a new volunteer can serve without shadowing for a month.",
@@ -2158,6 +2165,7 @@ export const goals: Goal[] = [
   {
     id: "gl-key-person",
     number: 8,
+    scope: "ministry",
     year: YEAR,
     title: "Develop a second lead for the ministry",
     description: "Identify and prepare someone who can carry the ministry when needed.",
@@ -2180,6 +2188,7 @@ export const goals: Goal[] = [
   {
     id: "gl-equipment",
     number: 9,
+    scope: "ministry",
     year: YEAR,
     title: "Replace the two failing urns",
     ministryId: "min-victuals",
@@ -2191,6 +2200,7 @@ export const goals: Goal[] = [
   {
     id: "gl-aprons",
     number: 10,
+    scope: "ministry",
     year: YEAR,
     title: "Ministry aprons for the serving team",
     ministryId: "min-victuals",
@@ -2201,6 +2211,7 @@ export const goals: Goal[] = [
   {
     id: "gl-cleaning",
     number: 11,
+    scope: "ministry",
     year: YEAR,
     title: "Cleaning guidelines on the wall",
     description: "Printed close-down steps so the last person out knows what to check.",
@@ -2213,6 +2224,7 @@ export const goals: Goal[] = [
   {
     id: "gl-call-time",
     number: 12,
+    scope: "ministry",
     year: YEAR,
     title: "Improve call time before the service",
     description: "Team in place thirty minutes before the first service, consistently.",
@@ -2226,6 +2238,7 @@ export const goals: Goal[] = [
   {
     id: "gl-prior-storage",
     number: 7,
+    scope: "ministry",
     year: PRIOR,
     title: "Reorganize the storage room",
     description: "Started but not finished before the year ended.",
@@ -2237,6 +2250,7 @@ export const goals: Goal[] = [
   {
     id: "gl-prior-rota",
     number: 3,
+    scope: "ministry",
     year: PRIOR,
     title: "Publish the serving rota a month ahead",
     ministryId: "min-victuals",

@@ -8,6 +8,9 @@ import {
   goalCounts,
   goalYears,
   goalsByWhose,
+  goalsForMyWork,
+  ministryGoals,
+  personalGoalsRelatingTo,
   goalsForYear,
   latestUpdate,
   needsAttention,
@@ -32,6 +35,7 @@ const goal = (over: Partial<Goal> = {}): Goal => ({
   number: 1,
   year: 2026,
   title: "Improve storage",
+  scope: "personal",
   status: "active",
   createdAt: "2026-01-10",
   links: [],
@@ -243,10 +247,12 @@ describe("access", () => {
 });
 
 /**
- * A leader's goals are theirs. On the page where reports arrive they must stay
- * grouped by whose they are, never pooled into one list of everybody's goals.
+ * Goals are kept apart by whose they are — by their stated scope, never by
+ * which fields happen to be filled in. A personal goal that relates to a
+ * ministry is still the leader's, and a ministry goal with a leader
+ * responsible for it is still the ministry's.
  */
-describe("goalsByWhose", () => {
+describe("grouping goals by whose they are", () => {
   const people = [
     { id: "me" },
     { id: "ana", reportsToId: "me" },
@@ -258,45 +264,74 @@ describe("goalsByWhose", () => {
     { id: "m-ana", leadId: "ana", teamIds: [] },
     { id: "m-other", leadId: "cy", teamIds: [] },
   ];
-  const goals = [
-    goal({ id: "ana-1", ownerId: "ana" }),
-    goal({ id: "ana-2", ownerId: "ana", number: 2 }),
-    goal({ id: "cy-1", ownerId: "cy" }),
-    goal({ id: "mine-min", ministryId: "m-mine" }),
-    goal({ id: "ana-min", ministryId: "m-ana", ownerId: "ana", number: 3 }),
-    goal({ id: "ana-ministry-own", ministryId: "m-ana", number: 4 }),
-    goal({ id: "other-min", ministryId: "m-other" }),
-    goal({ id: "church", number: 9 }),
-    goal({ id: "old", ownerId: "ana", year: 2025 }),
+  const groups = [
+    { id: "g-elders", memberIds: ["me"] },
+    { id: "g-far", memberIds: ["cy"] },
   ];
-  const grouped = goalsByWhose(goals, { year: 2026, viewerId: "me", people, ministries });
+  const goals = [
+    goal({ id: "mine-1", scope: "personal", ownerId: "me" }),
+    goal({ id: "ana-1", scope: "personal", ownerId: "ana" }),
+    goal({ id: "ana-2", scope: "personal", ownerId: "ana", number: 2, ministryId: "m-ana" }),
+    goal({ id: "cy-1", scope: "personal", ownerId: "cy" }),
+    goal({ id: "m-mine-1", scope: "ministry", ministryId: "m-mine", ownerId: "me" }),
+    goal({ id: "m-ana-1", scope: "ministry", ministryId: "m-ana", ownerId: "ana", number: 3 }),
+    goal({ id: "m-other-1", scope: "ministry", ministryId: "m-other" }),
+    goal({ id: "elders-1", scope: "other", groupId: "g-elders" }),
+    goal({ id: "far-1", scope: "other", groupId: "g-far" }),
+    goal({ id: "old", scope: "personal", ownerId: "ana", year: 2025 }),
+  ];
+  const context = { year: 2026, viewerId: "me", people, ministries, groups };
+  const ids = (list: { goals: Goal[] }[]) => list.map((g) => g.goals.map((x) => x.id));
 
-  it("keeps every goal a report owns under that person, and omits people with none", () => {
-    expect(grouped.people.map((g) => [g.personId, g.goals.map((x) => x.id)])).toEqual([
-      ["ana", ["ana-1", "ana-2", "ana-min"]],
-    ]);
+  describe("for Reports to you", () => {
+    const grouped = goalsByWhose(goals, context);
+
+    it("lists each report's personal goals under that person, including one relating to a ministry", () => {
+      expect(grouped.people.map((g) => g.personId)).toEqual(["ana"]);
+      expect(ids(grouped.people)).toEqual([["ana-1", "ana-2"]]);
+    });
+
+    it("keeps a ministry's goal with the ministry even when a leader is responsible for it", () => {
+      expect(grouped.ministries.map((g) => g.ministryId)).toEqual(["m-mine", "m-ana"]);
+      expect(ids(grouped.ministries)).toEqual([["m-mine-1"], ["m-ana-1"]]);
+    });
+
+    it("lists other groups this leader's circle belongs to, and only this year's", () => {
+      expect(ids(grouped.groups)).toEqual([["elders-1"]]);
+      expect(JSON.stringify(grouped)).not.toContain('"old"');
+    });
   });
 
-  it("does not list goals of people who report to somebody else", () => {
-    expect(grouped.people.flatMap((g) => g.goals).map((g) => g.id)).not.toContain("cy-1");
+  describe("for My Work", () => {
+    const mine = goalsForMyWork(goals, context);
+
+    it("counts only this leader's own goals as personal", () => {
+      expect(mine.personal.map((g) => g.id)).toEqual(["mine-1"]);
+    });
+
+    it("keeps every ministry's goals in their own group, the viewer's first", () => {
+      expect(mine.ministries.map((g) => [g.id, g.yours])).toEqual([
+        ["m-mine", true],
+        ["m-other", false],
+        ["m-ana", false],
+      ]);
+    });
+
+    it("keeps other groups apart from ministries, the viewer's first", () => {
+      expect(mine.groups.map((g) => [g.id, g.yours])).toEqual([
+        ["g-elders", true],
+        ["g-far", false],
+      ]);
+    });
+
+    it("never puts a personal goal in a ministry's group", () => {
+      const inMinistries = mine.ministries.flatMap((g) => g.goals);
+      expect(inMinistries.every((g) => g.scope === "ministry")).toBe(true);
+    });
   });
 
-  it("puts only a ministry's own, unowned goals under the ministry", () => {
-    expect(grouped.ministries.map((m) => [m.ministryId, m.goals.map((g) => g.id)])).toEqual([
-      ["m-mine", ["mine-min"]],
-      ["m-ana", ["ana-ministry-own"]],
-    ]);
-  });
-
-  /* The data this came from: a leader's personal goals filed under the
-     ministry they serve. Pooled by ministry they became one incoherent list. */
-  it("never pools different leaders' goals under the ministry they relate to", () => {
-    const owners = grouped.ministries.flatMap((m) => m.goals).map((g) => g.ownerId);
-    expect(owners.every((owner) => owner === undefined)).toBe(true);
-  });
-
-  it("keeps shared goals apart, and only this year's", () => {
-    expect(grouped.shared.map((g) => g.id)).toEqual(["church"]);
-    expect(JSON.stringify(grouped)).not.toContain('"old"');
+  it("tells a ministry's own goals from leaders' goals that relate to it", () => {
+    expect(ministryGoals(goals, "m-ana").map((g) => g.id)).toEqual(["m-ana-1"]);
+    expect(personalGoalsRelatingTo(goals, "m-ana").map((g) => g.id)).toEqual(["ana-2"]);
   });
 });

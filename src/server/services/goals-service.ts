@@ -45,14 +45,34 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
 
   function requireWritable(viewer: Viewer, id: string): Goal {
     const goal = require(viewer, id);
-    /* Who may edit a ministry's goal is the ministry's own rule, so the
-       ministry itself has to be handed over — the authorizer no longer reaches
-       for a directory of its own. */
-    const ministry = goal.ministryId ? organization?.findMinistry(goal.ministryId) : undefined;
-    if (!canEdit(viewer, { kind: "goal", goal, ...(ministry ? { ministry } : {}) })) {
-      throw ApiError.forbidden("This goal belongs to another ministry.");
+    if (!canEdit(viewer, subjectFor(goal))) {
+      throw ApiError.forbidden(refusalFor(goal));
     }
     return goal;
+  }
+
+  /* Who may change a goal is the rule of whatever it belongs to, so that
+     ministry or group is handed over — the authorizer does not reach for a
+     directory of its own. */
+  function subjectFor(goal: Goal) {
+    const ministry =
+      goal.scope === "ministry" && goal.ministryId
+        ? organization?.findMinistry(goal.ministryId)
+        : undefined;
+    const group =
+      goal.scope === "other" && goal.groupId ? organization?.findGroup(goal.groupId) : undefined;
+    return {
+      kind: "goal" as const,
+      goal,
+      ...(ministry ? { ministry } : {}),
+      ...(group ? { group } : {}),
+    };
+  }
+
+  function refusalFor(goal: Goal): string {
+    if (goal.scope === "personal") return "This is another leader's personal goal.";
+    if (goal.scope === "other") return "This goal belongs to a group you are not in.";
+    return "This goal belongs to another ministry.";
   }
 
   /** Everything the repository needs back, minus what it owns. */
@@ -97,13 +117,41 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
       return { goal, updates: repo.updatesFor([goal.id]) };
     },
 
+    /**
+     * Setting a goal, for whoever or whatever it belongs to.
+     *
+     * A personal goal is always the person setting it. A ministry's or a
+     * group's goal may only be set by somebody who could change it afterwards
+     * — the same rule, asked before the write rather than after.
+     */
     createGoal(viewer: Viewer, input: unknown): Goal {
       const parsed = parse(createGoal, input);
-      return repo.insertGoal({
+
+      const ministryId = parsed.scope === "other" ? undefined : parsed.ministryId;
+      if (ministryId && !organization?.findMinistry(ministryId)) {
+        throw ApiError.notFound("That ministry");
+      }
+      if (parsed.scope === "other" && !organization?.findGroup(parsed.groupId)) {
+        throw ApiError.notFound("That group");
+      }
+
+      const draft = {
         ...parsed,
         status: "active",
-        ownerId: parsed.ownerId ?? viewer.person.id,
-      } as Omit<GoalValues, "number">);
+        ownerId:
+          parsed.scope === "personal" ? viewer.person.id : (parsed.ownerId ?? viewer.person.id),
+      } as Omit<GoalValues, "number">;
+
+      const preview = { ...draft, id: "", number: 0, createdAt: "" } as Goal;
+      if (!canEdit(viewer, subjectFor(preview))) {
+        throw ApiError.forbidden(
+          parsed.scope === "ministry"
+            ? "Only people who work in that ministry may set its goals."
+            : "Only members of that group may set its goals.",
+        );
+      }
+
+      return repo.insertGoal(draft);
     },
 
     updateGoal(viewer: Viewer, id: string, input: unknown): Goal {

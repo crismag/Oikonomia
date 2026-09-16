@@ -126,12 +126,27 @@ seniority, and not by administrators.
 
 ## Goals
 
-> _What the ministry said it wanted to improve this year, and where each goal
-> stands now._
+> _Your personal goals, each ministry's goals and other groups' goals for the
+> year — kept apart, and where each one stands._
 
-Goals used to live only inside a ministry. They still belong to the ministry —
-this page is the year, across the ministries you can see. Home and My Progress
-send you here when a goal is part of the cycle.
+Setting a goal starts with **whose it is**:
+
+|                  |                                                                                                                            |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Mine**         | Your own goal as a leader. It may say which ministry it relates to; it stays yours. Only you can change it.                |
+| **A ministry's** | What the ministry wants to improve. Offered for ministries you lead or serve in, and changed by the people who work there. |
+| **A group's**    | A goal of another group the church has named — a council, a team. Set and changed by its members.                          |
+
+The page has a tab for each. **Personal goals** are your own; other leaders'
+personal goals are theirs, reached from **Reports to you** or their page.
+**Ministry goals** and **Other groups** keep each ministry's or group's goals
+under its name — yours open, the rest closed until you open them — so the year
+never becomes one long list of everybody's goals. **Needs attention** is drawn
+from the tab you are looking at, grouped the same way.
+
+A ministry's own page lists its goals first, then leaders' personal goals that
+relate to it, under each leader's name. Home and My Progress ask you for an
+update on the goals you carry.
 
 ## Documents & Forms and Resource Search
 

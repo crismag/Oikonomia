@@ -47,6 +47,7 @@ afterEach(() => {
 const goal = (over: Record<string, unknown> = {}) => ({
   title: "Training for excellence",
   year: 2026,
+  scope: "ministry",
   ministryId: "min-music",
   ...over,
 });
@@ -151,6 +152,8 @@ describe("a goal held to a narrower audience", () => {
     repo.insertGoal({
       title: "Pastoral concern",
       year: 2026,
+      scope: "personal",
+      ownerId: maria.person.id,
       status: "active",
       links: [],
       policy: { classification: "pastoral-private", ownerId: maria.person.id },
@@ -202,7 +205,15 @@ describe("who may change a goal", () => {
   });
 
   it("does not let someone outside it", () => {
-    const created = service.createGoal(maria, goal({ ministryId: "min-transport" }));
+    /* Set directly: Maria could not have set it, which is the point. */
+    const created = repo.insertGoal({
+      title: "Transport plan",
+      year: 2026,
+      scope: "ministry",
+      ministryId: "min-transport",
+      status: "active",
+      links: [],
+    } as never);
     expect(() => service.updateGoal(maria, created.id, { title: "Hijacked" })).toThrow(
       expect.objectContaining({ code: "forbidden" }),
     );
@@ -231,7 +242,15 @@ describe("progress", () => {
   });
 
   it("does not let an outsider add one", () => {
-    const created = service.createGoal(maria, goal({ ministryId: "min-transport" }));
+    /* Set directly: Maria could not have set it, which is the point. */
+    const created = repo.insertGoal({
+      title: "Transport plan",
+      year: 2026,
+      scope: "ministry",
+      ministryId: "min-transport",
+      status: "active",
+      links: [],
+    } as never);
     expect(() => service.addUpdate(maria, { goalId: created.id, text: "x" })).toThrow(
       expect.objectContaining({ code: "forbidden" }),
     );
@@ -358,10 +377,82 @@ describe("deleting", () => {
   });
 
   it("does not let an outsider delete one", () => {
-    const created = service.createGoal(maria, goal({ ministryId: "min-transport" }));
+    /* Set directly: Maria could not have set it, which is the point. */
+    const created = repo.insertGoal({
+      title: "Transport plan",
+      year: 2026,
+      scope: "ministry",
+      ministryId: "min-transport",
+      status: "active",
+      links: [],
+    } as never);
     expect(() => service.deleteGoal(maria, created.id)).toThrow(
       expect.objectContaining({ code: "forbidden" }),
     );
     expect(repo.findGoal(created.id)).toBeDefined();
+  });
+});
+
+/**
+ * Whose a goal is, chosen when it is set. The scope decides what it needs and
+ * who may change it, and it is never inferred from which fields happen to be
+ * filled in.
+ */
+describe("what a goal belongs to", () => {
+  it("makes a personal goal the setter's own, whatever owner is sent", () => {
+    const created = service.createGoal(maria, {
+      title: "Read more",
+      year: 2026,
+      scope: "personal",
+      ownerId: joel.person.id,
+    });
+    expect(created.scope).toBe("personal");
+    expect(created.ownerId).toBe(maria.person.id);
+  });
+
+  it("keeps a personal goal that relates to a ministry personal", () => {
+    const created = service.createGoal(maria, {
+      title: "Lead worship more calmly",
+      year: 2026,
+      scope: "personal",
+      ministryId: "min-music",
+    });
+    expect(created.scope).toBe("personal");
+    expect(created.ministryId).toBe("min-music");
+  });
+
+  it("lets only its owner change a personal goal", () => {
+    const created = service.createGoal(maria, { title: "Mine", year: 2026, scope: "personal" });
+    expect(() => service.updateGoal(joel, created.id, { title: "Not yours" })).toThrow(ApiError);
+    expect(service.updateGoal(maria, created.id, { title: "Still mine" }).title).toBe("Still mine");
+  });
+
+  it("refuses a ministry goal without its ministry", () => {
+    expect(() =>
+      service.createGoal(maria, { title: "Orphan", year: 2026, scope: "ministry" }),
+    ).toThrow(ApiError);
+  });
+
+  it("refuses a ministry goal from somebody outside the ministry", () => {
+    expect(() => service.createGoal(maria, goal({ ministryId: "min-transport" }))).toThrow(
+      ApiError,
+    );
+  });
+
+  it("refuses a group goal from somebody who is not in the group", () => {
+    const organization = createOrganizationRepository(db);
+    const group = organization.insertGroup({ name: "Elders" });
+    organization.setGroupMembership(group.id, joel.person.id, true);
+    expect(() =>
+      service.createGoal(maria, { title: "Theirs", year: 2026, scope: "other", groupId: group.id }),
+    ).toThrow(ApiError);
+    expect(
+      service.createGoal(joel, { title: "Ours", year: 2026, scope: "other", groupId: group.id })
+        .scope,
+    ).toBe("other");
+  });
+
+  it("refuses a goal that does not say whose it is", () => {
+    expect(() => service.createGoal(maria, { title: "Whose?", year: 2026 })).toThrow(ApiError);
   });
 });

@@ -1288,18 +1288,37 @@ const run = db.transaction(() => {
     "Carried forward": "carried-forward",
   };
 
-  function importGoals(file: string) {
+  /**
+   * `scope` is where the file sits: `2026-goals.md` is the leader's own goals,
+   * `content/ministry-goals/` is a ministry's. The importer says so rather than
+   * leaving the application to guess from which fields are filled in.
+   */
+  function importGoals(file: string, scope: "personal" | "ministry") {
     const owner = ownerOf(file);
     if (!owner?.personId) return;
     const parsed = parseFile(file);
     for (const record of parsed.records) {
-      const status = GOAL_STATUS[field(record, "Status") ?? "Active"] ?? "active";
+      /* Every goal carries a Status. A section without one is a note about the
+         goals (Joshua's "relationship to Moses"), not a goal, and importing it
+         put prose into the year's list. */
+      const statusField = field(record, "Status");
+      if (!statusField) {
+        warn(`section "${record.heading}" (${file}) has no Status; not a goal, skipped`);
+        counts.skippedRecords++;
+        continue;
+      }
+      const status = GOAL_STATUS[statusField] ?? "active";
       const ministryName = field(record, "Ministry");
       const ministryId = ministryName
         ? ministryByName.get(ministryName.toLowerCase())?.id
         : undefined;
       if (ministryName && !ministryId)
         warn(`goal "${record.heading}" (${file}): unknown ministry "${ministryName}"`);
+      if (scope === "ministry" && !ministryId) {
+        warn(`ministry goal "${record.heading}" (${file}) names no known ministry; skipped`);
+        counts.skippedRecords++;
+        continue;
+      }
       const targetRaw = field(record, "Target");
       const target = targetRaw
         ? /^\d{4}-\d{2}-\d{2}$/.test(targetRaw)
@@ -1315,6 +1334,7 @@ const run = db.transaction(() => {
       const inserted = goals.insertGoal({
         year: 2026,
         title: record.heading,
+        scope,
         description,
         ...(ministryId ? { ministryId } : {}),
         ownerId: owner.personId,
@@ -1356,10 +1376,11 @@ const run = db.transaction(() => {
     if (!statSync(base).isDirectory()) continue;
 
     const goalsPath = join(base, "2026-goals.md");
-    if (existsSync(goalsPath)) importGoals(goalsPath);
+    if (existsSync(goalsPath)) importGoals(goalsPath, "personal");
     /* A ministry's own goals, filed under its head's folder rather than the
        personal 2026-goals.md — same record shape, same importer. */
-    for (const file of findFiles(join(base, "content", "ministry-goals"))) importGoals(file);
+    for (const file of findFiles(join(base, "content", "ministry-goals")))
+      importGoals(file, "ministry");
 
     for (const file of findFiles(join(base, "content"))) {
       const parsed = parseFile(file);

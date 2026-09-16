@@ -242,7 +242,11 @@ export function createDashboardService(repos: {
       /* ---------------------------------------------------------- 6. Goals */
 
       const year = fromISO(today).getFullYear();
-      const myGoals = repos.goals.goalsForYear(year).filter((g) => g.status === "active");
+      /* The goals this leader carries — not every active goal in the church,
+         which put other leaders' personal goals on this leader's to-do. */
+      const myGoals = repos.goals
+        .goalsForYear(year)
+        .filter((g) => g.status === "active" && g.ownerId === me);
       const updates = repos.goals.updatesFor(myGoals.map((g) => g.id));
       const updatedThisMonth = new Set(
         updates.filter((u) => u.date >= monthStart && u.date <= monthEnd).map((u) => u.goalId),
