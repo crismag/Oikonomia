@@ -36,6 +36,8 @@ export function useRegistry(recent = 5) {
   const invalidate = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["resources"] });
     void queryClient.invalidateQueries({ queryKey: ["resource-filters"] });
+    /* A ministry's shelf lists what is filed under it. */
+    void queryClient.invalidateQueries({ queryKey: ["filed-documents"] });
   }, [queryClient]);
 
   const mutation = useMutation({
