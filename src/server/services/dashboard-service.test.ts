@@ -142,6 +142,28 @@ describe("it does not report a record as finished work", () => {
     }
   });
 
+  /** A cancelled gathering did not happen, so no report is owed on it. */
+  it("owes nothing on a gathering that was cancelled", () => {
+    const today = toISO(new Date());
+    const week = weekDays(today);
+    db.prepare("UPDATE person SET created_at = ? WHERE id = ?").run(
+      "2000-01-01T00:00:00.000Z",
+      maria.person.id,
+    );
+
+    const lifegroup = createLifegroupRepository(db);
+    const gathering = lifegroup
+      .gatheringsInRange(week[0]!, week[week.length - 1]!)
+      .find((g) => g.assignedLeaderIds.includes(maria.person.id));
+    if (!gathering) throw new Error("The fixtures should give this leader a gathering this week.");
+
+    const id = `lifegroup-${gathering.id}`;
+    expect(service.build(maria, today).weekly.obligations.map((o) => o.id)).toContain(id);
+
+    lifegroup.setStatus(gathering.id, "cancelled");
+    expect(service.build(maria, today).weekly.obligations.map((o) => o.id)).not.toContain(id);
+  });
+
   /** Follow-ups are worth doing and must never hold the report open. */
   it("marks follow-up entries optional so they cannot hold a gathering open", () => {
     const board = service.build(maria, TODAY);

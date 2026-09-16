@@ -248,6 +248,8 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/lifegroup-api.ts#createGathering": { method: "POST", demo: "allowed" },
   "src/lib/lifegroup-api.ts#joinGathering": { method: "POST", demo: "allowed" },
   "src/lib/lifegroup-api.ts#updateGathering": { method: "POST", demo: "allowed" },
+  "src/lib/lifegroup-api.ts#cancelGathering": { method: "POST", demo: "allowed" },
+  "src/lib/lifegroup-api.ts#restoreGathering": { method: "POST", demo: "allowed" },
   "src/lib/lifegroup-api.ts#markAttendance": { method: "POST", demo: "allowed" },
   "src/lib/lifegroup-api.ts#removeAttendance": { method: "POST", demo: "allowed" },
   "src/lib/lifegroup-api.ts#setExhortation": { method: "POST", demo: "allowed" },

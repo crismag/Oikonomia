@@ -35,6 +35,6 @@ Being unclaimed is a normal state for a row on a shared schedule, not an error.
 - **Assigned** — at least one leader has put their name on it.
 - **Confirmed** and **Gathering** — later stages; a completed gathering that is reopened shows **Gathering**.
 - **Completed** — its leader chose **Complete gathering**.
-- **Cancelled** — it will not take place. Cancelled gatherings drop off Home.
+- **Cancelled** — it will not take place. Cancelled gatherings drop off Home and My Progress. See [Cancel or restore a gathering](topic:lifegroup.cancel).
 
-A stage follows who is leading and whether the gathering is written up. Leaders do not paint it by hand.
+A stage follows who is leading, whether the gathering is written up, and whether it was cancelled. Leaders do not paint it by hand.

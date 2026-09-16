@@ -156,7 +156,8 @@ export function createDashboardService(repos: {
        */
       const gatherings = repos.lifegroup
         .gatheringsInRange(weekStart, weekEnd)
-        .filter((g) => g.assignedLeaderIds.includes(me));
+        /* A cancelled gathering did not happen, so nothing is owed on it. */
+        .filter((g) => g.assignedLeaderIds.includes(me) && g.status !== "cancelled");
 
       for (const gathering of gatherings) {
         const attendance = repos.lifegroup.attendanceFor([gathering.id]);

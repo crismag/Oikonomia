@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, type ReactNode } from 
 
 import {
   addEntry,
+  cancelGathering,
   completeGathering,
   createGathering,
   fetchLifegroup,
@@ -11,6 +12,7 @@ import {
   removeAttendance,
   removeEntry,
   reopenGathering,
+  restoreGathering,
   setExhortation,
   setSummary,
   updateEntry,
@@ -89,6 +91,10 @@ export interface LifegroupStore {
   completeGathering: (gatheringId: string, byId: string) => Promise<void>;
   reopenGathering: (gatheringId: string) => Promise<void>;
   setGatheringStatus: (gatheringId: string, status: GatheringStatus) => Promise<void>;
+  /** Take a gathering off the schedule; it stays in the book, marked cancelled. */
+  cancelGathering: (gatheringId: string) => Promise<void>;
+  /** Put a cancelled gathering back on the schedule. */
+  restoreGathering: (gatheringId: string) => Promise<void>;
 
   /**
    * Add a row to the shared schedule.
@@ -271,6 +277,10 @@ export function LifegroupProvider({ children }: { children: ReactNode }) {
         status === "completed"
           ? call(() => completeGathering({ data: { id: gatheringId } }))
           : call(() => reopenGathering({ data: { id: gatheringId } })),
+
+      cancelGathering: (gatheringId) => call(() => cancelGathering({ data: { id: gatheringId } })),
+      restoreGathering: (gatheringId) =>
+        call(() => restoreGathering({ data: { id: gatheringId } })),
 
       addGathering: async (input) => {
         const created = unwrap(

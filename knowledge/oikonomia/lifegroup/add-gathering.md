@@ -13,7 +13,7 @@ aliases:
   - how do I add next week's lifegroup
 capabilities: []
 hideWhen: []
-related: [lifegroup.claim, lifegroup.venue, lifegroup.page, lifegroup.names]
+related: [lifegroup.cancel, lifegroup.claim, lifegroup.venue, lifegroup.page, lifegroup.names]
 destinations: [lifegroups]
 ---
 
@@ -32,5 +32,5 @@ Adding several rows in a row keeps stepping a week further on, so a month can be
 ### Worth knowing
 
 - Adding a row does not make it yours. Until someone takes it, anyone may fill in its date, time and place.
-- On a phone the rows are stacked and are not edited in place. Choose **Assign to me** first, then **Open** the gathering and use **Edit details** — a gathering's details cannot be saved without someone leading it.
-- A row cannot be removed or cancelled from the schedule. Check the dates on the schedule before adding, so the same evening is not added twice — and use **Add me** to join a gathering that already exists.
+- On a phone the rows are stacked and are not edited in place. **Open** the gathering and use **Edit details**. While nobody has claimed it, you can save its date, time and place without leading it.
+- If the same evening was added twice, open the extra row and choose **Cancel gathering**. See [Cancel or restore a gathering](topic:lifegroup.cancel). Use **Add me** to join a gathering that already exists rather than adding another row.

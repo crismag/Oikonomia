@@ -86,6 +86,15 @@ export const messages = {
     cancelLabel: "Stay",
   },
 
+  /* ---------------------------------------------------------- lifegroup */
+  "lifegroup.cancel.confirm": {
+    title: "Cancel the gathering on {day}?",
+    body: "It stays on the schedule marked Cancelled and stops asking anyone for a report. You can restore it.",
+    severity: "warning",
+    confirmLabel: "Cancel the gathering",
+    cancelLabel: "Keep it",
+  },
+
   /* ------------------------------------------------------------ reports */
   "reports.publish.success": {
     title: "Report published",

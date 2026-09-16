@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { Combobox } from "@/components/oikonomia/combobox";
 import { PersonName } from "@/components/oikonomia/person";
 import { StatusChip } from "@/components/oikonomia/semantic-status";
+import { VenuePicker } from "@/components/oikonomia/venue-picker";
 import { cn } from "@/lib/utils";
 import { gatheringStatusLabel, myAction, myActionLabel } from "@/domain/lifegroup";
 import { fromISO } from "@/domain/schedule";
@@ -61,13 +61,22 @@ export function ScheduleRow({
 }) {
   const action = myAction(gathering, personId, mayJoin);
   const venue = venues.find((v) => v.id === gathering.venueId);
+  /* A cancelled row reads as history: it can be restored from its page, not
+     retyped in the table. */
+  const cancelled = gathering.status === "cancelled";
+  const editable = mayAmend && !cancelled;
 
   return (
-    <tr className="border-b border-border last:border-0 align-top">
+    <tr
+      className={cn(
+        "border-b border-border last:border-0 align-top",
+        cancelled && "text-muted-foreground",
+      )}
+    >
       <td className="px-3 py-2">
         <InlineDate
           value={gathering.date}
-          editable={mayAmend}
+          editable={editable}
           onChange={(date) => onPatch({ date })}
         />
       </td>
@@ -75,21 +84,20 @@ export function ScheduleRow({
       <td className="px-3 py-2">
         <InlineTime
           value={gathering.startTime}
-          editable={mayAmend}
+          editable={editable}
           onChange={(startTime) => onPatch({ startTime })}
         />
       </td>
 
       <td className="px-3 py-2">
-        {mayAmend ? (
-          <Combobox
-            label=""
-            value={venue?.name ?? ""}
-            placeholder="Where?"
-            width="w-full"
-            suggestions={venues.map((v) => ({ id: v.id, label: v.name, meta: v.area }))}
-            onChange={(_text, id) => {
-              if (id) onPatch({ venueId: id });
+        {editable ? (
+          <VenuePicker
+            label="Where"
+            venueId={gathering.venueId}
+            onChoose={(venueId) => {
+              /* Clearing the field is not a change: a row keeps its venue
+                 until another is chosen. */
+              if (venueId) onPatch({ venueId });
             }}
           />
         ) : (

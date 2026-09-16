@@ -6,7 +6,7 @@ category: lifegroup
 summary: Each entry under Sharing and notes has its own audience — Leaders, This gathering's leaders, Selected viewers or Only me.
 modules: [lifegroup]
 pages: [gathering]
-keywords: [sharing and notes, entry, prayer, concern, follow-up, visibility, audience, only me, private, held to a smaller audience]
+keywords: [selected viewers, name who can read, sharing and notes, entry, prayer, concern, follow-up, visibility, audience, only me, private, held to a smaller audience]
 aliases:
   - who can see my lifegroup notes
   - how do I add a private note to a gathering
@@ -25,15 +25,16 @@ destinations: [lifegroups]
 1. On the gathering, type in **Add an entry**.
 2. Optionally pick a category, such as prayer, concern or follow-up.
 3. Choose who can read it (it starts on **Leaders**).
-4. Choose **Add**.
+4. If you chose **Selected viewers**, add each person who may read it under **Who may read this**, from People. At least one person is needed.
+5. Choose **Add**.
 
-Only the gathering's assigned leaders can add entries. You can remove an entry you wrote.
+Only the gathering's assigned leaders can add entries. Only whoever wrote an entry can remove it — leading the same gathering does not make someone else's entry yours to remove.
 
 ### The audience choices
 
 - **Leaders** — the ordinary choice. Anyone who can open the gathering can read it.
 - **This gathering's leaders** — only the leaders assigned to this gathering.
-- **Selected viewers** — only people named on the entry. This page has no way to name them, so an entry added here with this choice can be read only by you.
+- **Selected viewers** — only the people you name on the entry. The entry shows their names beside its audience.
 - **Only me** — only you.
 
 Your church may rename these or add others; what each one allows is fixed.
