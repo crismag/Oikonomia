@@ -32,7 +32,9 @@
  *     without being able to change the others);
  *   - `configuration` — the installation's vocabulary, roles and capabilities;
  *   - `data` — backups, exports, retention and package checks: copies of
- *     everything, and files on the server's disk.
+ *     everything, and files on the server's disk;
+ *   - `integrations` — anything that reaches Google Workspace: a
+ *     demonstration never acts as a real church's accounts.
  *
  * This says nothing about *who* may do something; services still decide that.
  * It only removes operations from an installation altogether.
@@ -107,6 +109,14 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
     method: "POST",
     demo: "denied",
     because: "authentication",
+  },
+
+  /* workspace-api.ts */
+  "src/lib/workspace-api.ts#fetchWorkspaceStatus": { method: "GET", demo: "read" },
+  "src/lib/workspace-api.ts#checkWorkspaceConnection": {
+    method: "POST",
+    demo: "denied",
+    because: "integrations",
   },
 
   /* calendar-api.ts */

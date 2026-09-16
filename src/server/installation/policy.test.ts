@@ -214,16 +214,17 @@ describe("with Demo Mode on", () => {
     ["src/lib/data-management-api.ts#validatePackage", "data"],
     ["src/lib/data-management-api.ts#runRetention", "data"],
     ["src/lib/data-management-api.ts#setRetentionPolicy", "data"],
+    ["src/lib/workspace-api.ts#checkWorkspaceConnection", "integrations"],
   ])("refuses %s", (key, because) => {
     const method = SERVER_FUNCTIONS[key]!.method;
     expect(decideServerFunction(ON, fn(key), method)).toEqual({ allowed: false, because });
   });
 
-  it("refuses exactly those 26 and nothing else that is classified", () => {
+  it("refuses exactly those 27 and nothing else that is classified", () => {
     const refused = Object.entries(SERVER_FUNCTIONS)
       .filter(([key, policy]) => !decideServerFunction(ON, fn(key), policy.method).allowed)
       .map(([key]) => key);
-    expect(refused).toHaveLength(26);
+    expect(refused).toHaveLength(27);
   });
 
   it.each([
@@ -360,6 +361,7 @@ describe("what the browser is told", () => {
       "configuration",
       "data",
       "identity",
+      "integrations",
       "sessions",
     ]);
   });

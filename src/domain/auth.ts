@@ -78,9 +78,19 @@ export interface AuthMethods {
   google: boolean;
   /** A message sent from here reaches somebody who is not the server log. */
   emailDelivery: boolean;
+  /**
+   * What Google Workspace offers here. All false where Workspace is not set up
+   * or this is a demonstration, so a screen never draws a control that cannot
+   * work.
+   */
+  workspace: { drive: boolean; calendarPublish: boolean; calendarOverlay: boolean };
 }
 
-export const noMethods: AuthMethods = { google: false, emailDelivery: false };
+export const noMethods: AuthMethods = {
+  google: false,
+  emailDelivery: false,
+  workspace: { drive: false, calendarPublish: false, calendarOverlay: false },
+};
 
 export interface AuthSession {
   status: AuthStatus;

@@ -73,6 +73,7 @@ export function createServerAuth(): AuthAdapter {
         const methods = {
           google: view.googleConfigured,
           emailDelivery: view.emailDeliveryConfigured,
+          workspace: view.workspace,
         };
         const installation = view.installation;
         return view.person
