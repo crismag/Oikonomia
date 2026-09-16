@@ -206,6 +206,7 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/escalation-api.ts#raiseEscalation": { method: "POST", demo: "allowed" },
   "src/lib/escalation-api.ts#moveEscalation": { method: "POST", demo: "allowed" },
   "src/lib/escalation-api.ts#withdrawEscalation": { method: "POST", demo: "allowed" },
+  "src/lib/escalation-api.ts#replyToEscalation": { method: "POST", demo: "allowed" },
   "src/lib/escalation-api.ts#fetchMyRoles": { method: "GET", demo: "read" },
   "src/lib/escalation-api.ts#fetchReadState": { method: "GET", demo: "read" },
   "src/lib/escalation-api.ts#markRead": { method: "POST", demo: "allowed" },

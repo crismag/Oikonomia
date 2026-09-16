@@ -343,3 +343,52 @@ export function isOverdue(escalation: Escalation, today: string): boolean {
   if (isSettled(escalation.type, escalation.status)) return false;
   return escalation.neededBy < today;
 }
+
+/**
+ * Whether this person is party to an ask: the one who asked, or the one it is
+ * for (by name, by position held, as assignee, or as the one who decided).
+ *
+ * Notes on an ask — a question, a reason for declining, why something could
+ * not be done — are said between these people. Being able to read the record
+ * the ask came from does not make somebody party to what was said about it.
+ */
+export function isPartyTo(
+  escalation: Escalation,
+  person: { id: string; ministryIds: string[] },
+  holds: RecipientRole[],
+): boolean {
+  return (
+    escalation.requestedById === person.id ||
+    escalation.decidedById === person.id ||
+    addressedTo(escalation, person, holds)
+  );
+}
+
+/**
+ * Whether the person who asked may still take it back.
+ *
+ * Only while it is open. A settled ask is the record of what happened, and a
+ * decision stays on the record even if the requester changes their mind.
+ */
+export function canWithdraw(escalation: Pick<Escalation, "type" | "status" | "decidedById">) {
+  return !escalation.decidedById && !isSettled(escalation.type, escalation.status);
+}
+
+/** Whether the ask is waiting on the person who made it to answer a question. */
+export const awaitsRequesterReply = (escalation: Pick<Escalation, "status">) =>
+  escalation.status === "more-information";
+
+/**
+ * What has been said on an ask since it was made, oldest first.
+ *
+ * The first activity entry is the ask itself, and its note is the request the
+ * row already shows, so it is left out. Entries without words (a status moved
+ * with nothing said) are not notes.
+ */
+export function askNotes<T extends { actorId: string; summary: string; note?: string | undefined }>(
+  activity: readonly T[],
+): (T & { note: string })[] {
+  return activity
+    .slice(1)
+    .filter((entry): entry is T & { note: string } => !!entry.note && entry.note.trim() !== "");
+}

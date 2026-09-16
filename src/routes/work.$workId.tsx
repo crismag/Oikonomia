@@ -322,17 +322,14 @@ function WorkPage() {
             <div className="mt-2 rounded-lg border border-border bg-surface px-4">
               <DiscussionThread comments={work.comments} />
             </div>
-            <div className="mt-2.5 flex items-start gap-3">
-              <PersonAvatar personId={person.id} />
-              <label className="min-w-0 flex-1">
-                <span className="sr-only">Add a comment</span>
-                <textarea
-                  rows={2}
-                  placeholder="Add a comment…"
-                  className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-[14px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
-                />
-              </label>
-            </div>
+            {/*
+             * The service lets anyone who may read the record comment on it,
+             * and refuses a metadata-only view. This page only reaches here
+             * with a readable view, so the box is offered on the same terms.
+             */}
+            {view.level === "full" || view.level === "limited" ? (
+              <CommentBox personId={person.id} saving={store.saving} onSend={store.comment} />
+            ) : null}
           </section>
         </div>
 
@@ -375,6 +372,70 @@ function WorkPage() {
             <ActivityTimeline entries={work.activity} />
           </RailBlock>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+function CommentBox({
+  personId,
+  saving,
+  onSend,
+}: {
+  personId: string;
+  saving: boolean;
+  onSend: (body: string) => Promise<unknown>;
+}) {
+  const [body, setBody] = useState("");
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const send = async () => {
+    if (!body.trim()) return;
+    setFailure(null);
+    try {
+      await onSend(body.trim());
+      setBody("");
+    } catch (error) {
+      setFailure(errorMessage(error));
+    }
+  };
+
+  return (
+    <div className="mt-2.5 flex items-start gap-3">
+      <PersonAvatar personId={personId} />
+      <div className="min-w-0 flex-1">
+        <label className="block">
+          <span className="sr-only">Add a comment</span>
+          <textarea
+            rows={2}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                void send();
+              }
+            }}
+            placeholder="Add a comment…"
+            className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-[14px] outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
+          />
+        </label>
+        {failure ? (
+          <p role="alert" className="mt-1 text-[12px] text-status-overdue">
+            {failure}
+          </p>
+        ) : null}
+        <div className="mt-1.5 flex justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!body.trim() || saving}
+            busy={saving}
+            onClick={() => void send()}
+          >
+            Comment
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ destinations: [inbox, reports-to-you]
 
 That is expected. An ask leaves your inbox once it is settled: **Noted**, **Completed**, **Can't do it**, **Approve** or **Decline**. **Ask a question** and **Take it on** keep it there.
 
+It also leaves if the person who asked chose **Withdraw** while it was still open.
+
 ### A report reached me but asks nothing
 
 A report is information. It becomes something to act on only when its author uses **Does this need anything from leadership?** and addresses you or a position you hold. Look for it under **Recent reports** in the inbox or under **Shared with you** in [Reports to you](destination:reports-to-you).

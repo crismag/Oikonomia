@@ -15,6 +15,7 @@ import {
 import { toISO } from "@/domain/schedule";
 import { cn } from "@/lib/utils";
 import { PersonName } from "./person";
+import { AskNotes } from "./ask-notes";
 import type { EscalationView } from "@/lib/escalation-api";
 
 /**
@@ -134,6 +135,7 @@ export function AskedOfYou({
                     </span>
                   ) : null}
                 </p>
+                <AskNotes item={item} />
               </div>
               <PutOnWeekButton item={item} today={today} onFailure={setFailure} />
             </li>

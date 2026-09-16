@@ -36,14 +36,29 @@ What you can do from a row depends on what was asked:
 - **Action** — **Take it on** (marks it in progress, nothing more), **Put on my
   week** (files it on your Weekly Agenda on the day it is needed, or today),
   **Completed**, or **Can't do it** with a reason.
-- **Approval** — **Approve**, **Decline**, or **Ask a question**.
+- **Approval** — **Approve**, **Decline**, or **Ask a question**. While a
+  question is open the row says _Waiting on their answer_.
+
+A note you add — the reason for **Can't do it** or **Decline**, or your
+question — is shown on the ask to you and to the person who asked, and to
+nobody else. Their answers appear there too.
 
 An approval is asked of you for one thing by its author. It is not a review of
 the report: there is no reviewer or approver of a Leadership Report, and a
 report reaches its audience whether or not anybody approves anything.
 
 **What you are waiting on** lists the asks you made of others that are still
-open.
+open: what you asked, who it went to, where it stands, and anything said on it.
+It offers only what is yours to do:
+
+- **Answer** — when the leader asked you a question. Your answer goes back to
+  them and the ask returns to _Requested_.
+- **Withdraw** — takes back an ask that is still open, after you confirm. It is
+  removed for the people it was sent to. An ask that has been answered or
+  decided cannot be withdrawn; it stays on the record.
+
+**Answered recently** keeps asks you made that were settled in the last two
+weeks, with their outcome and any reason given.
 
 Being asked does not let you read a record you could not already read.
 
@@ -95,7 +110,9 @@ the record behind it, and administration is not readership.
   part of. Newest first, filterable by **All**, **New** and **Read**, and the
   full list is under Leadership Reports → Shared With Me.
 - **Goals** — this year's goals, one person, ministry or group at a time.
-- **Work reports** — listed when there are any.
+- **Work reports** — listed when there are any. A work report's page has a
+  **Discussion**: anyone who may read the record can write a comment and choose
+  **Comment**. A summary-only view has no comment box.
 
 Read state is tracked, so you can tell what you have already seen. **Read state
 is not acknowledgement** — marking that you have read something is not the same

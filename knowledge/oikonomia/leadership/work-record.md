@@ -6,12 +6,13 @@ category: leadership
 summary: What a work record page shows — where it stands, what was decided, who is involved — and what you can do on it.
 modules: [leadership]
 pages: [work]
-keywords: [work record, where this stands, submit for review, acknowledge, request changes, mark resolved, working material, audience]
+keywords: [work record, where this stands, submit for review, acknowledge, request changes, mark resolved, working material, audience, comment, discussion]
 aliases:
   - what is this work page
   - how do I submit a record for review
   - why can't I change this record
   - why does this record only show a summary
+  - how do I comment on a work record
 capabilities: []
 hideWhen: []
 related: [inbox.respond, asks.put-on-week, asks.raise, permissions.not-found]
@@ -41,4 +42,8 @@ The **Yours to move** card appears only when you own the record or review it:
 
 If someone asked you for an action on this record, **Asked of you** offers **Put on my week**; answer it in the Leadership Inbox. To ask leadership for something yourself, use **Does this need anything from leadership?**
 
-Readers who are neither owner nor reviewer see no controls: reading a record is not authority over it.
+### Discussion
+
+Anyone who may read the record can comment. Write under **Add a comment…** and choose **Comment**. A summary-only view has no comment box.
+
+Readers who are neither owner nor reviewer see no other controls: reading a record is not authority over it.

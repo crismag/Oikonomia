@@ -35,7 +35,7 @@ Somebody needs you to do a particular thing.
 - **Take it on** — shown while the ask is still _Requested_. It marks the ask _In progress_ so the person who asked knows you have it. Nothing goes on your week.
 - **Put on my week** — puts the request on your Weekly Agenda and marks it _In progress_. See [Put an ask on your week](topic:asks.put-on-week).
 - **Completed** — when the work is done.
-- **Can't do it** — write a note under **Add a note**, then **Send**.
+- **Can't do it** — write a note under **Add a note**, then **Send**. The person who asked sees your note.
 
 ### Approval requested
 
@@ -43,12 +43,12 @@ The person who wrote the record asks you for one decision.
 
 - **Approve** — records your approval and who gave it.
 - **Decline** — write a reason under **Say why, so it can be reworked**, then **Send**. A reason is required.
-- **Ask a question** — write it under **What do you need to know?**, then **Send**. The ask stays in your inbox marked _More information requested_, and you can still approve or decline it later.
+- **Ask a question** — write it under **What do you need to know?**, then **Send**. The ask stays in your inbox marked _More information requested_ and says _Waiting on their answer_; you can still approve or decline it meanwhile. When the person who asked answers, their answer appears on the row and the ask is _Requested_ again.
 
 An approval is asked for by the author about one thing. It does not make you the report's reviewer; Oikonomia has no reviewer or approver of a report.
 
 ### After you respond
 
-An ask you have settled — noted, completed, can't do it, approved or declined — leaves your inbox. The person who asked sees where it stands under **What you are waiting on** in theirs.
+An ask you have settled — noted, completed, can't do it, approved or declined — leaves your inbox. The person who asked sees the outcome, with your note, under **Answered recently** in theirs. Notes on an ask are shown only to you and the person who asked, never to other readers of the record.
 
 > Being asked does not give you access. If the record behind an ask is closed to you, it stays closed.

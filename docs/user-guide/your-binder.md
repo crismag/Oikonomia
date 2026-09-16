@@ -128,7 +128,10 @@ open follow-ups under the text with **Put on my week**. It goes on this week's
 notes rather than on a day, so nothing is given a deadline you did not choose,
 and the report shows **On your week** once it is there. Only the author sees
 this: to ask somebody else for something, use _Does this need anything from
-leadership?_
+leadership?_ The asks already made from a report are listed there with where
+each stands; you see what was said on an ask only if you made it or it was made
+of you. Follow your own asks — answer a question, or withdraw one still open —
+under _What you are waiting on_ in the Leadership Inbox.
 
 Four things are independent, and keeping them apart is the point:
 
