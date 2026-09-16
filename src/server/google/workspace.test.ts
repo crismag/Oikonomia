@@ -128,7 +128,7 @@ describe("acting as someone", () => {
       url: "https://www.googleapis.com/drive/v3/files",
     });
     const api = calls.at(-1)!;
-    expect((api.init.headers as Record<string, string>).authorization).toMatch(/^Bearer tok-/);
+    expect((api.init.headers as Record<string, string>)["authorization"]).toMatch(/^Bearer tok-/);
 
     useGoogleTransport(async (url) =>
       url.includes("/token")
