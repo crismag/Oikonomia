@@ -269,7 +269,9 @@ export async function googleRequest<T = unknown>(
     console.error(
       `[google] ${request.method ?? "GET"} ${request.url.split("?")[0]} as ${request.subject}: ${response.status} ${detail.slice(0, 300)}`,
     );
-    if (response.status === 404) throw ApiError.notFound("That item in Google");
+    /* 410: an event already deleted — gone, as far as a caller is concerned. */
+    if (response.status === 404 || response.status === 410)
+      throw ApiError.notFound("That item in Google");
     if (response.status === 403 || response.status === 401) {
       throw ApiError.forbidden("Google did not allow that for this account.");
     }

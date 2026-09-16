@@ -11,10 +11,9 @@ aliases:
   - what is happening this month
   - how do I add an event to the calendar
   - why are my tasks not in the month grid
-  - does the calendar sync with Google
 capabilities: []
 hideWhen: []
-related: [monthly-calendar.add-event, planning.repeating-entry, weekly-agenda.change-item, planning.cannot-edit-entry, weekly-agenda.page]
+related: [monthly-calendar.add-event, planning.repeating-entry, weekly-agenda.change-item, planning.cannot-edit-entry, weekly-agenda.page, planning.google-calendar]
 destinations: [monthly-calendar, weekly-agenda]
 ---
 
@@ -39,7 +38,7 @@ On a wide screen the month is a grid, with the selected day beside it.
 - Choose an **event** to open it in full, where you can edit it when you may, duplicate it, or add tasks to it.
 - Choose the **empty space** in a day to add an event on that day.
 
-The day panel lists the day's events, then its **Tasks**: your agenda items and dated tasks a meeting gave you. Tick a box to complete one. Choose its words to reach it where it lives — an agenda item opens on Weekly Agenda, a meeting task opens its note when you may read it. **Add to** (the date) adds an event.
+The day panel lists the day's events, then its **Tasks**: your agenda items and dated tasks a meeting gave you. Tick a box to complete one. Choose its words to reach it where it lives — an agenda item opens on Weekly Agenda, a meeting task opens its note when you may read it. **Add to** (the date) adds an event. Where your church uses Google Workspace, the panel also shows your own Google Calendar for that day, under **From your Google Calendar**; **Google Calendar** at the top shows or hides it.
 
 Tasks are not drawn in the grid cells, only in the day panel.
 
@@ -47,4 +46,4 @@ Tasks are not drawn in the grid cells, only in the day panel.
 
 The month becomes a list of the days that hold something, each with its events and tasks.
 
-**Add event** adds to the selected day, and **Week** opens [Weekly Agenda](destination:weekly-agenda) at that day's week. Oikonomia does not sync with Google Calendar or any other calendar.
+**Add event** adds to the selected day, and **Week** opens [Weekly Agenda](destination:weekly-agenda) at that day's week. Church events can be published to a church Google Calendar, and your own Google Calendar can be shown beside them; there is no two-way sync. See [Google Calendar and Oikonomia](topic:planning.google-calendar).

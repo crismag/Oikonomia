@@ -53,6 +53,7 @@ export const routeGuides: RouteGuide[] = [
       "weekly-agenda.find-and-print",
       "planning.plan-week.walkthrough",
       "asks.put-on-week",
+      "planning.google-calendar",
     ],
   },
   {
@@ -65,6 +66,7 @@ export const routeGuides: RouteGuide[] = [
       "weekly-agenda.change-item",
       "planning.repeating-entry",
       "planning.cannot-edit-entry",
+      "planning.google-calendar",
     ],
   },
   {

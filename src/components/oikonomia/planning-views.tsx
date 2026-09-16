@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Check, MapPin, Repeat } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -162,16 +163,20 @@ export function WeekCalendar({
   itemsByDay,
   today,
   onOpen,
+  extraByDay,
 }: {
   days: string[];
   itemsByDay: (iso: string) => PlanningItem[];
   today: string;
   onOpen: (item: PlanningItem) => void;
+  /** Read-only context drawn under a day's items — not planning items. */
+  extraByDay?: (iso: string) => ReactNode;
 }) {
   return (
     <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-7">
       {days.map((iso) => {
         const items = itemsByDay(iso);
+        const extra = extraByDay?.(iso) ?? null;
         const isToday = iso === today;
 
         return (
@@ -185,7 +190,9 @@ export function WeekCalendar({
             </p>
 
             {items.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground">—</p>
+              extra ? null : (
+                <p className="text-[12px] text-muted-foreground">—</p>
+              )
             ) : (
               <ul className="space-y-1">
                 {items.map((item) => {
@@ -215,6 +222,7 @@ export function WeekCalendar({
                 })}
               </ul>
             )}
+            {extra}
           </div>
         );
       })}
