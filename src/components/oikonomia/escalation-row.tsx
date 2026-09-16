@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { PersonName } from "./person";
 import { useLeadershipInbox } from "./escalation-provider";
-import { useSchedule } from "./schedule-provider";
+import { PutOnWeekButton } from "./put-on-week";
 import { errorMessage } from "@/lib/calendar-client";
 import {
   escalationHref,
@@ -50,19 +50,13 @@ export function EscalationRow({
   className?: string;
 }) {
   const inbox = useLeadershipInbox();
-  const schedule = useSchedule();
   const [note, setNote] = useState("");
   const [asking, setAsking] = useState<EscalationStatus | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  const [onTheWeek, setOnTheWeek] = useState(false);
 
   const Icon = icon[item.type];
   const overdue = isOverdue(item, today);
   const href = escalationHref(item.sourceType, item.sourceId);
-  const alreadyFiled = schedule.agenda.some(
-    (entry) => entry.text === item.request && !entry.completed,
-  );
-  const filed = onTheWeek || alreadyFiled;
 
   const move = async (status: EscalationStatus, withNote?: boolean) => {
     if (withNote && !note.trim()) {
@@ -74,20 +68,6 @@ export function EscalationRow({
       await inbox.move(item.id, status, note.trim() ? { note: note.trim() } : {});
       setNote("");
       setAsking(null);
-    } catch (error) {
-      setFailure(errorMessage(error));
-    }
-  };
-
-  const putOnWeek = async () => {
-    setFailure(null);
-    try {
-      const date = item.neededBy && item.neededBy >= today ? item.neededBy : today;
-      await schedule.addAgenda({ text: item.request, date });
-      setOnTheWeek(true);
-      if (item.type === "action" && item.status === "requested") {
-        await move("in-progress");
-      }
     } catch (error) {
       setFailure(errorMessage(error));
     }
@@ -188,26 +168,7 @@ export function EscalationRow({
                       Take it on
                     </Button>
                   ) : null}
-                  {filed ? (
-                    <Link
-                      to="/weekly-agenda"
-                      search={{
-                        date: item.neededBy && item.neededBy >= today ? item.neededBy : today,
-                      }}
-                      className="inline-flex min-h-6 items-center px-2.5 py-1 text-[12px] text-muted-foreground underline-offset-2 hover:underline"
-                    >
-                      On your week
-                    </Link>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      disabled={schedule.saving}
-                      onClick={() => void putOnWeek()}
-                    >
-                      Put on my week
-                    </Button>
-                  )}
+                  <PutOnWeekButton item={item} today={today} onFailure={setFailure} />
                   <Button type="button" variant="ghost" onClick={() => void move("completed")}>
                     Completed
                   </Button>

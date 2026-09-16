@@ -227,6 +227,44 @@ export function escalationHref(
   }
 }
 
+/**
+ * The day an ask lands on when a leader puts it on their week.
+ *
+ * Its needed-by date while that is still ahead; otherwise today, because a
+ * date already past is not a day anyone can still plan.
+ */
+export function weekDateFor(ask: { neededBy?: string | undefined }, today: string): string {
+  return ask.neededBy && ask.neededBy >= today ? ask.neededBy : today;
+}
+
+/**
+ * Whether an ask is already on this leader's week.
+ *
+ * Agenda items carry no link back to the ask, so the request text is the
+ * contract. A completed item does not count: that was the last time.
+ */
+export function isOnTheWeek(
+  ask: { request: string },
+  agenda: readonly { text: string; completed: boolean }[],
+): boolean {
+  return agenda.some((entry) => entry.text === ask.request && !entry.completed);
+}
+
+/**
+ * Actions asked of this viewer that came from one record.
+ *
+ * Takes the viewer's own unsettled asks (the inbox's `mine`), never a list of
+ * every ask on the record: a recipient's controls belong to the recipient.
+ */
+export function actionsAskedOn<
+  T extends { type: EscalationType; sourceType: EscalationSourceType; sourceId: string },
+>(mine: readonly T[], sourceType: EscalationSourceType, sourceId: string): T[] {
+  return mine.filter(
+    (item) =>
+      item.type === "action" && item.sourceType === sourceType && item.sourceId === sourceId,
+  );
+}
+
 export interface Escalation {
   id: string;
   type: EscalationType;
