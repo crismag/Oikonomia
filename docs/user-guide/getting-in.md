@@ -2,8 +2,8 @@
 
 ## You do not sign yourself up
 
-Oikonomia is invitation-only. An administrator enters you as a person, records
-your email address, and invites you. There is no public registration, and
+Oikonomia is invitation-only. An administrator invites you by email address —
+often a whole leadership team at once. There is no public registration, and
 authenticating with an address nobody has entered does not create an account.
 
 ## Your invitation
@@ -12,14 +12,18 @@ You receive an email — _"You have been given access to Oikonomia"_ — naming 
 gave you access and carrying a link. The link:
 
 - **works once**
-- **expires in fifteen minutes**
+- **expires in seven days**
 
 Following it asks you to choose a password. At least 12 characters; a
 passphrase of a few words is easier to remember and harder to guess than
 something short and clever.
 
-If the link has expired, ask for a new one from the sign-in screen, or ask your
-administrator.
+If the link has expired, use **Forgot password?** on the sign-in screen, or ask
+your administrator.
+
+The first time you sign in, **Welcome** walks you through your details. If you
+were invited by address alone, it asks your name first. You give it once; after
+that your name is part of the church's record and an administrator changes it.
 
 > **If your church has no email set up**, the account is still created and your
 > administrator sets your password directly. They will tell you what it is; you
@@ -59,9 +63,16 @@ You can **sign out one device** you do not recognise, or **sign out of all
 other devices** while staying signed in where you are. The device you are using
 is not offered for signing out — use Sign out for that.
 
-**Changing your password signs out every session, including this one.** If the
-reason you are changing it is that somebody else knew it, leaving their session
-alive would defeat the change.
+### Changing your password
+
+If you sign in with a password, **Change password** is on the same page: your
+current password, then the new one twice. **Every other device is signed out**;
+the one you are using stays signed in. If the reason you are changing it is
+that somebody else knew it, leaving their session alive would defeat the
+change.
+
+Forgotten it? **Forgot password?** on the sign-in screen, where your church has
+email set up, or ask your administrator.
 
 ## What signing in does not give you
 

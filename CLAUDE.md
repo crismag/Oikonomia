@@ -356,6 +356,45 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
 - **There is no reviewer/approver of a leadership report.** Reports go to their
   distribution (leader, head, group); the author tags attention/action/approval
   through escalations. Do not add an assigned-reviewer field.
+- **Drafts are author-only.** `reportCapabilities` returns nothing to anyone
+  but the author while the status's `visibleToAudience` is false, whatever the
+  visibility. Sharing is the author's explicit move to Shared/Published.
+  "Shared" visibility means explicitly shared by the author — leave it.
+- **Events are shared on creation.** Calendar entries (ministry, LifeGroup,
+  church) and LifeGroup gatherings are readable by everyone signed in; only
+  entries written inside a gathering have their own visibility.
+- **Document registration** does not check the ministry on the server, by
+  decision: documents live anywhere and are linked by their leader.
+
+## Access and accounts (Cris's decisions)
+
+- **Nobody grants themselves access.** `refuseSelfGrant` in
+  `organization-service.ts` refuses an administrator confirming their own
+  assignment, adding themselves to a ministry or group, or becoming a lead.
+  Narrowing is allowed. The admin UI hides those choices for oneself.
+- **Invitations are bulk, by address.** *Invite people*
+  (`invite-people.tsx` → `inviteManyToOikonomia` → `auth.inviteByEmail`)
+  creates a person per unknown address (name = the address) and an invited
+  account; a 7-day single-use link (`INVITATION_LIFETIME_MS`) or "registered"
+  when mail is off. Active accounts are left alone. Welcome asks the invitee's
+  name once (`awaitsOwnName`, `giveOwnName`), refused afterwards.
+- **Change password** is on Account & security (`changePassword`; keeps this
+  session, ends the others).
+
+## The Guide (right-hand help panel)
+
+For leaders and users first: help using the section they are on and finding
+where to do their work; administration help is secondary. Deterministic, not AI. Core in `src/features/guide` (no imports from the rest
+of the app); Oikonomia adapter, route table (`context.ts`) and semantic
+destinations (`destinations.ts`) in `src/integrations/guide`; help in
+`knowledge/oikonomia/**.md`. Developer docs: `development/guide/`.
+
+- It navigates and never acts; destinations follow `navFor(persona)`. Do not
+  add authorization or demo checks to it.
+- **When a screen changes, update its knowledge file** as well as
+  `docs/user-guide/`. `npx vitest run src/integrations/guide` validates the
+  corpus (links, ids, destinations, capabilities).
+- `GUIDE_ENABLED` turns it off.
 
 ## How to work in this codebase
 
@@ -389,6 +428,8 @@ leave the guide describing “More” or a Goals-less My Work.
 | Obligations | `src/domain/obligations.ts`, `dashboard-service.ts` |
 | Authz verbs | `src/domain/authorize.ts` (render); services enforce |
 | Demo denials | `src/server/installation/operations.ts` |
+| Invitations | `invite-people.tsx`, `auth-api.ts`, `auth-service.ts` |
+| Help panel | `src/features/guide`, `src/integrations/guide`, `knowledge/oikonomia` |
 
 ### TypeScript gotchas this pass already hit
 
