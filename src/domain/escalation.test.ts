@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { actionsAskedOn, escalationHref, isOnTheWeek, weekDateFor } from "./escalation";
+import {
+  actionsAskedOn,
+  askNotes,
+  canWithdraw,
+  escalationHref,
+  isOnTheWeek,
+  isPartyTo,
+  weekDateFor,
+} from "./escalation";
 
 /**
  * An ask has to open the record it came from. A meeting note is addressed by
@@ -71,5 +79,53 @@ describe("actionsAskedOn", () => {
   it("keeps only actions that came from this record", () => {
     const mine = [ask("a", {}), ask("b", { type: "approval" }), ask("c", { sourceId: "r-2" })];
     expect(actionsAskedOn(mine, "leadership-report", "r-1").map((item) => item.id)).toEqual(["a"]);
+  });
+});
+
+describe("askNotes", () => {
+  it("leaves out the ask itself and entries with nothing said", () => {
+    const notes = askNotes([
+      { actorId: "p-1", summary: "requested approval", note: "Room B?" },
+      { actorId: "p-2", summary: "started on this" },
+      { actorId: "p-2", summary: "asked for more information", note: "How many?" },
+      { actorId: "p-1", summary: "answered the question", note: "Forty." },
+    ]);
+    expect(notes.map((entry) => entry.note)).toEqual(["How many?", "Forty."]);
+  });
+});
+
+describe("isPartyTo", () => {
+  const base = {
+    id: "e-1",
+    type: "action" as const,
+    status: "requested" as const,
+    sourceType: "work" as const,
+    sourceId: "w-1",
+    contextLabel: "",
+    request: "Book the room",
+    requestedById: "p-asker",
+    requestedFromRole: "reporting-leader" as const,
+    createdAt: "2026-09-01",
+    updatedAt: "2026-09-01",
+  };
+  const person = (id: string) => ({ id, ministryIds: [] });
+
+  it("includes the requester and whoever holds the position asked", () => {
+    expect(isPartyTo(base, person("p-asker"), [])).toBe(true);
+    expect(isPartyTo(base, person("p-leader"), ["reporting-leader"])).toBe(true);
+  });
+
+  it("does not include somebody who merely reads the record", () => {
+    expect(isPartyTo(base, person("p-reader"), ["church-leadership"])).toBe(false);
+  });
+});
+
+describe("canWithdraw", () => {
+  it("allows an open ask and refuses a finished or decided one", () => {
+    expect(canWithdraw({ type: "action", status: "in-progress" })).toBe(true);
+    expect(canWithdraw({ type: "action", status: "completed" })).toBe(false);
+    expect(canWithdraw({ type: "approval", status: "more-information", decidedById: "p" })).toBe(
+      false,
+    );
   });
 });

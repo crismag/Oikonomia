@@ -396,3 +396,138 @@ describe("records that ask for attention by their category", () => {
     expect(inbox.mine.some((item) => item.id === inbox.flagged[0]?.id)).toBe(false);
   });
 });
+
+/**
+ * What is said on an ask stays between the people party to it.
+ *
+ * A record's page lists its asks to anybody who may open the record, so the
+ * ask itself is not secret — but a question, a reason for declining or why
+ * something could not be done was said to one person, not to the audience.
+ */
+describe("notes on an ask", () => {
+  it("reach the requester and the recipient", () => {
+    const raised = ask("approval");
+    service.move(joel, { id: raised.id, status: "more-information", note: "How many people?" });
+
+    const asRequester = service.inbox(maria).raisedByMe[0]!;
+    expect(asRequester.askedByMe).toBe(true);
+    expect(asRequester.activity.map((a) => a.note)).toContain("How many people?");
+
+    const asRecipient = service.inbox(joel).approvals[0]!;
+    expect(asRecipient.activity.map((a) => a.note)).toContain("How many people?");
+  });
+
+  it("are withheld from somebody who only reads the record", () => {
+    const raised = ask("approval");
+    service.move(joel, { id: raised.id, status: "declined", note: "Room B is booked." });
+
+    const onTheRecord = service.forSource(ruth, report.sourceType, report.sourceId);
+    expect(onTheRecord).toHaveLength(1);
+    expect(onTheRecord[0]!.activity).toEqual([]);
+    expect(onTheRecord[0]!.decisionNote).toBeUndefined();
+
+    expect(service.forSource(maria, report.sourceType, report.sourceId)[0]!.decisionNote).toBe(
+      "Room B is booked.",
+    );
+  });
+
+  it("do not open one ask to somebody who is not party to it", () => {
+    const raised = ask("action");
+    expect(() => service.get(ruth, raised.id)).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+  });
+});
+
+describe("answering a question about your own ask", () => {
+  const questioned = () => {
+    const raised = ask("approval");
+    service.move(joel, { id: raised.id, status: "more-information", note: "How many people?" });
+    return raised;
+  };
+
+  it("returns the ask to the recipient, with the answer on it", () => {
+    const raised = questioned();
+    const answered = service.reply(maria, { id: raised.id, note: "About forty." });
+
+    expect(answered.status).toBe("requested");
+    const back = service.inbox(joel).approvals.find((item) => item.id === raised.id)!;
+    expect(back.activity.at(-1)).toMatchObject({
+      actorId: maria.person.id,
+      note: "About forty.",
+    });
+    /* The recipient's controls are unchanged: it can still be decided. */
+    expect(service.move(joel, { id: raised.id, status: "approved" }).status).toBe("approved");
+  });
+
+  it("needs words", () => {
+    const raised = questioned();
+    expect(() => service.reply(maria, { id: raised.id, note: "  " })).toThrow(
+      expect.objectContaining({ code: "validation" }),
+    );
+  });
+
+  it("is only for whoever asked", () => {
+    const raised = questioned();
+    expect(() => service.reply(joel, { id: raised.id, note: "Forty." })).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+  });
+
+  it("looks like nothing to somebody who is not party to the ask", () => {
+    const raised = questioned();
+    expect(() => service.reply(ruth, { id: raised.id, note: "Forty." })).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+    expect(() => service.reply(maria, { id: "esc-nothing", note: "Forty." })).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+  });
+
+  it("is refused when nobody has asked a question", () => {
+    const raised = ask("approval");
+    expect(() => service.reply(maria, { id: raised.id, note: "Forty." })).toThrow(
+      expect.objectContaining({ code: "conflict" }),
+    );
+  });
+});
+
+describe("answered asks", () => {
+  it("stay in front of whoever asked, with the reason", () => {
+    const raised = ask("approval");
+    service.move(joel, { id: raised.id, status: "declined", note: "Room B is booked." });
+
+    const inbox = service.inbox(maria);
+    expect(inbox.raisedByMe).toEqual([]);
+    expect(inbox.answeredForMe.map((item) => item.id)).toEqual([raised.id]);
+    expect(inbox.answeredForMe[0]!.decisionNote).toBe("Room B is booked.");
+    expect(service.inbox(ruth).answeredForMe).toEqual([]);
+  });
+});
+
+describe("withdrawing an ask", () => {
+  it("takes an open ask back for whoever made it", () => {
+    const raised = ask("action");
+    service.withdraw(maria, raised.id);
+    expect(service.inbox(joel).actions).toEqual([]);
+    expect(service.inbox(maria).raisedByMe).toEqual([]);
+  });
+
+  it("is refused to the recipient, and invisible to anybody else", () => {
+    const raised = ask("action");
+    expect(() => service.withdraw(joel, raised.id)).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+    expect(() => service.withdraw(ruth, raised.id)).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+  });
+
+  it("leaves a finished ask on the record", () => {
+    const raised = ask("action");
+    service.move(joel, { id: raised.id, status: "completed" });
+    expect(() => service.withdraw(maria, raised.id)).toThrow(
+      expect.objectContaining({ code: "conflict" }),
+    );
+  });
+});

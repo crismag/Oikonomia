@@ -6,7 +6,8 @@ import type { EscalationSourceType, RecipientRole } from "@/domain/escalation";
 /**
  * Asking something of leadership, over the wire.
  *
- * Reading the inbox, raising an ask, moving one along, withdrawing one, and
+ * Reading the inbox, raising an ask, moving one along, answering a question
+ * about one's own ask, withdrawing one, and
  * the small reading layer beside it — what this person has opened.
  *
  * There is deliberately no endpoint that turns a submitted report into an
@@ -103,6 +104,11 @@ export const withdrawEscalation = createServerFn({ method: "POST" })
       return { id: data.id };
     }),
   );
+
+/** The person who asked answers a question about it, returning it to the recipient. */
+export const replyToEscalation = createServerFn({ method: "POST" })
+  .validator((input: { id: string; note: string }) => input)
+  .handler(({ data }) => withEscalations((service, viewer) => service.reply(viewer, data)));
 
 /** Which positions this viewer holds, and who a semantic recipient is now. */
 export const fetchMyRoles = createServerFn({ method: "GET" })

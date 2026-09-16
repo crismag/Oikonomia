@@ -18,14 +18,19 @@ keywords:
     completed,
     approve,
     decline,
+    waiting on,
+    withdraw,
+    answer,
+    answered recently,
   ]
 aliases:
   - where do I see what I have been asked to do
   - how do I approve a request
   - why is a report not in my actions
+  - where do I see the asks I made
 capabilities: []
 hideWhen: []
-related: [inbox.respond, inbox.respond.walkthrough, asks.put-on-week, asks.raise, reports-to-you.page, notices.bell, inbox.troubleshooting]
+related: [inbox.respond, inbox.respond.walkthrough, asks.waiting-on, asks.put-on-week, asks.raise, reports-to-you.page, notices.bell, inbox.troubleshooting]
 destinations: [inbox]
 ---
 
@@ -41,12 +46,13 @@ Grouped as **Approval requested**, **Action requested** and **Needs attention**,
 - **Action** — **Take it on** (while still requested), **Put on my week**, **Completed**, or **Can't do it** with a note. See [Put an ask on your week](topic:asks.put-on-week).
 - **Approval** — **Approve**, **Decline** with a reason, or **Ask a question**.
 
-A settled ask leaves the inbox; one you asked a question about stays, marked _More information requested_. See [Respond to an ask](topic:inbox.respond).
+A settled ask leaves the inbox; one you asked a question about stays, marked _More information requested_, until the person who asked answers. Notes on an ask — a question, an answer, a reason — are shown on the row to you and the person who asked. See [Respond to an ask](topic:inbox.respond).
 
 ### Other sections
 
 - **Flagged by their category** — reports you may read whose category asks to be looked at. Nobody addressed them to you; opening one opens the report.
 - **Recent reports** (or **New reports** under New) — the newest reports you may read, marked New or Read. Opening one marks it read. Read is not agreement or action.
-- **What you are waiting on** — asks you raised that are not settled yet, with where each stands.
+- **Answered recently** — asks you made that were settled in the last two weeks, with the outcome and any reason.
+- **What you are waiting on** — asks you raised that are not settled yet: who they went to, where each stands and anything said on it, with **Answer** (when you were asked a question) and **Withdraw**. See [Follow an ask you made](topic:asks.waiting-on).
 
 Being able to read a report never puts it in your actions.

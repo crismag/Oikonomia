@@ -3,12 +3,14 @@ import { AlertCircle, CheckCircle2, Gavel, Info, type LucideIcon } from "lucide-
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AskNotes } from "./ask-notes";
 import { useEscalationsFor } from "./escalation-provider";
 import { useOrganization } from "./organization-provider";
 import { errorMessage } from "@/lib/calendar-client";
 import { notify, text } from "@/config";
 import {
   escalationLabel,
+  escalationStatusLabel,
   leadershipResponses,
   recipientLabel,
   recipientRoles,
@@ -124,6 +126,12 @@ export function EscalationControl({
                   <span className="font-medium">{escalationLabel[item.type]}</span>
                   {" — "}
                   {item.request}
+                  <span className="text-muted-foreground">
+                    {" · "}
+                    {escalationStatusLabel[item.status]}
+                  </span>
+                  {/* Only people party to the ask receive what was said on it. */}
+                  <AskNotes item={item} className="mt-1.5" />
                 </span>
               </li>
             );

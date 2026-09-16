@@ -4,7 +4,7 @@ import { AlertCircle, CheckCircle2, FileText, Gavel, Inbox as InboxIcon } from "
 
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { EmptyState } from "@/components/oikonomia/empty-state";
-import { EscalationRow } from "@/components/oikonomia/escalation-row";
+import { EscalationRow, RequesterEscalationRow } from "@/components/oikonomia/escalation-row";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { PersonName } from "@/components/oikonomia/person";
 import { Section } from "@/components/oikonomia/section";
@@ -262,7 +262,21 @@ function InboxPage() {
           <Section title="What you are waiting on" meta={`${inbox.raisedByMe.length}`}>
             <ul className="divide-y divide-border">
               {inbox.raisedByMe.map((item) => (
-                <EscalationRow key={item.id} item={item} today={today} />
+                <RequesterEscalationRow key={item.id} item={item} today={today} />
+              ))}
+            </ul>
+          </Section>
+        </div>
+      ) : null}
+
+      {inbox.answeredForMe.length > 0 ? (
+        <div className="mt-4">
+          <Section title="Answered recently" meta={`${inbox.answeredForMe.length}`}>
+            {/* The answer to an ask, kept in front of whoever asked for two
+                weeks after it settles, so a reason is read, not just recorded. */}
+            <ul className="divide-y divide-border">
+              {inbox.answeredForMe.map((item) => (
+                <RequesterEscalationRow key={item.id} item={item} today={today} />
               ))}
             </ul>
           </Section>
