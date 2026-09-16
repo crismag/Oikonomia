@@ -421,10 +421,9 @@ describe("notes on an ask", () => {
     const raised = ask("approval");
     service.move(joel, { id: raised.id, status: "declined", note: "Room B is booked." });
 
-    const onTheRecord = service.forSource(ruth, report.sourceType, report.sourceId);
-    expect(onTheRecord).toHaveLength(1);
-    expect(onTheRecord[0]!.activity).toEqual([]);
-    expect(onTheRecord[0]!.decisionNote).toBeUndefined();
+    /* Somebody not party to it is not shown the ask at all, whether or not
+       they may read the record it was raised on. */
+    expect(service.forSource(ruth, report.sourceType, report.sourceId)).toEqual([]);
 
     expect(service.forSource(maria, report.sourceType, report.sourceId)[0]!.decisionNote).toBe(
       "Room B is booked.",

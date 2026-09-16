@@ -356,8 +356,13 @@ export function createEscalationService(
     /** Everything asked from one record, for the record's own page. */
     forSource(viewer: Viewer, sourceType: Escalation["sourceType"], sourceId: string) {
       const held = rolesHeldBy(viewer);
+      /* Only asks this viewer is party to. The list is keyed by a record id
+         the caller supplies, and this service cannot tell whether they may
+         see that record — so an ask on a record hidden from them must not
+         be how its existence, or what was asked about it, leaks. */
       return repo
         .forSource(sourceType, sourceId)
+        .filter((escalation) => isPartyTo(escalation, viewer.person, held))
         .map((escalation) => view(viewer, escalation, held));
     },
 
