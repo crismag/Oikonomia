@@ -55,8 +55,10 @@ function ReportPage() {
 
   const report = reportById(store.reports, reportId);
 
-  /* Absent is not the same as missing while it is still loading. */
-  if (!report && store.status === "loading") {
+  /* Absent is not the same as missing while it is still loading — and until
+     the store has been asked for this report, it has not started loading it.
+     A report opened straight after it was created is on no page of the list. */
+  if (!report && (store.status === "loading" || store.selectedId !== reportId)) {
     return (
       <Page>
         <DetailSkeleton />
