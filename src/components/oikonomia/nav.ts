@@ -1,3 +1,4 @@
+import type { AreaId } from "@/domain/appearance";
 import {
   Gauge,
   LayoutDashboard,
@@ -70,6 +71,8 @@ export interface NavItem {
    * server refuses what it refuses whether or not a link was drawn.
    */
   capability?: Capability;
+  /** The area of work it belongs to, which gives it its colour in every theme. */
+  area: AreaId;
 }
 
 export interface NavGroup {
@@ -115,27 +118,27 @@ export const navGroups: NavGroup[] = [
     heading: "Home",
     context: "binder",
     items: [
-      { label: "Home", icon: LayoutDashboard, to: "/" },
+      { label: "Home", icon: LayoutDashboard, to: "/", area: "home" },
       /* The deeper personal view. Home orients; this one measures. */
-      { label: "My Progress", icon: Gauge, to: "/my-progress" },
+      { label: "My Progress", icon: Gauge, to: "/my-progress", area: "home" },
     ],
   },
   {
     heading: "My Work",
     context: "binder",
     items: [
-      { label: "Weekly Agenda", icon: CalendarRange, to: "/weekly-agenda" },
-      { label: "Monthly Calendar", icon: CalendarDays, to: "/monthly-calendar" },
-      { label: "Meeting Notes", icon: NotebookPen, to: "/meeting-notes" },
-      { label: "Reach-Out", icon: HeartHandshake, to: "/reach-out" },
-      { label: "Leadership Reports", icon: FileText, to: "/leadership-reports" },
+      { label: "Weekly Agenda", icon: CalendarRange, to: "/weekly-agenda", area: "plan" },
+      { label: "Monthly Calendar", icon: CalendarDays, to: "/monthly-calendar", area: "plan" },
+      { label: "Meeting Notes", icon: NotebookPen, to: "/meeting-notes", area: "meet" },
+      { label: "Reach-Out", icon: HeartHandshake, to: "/reach-out", area: "reach" },
+      { label: "Leadership Reports", icon: FileText, to: "/leadership-reports", area: "reports" },
       /*
        * A page with no door is a page nobody finds. Goals already participate
        * in the leadership cycle — Home and My Progress send people here — and
        * used to live only inside a ministry, which hid them from anyone who
        * was not already on that ministry's page.
        */
-      { label: "Goals", icon: Target, to: "/goals" },
+      { label: "Goals", icon: Target, to: "/goals", area: "goals" },
     ],
   },
   /*
@@ -155,8 +158,8 @@ export const navGroups: NavGroup[] = [
     heading: "Shared",
     context: "binder",
     items: [
-      { label: "LifeGroup", icon: Sprout, to: "/lifegroups" },
-      { label: "Ministry", icon: UsersRound, to: "/ministries" },
+      { label: "LifeGroup", icon: Sprout, to: "/lifegroups", area: "life" },
+      { label: "Ministry", icon: UsersRound, to: "/ministries", area: "ministry" },
     ],
   },
   {
@@ -176,8 +179,8 @@ export const navGroups: NavGroup[] = [
      * that these pages are miscellaneous, and they are not.
      */
     items: [
-      { label: "Documents & Forms", icon: FolderOpen, to: "/documents" },
-      { label: "Resource Search", icon: Search, to: "/resource-search" },
+      { label: "Documents & Forms", icon: FolderOpen, to: "/documents", area: "library" },
+      { label: "Resource Search", icon: Search, to: "/resource-search", area: "library" },
     ],
   },
 
@@ -199,26 +202,27 @@ export const navGroups: NavGroup[] = [
        * misread — and Team Overview sits here because that is what it is:
        * oversight, not the leader's own working environment.
        */
-      { label: "Leadership Inbox", icon: Inbox, to: "/inbox" },
-      { label: "Team Overview", icon: Users, to: "/team" },
+      { label: "Leadership Inbox", icon: Inbox, to: "/inbox", area: "lead" },
+      { label: "Team Overview", icon: Users, to: "/team", area: "lead" },
       /*
        * Not "Reports". Leadership Reports (above) is what you write; this is
        * what has been published to you as work records. The same word for both
        * is how a pastor opens the wrong one and decides neither is the product.
        */
-      { label: "Reports to you", icon: ClipboardCheck, to: "/reports" },
+      { label: "Reports to you", icon: ClipboardCheck, to: "/reports", area: "lead" },
     ],
   },
   {
     heading: "Organization",
     context: "leadership",
     items: [
-      { label: "People", icon: Users, to: "/people" },
-      { label: "Attendance", icon: ClipboardList, to: "/attendance" },
+      { label: "People", icon: Users, to: "/people", area: "org" },
+      { label: "Attendance", icon: ClipboardList, to: "/attendance", area: "life" },
       {
         label: "Campuses",
         icon: Building2,
         to: "/campuses",
+        area: "org",
         capability: "campus-oversight",
       },
       {
@@ -234,11 +238,13 @@ export const navGroups: NavGroup[] = [
         label: "Leadership Journal",
         icon: BookLock,
         to: "/leadership",
+        area: "journal",
       },
       {
         label: "Administration",
         icon: Settings2,
         to: "/administration",
+        area: "org",
         capability: "administration",
       },
     ],
@@ -260,6 +266,35 @@ export function navFor(persona: Persona): NavGroup[] {
       ),
     }))
     .filter((group) => group.items.length > 0);
+}
+
+/**
+ * The area of work a pathname belongs to.
+ *
+ * The sidebar's own entries decide it, so a page and its link always share a
+ * colour; pages reached only from inside an area say which area that is.
+ */
+export function areaFor(pathname: string): AreaId {
+  const segment = "/" + (pathname.split("/")[1] ?? "");
+  if (segment === "/work") return "lead";
+  if (segment === "/records" || segment === "/forms" || segment === "/planning") return "library";
+  if (segment === "/progress-report") return "reports";
+  if (segment === "/schedule") return "plan";
+  if (segment === "/welcome" || segment === "/account-security") return "home";
+  const match = navGroups.flatMap((group) => group.items).find((item) => item.to === segment);
+  return match?.area ?? "home";
+}
+
+/** The icon that stands for a pathname: its own sidebar entry's, or its area's. */
+export function areaIconFor(pathname: string): LucideIcon {
+  const segment = "/" + (pathname.split("/")[1] ?? "");
+  const match = navGroups.flatMap((group) => group.items).find((item) => item.to === segment);
+  if (match) return match.icon;
+  const area = areaFor(pathname);
+  return (
+    navGroups.flatMap((group) => group.items).find((item) => item.area === area)?.icon ??
+    LayoutDashboard
+  );
 }
 
 /** Human label for a pathname, used by the breadcrumb. */

@@ -255,7 +255,7 @@ export function NewEntry({ gatheringId, authorId }: { gatheringId: string; autho
                 className={cn(
                   "rounded-md px-2 py-1 text-[12px] transition-colors",
                   category === option
-                    ? "bg-accent-soft font-medium text-sidebar-accent-foreground"
+                    ? "bg-area-soft font-medium text-area-ink"
                     : "text-muted-foreground hover:bg-muted",
                 )}
               >

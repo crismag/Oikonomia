@@ -229,7 +229,7 @@ function EntryPage() {
       ) : null}
 
       {choosing ? (
-        <div className="mb-3 rounded-lg border border-border bg-surface-muted px-4 py-3.5">
+        <div className="mb-3 rounded-xl border border-border bg-surface-muted px-4 py-3.5">
           <h2 className="text-[14px] font-medium">What belongs in the summary?</h2>
           <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
             Tick the lines you want to account for. They are <strong>copied</strong> into a new
@@ -288,7 +288,7 @@ function EntryPage() {
       ) : null}
 
       {summary ? (
-        <div className="mb-3 rounded-lg border border-border bg-surface px-4 py-3.5">
+        <div className="mb-3 rounded-2xl border border-border bg-surface shadow-card px-4 py-3.5">
           <p className="text-[14px]">
             A leadership report was drawn from the lines you chose. It is <strong>private</strong>{" "}
             until you say who may read it.
@@ -325,7 +325,7 @@ function EntryPage() {
         }}
       />
 
-      <div className="rounded-lg border border-border bg-surface px-5 py-4">
+      <div className="rounded-2xl border border-border bg-surface shadow-card px-5 py-4">
         <MeetingDocument
           blocks={blocks}
           focusedId={focusedId}

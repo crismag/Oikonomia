@@ -1,3 +1,4 @@
+import type { AreaId } from "@/domain/appearance";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "./organization-provider";
 
@@ -5,6 +6,23 @@ const sizes = {
   sm: "size-6 text-[10px]",
   md: "size-7 text-[11px]",
   lg: "size-9 text-[13px]",
+};
+
+const avatarAreas: AreaId[] = [
+  "plan",
+  "meet",
+  "reach",
+  "reports",
+  "goals",
+  "life",
+  "ministry",
+  "lead",
+];
+
+const hashOf = (text: string) => {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  return hash;
 };
 
 export function PersonAvatar({
@@ -21,8 +39,11 @@ export function PersonAvatar({
   return (
     <span
       title={`${person.name}${person.role ? ` · ${person.role}` : ""}`}
+      /* A colour of their own, the same every time, so a face is easier to
+         pick out of a list. It says nothing about the person. */
+      data-area={avatarAreas[hashOf(person.id) % avatarAreas.length]}
       className={cn(
-        "grid shrink-0 place-items-center rounded-full bg-accent-soft font-medium text-sidebar-accent-foreground",
+        "grid shrink-0 place-items-center rounded-full bg-area font-semibold text-on-area",
         sizes[size],
         className,
       )}

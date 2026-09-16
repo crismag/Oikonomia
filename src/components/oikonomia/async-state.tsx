@@ -27,7 +27,10 @@ export type AsyncState = "loading" | "error" | "empty" | "content";
 export function ListSkeleton({ rows = 5, className }: { rows?: number; className?: string }) {
   return (
     <div
-      className={cn("overflow-hidden rounded-lg border border-border bg-surface", className)}
+      className={cn(
+        "overflow-hidden rounded-2xl border border-border bg-surface shadow-card",
+        className,
+      )}
       aria-hidden
     >
       <ul className="divide-y divide-border">
@@ -53,7 +56,7 @@ export function ListSkeleton({ rows = 5, className }: { rows?: number; className
 export function DetailSkeleton({ className }: { className?: string }) {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-surface px-5 py-5", className)}
+      className={cn("rounded-2xl border border-border bg-surface shadow-card px-5 py-5", className)}
       aria-hidden
     >
       <span className="block h-5 w-1/2 animate-pulse rounded bg-muted motion-reduce:animate-none" />
@@ -94,7 +97,10 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className={cn("rounded-lg border border-border bg-surface px-6 py-10 text-center", className)}
+      className={cn(
+        "rounded-2xl border border-border bg-surface shadow-card px-6 py-10 text-center",
+        className,
+      )}
     >
       <div className="mx-auto grid size-10 place-items-center rounded-full bg-status-overdue-soft">
         <AlertTriangle className="size-[18px] text-status-overdue" aria-hidden />

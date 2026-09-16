@@ -381,6 +381,22 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
 - **Change password** is on Account & security (`changePassword`; keeps this
   session, ends the others).
 
+## Appearance and themes
+
+Four themes (`src/domain/appearance.ts`: glass default, vineyard, daybreak,
+quiet) × light/dark/system, kept per browser in localStorage and applied before
+paint by `APPEARANCE_BOOT_SCRIPT` in `__root.tsx`. Every colour, face, radius
+and shadow is a token in `src/styles.css`; add a theme by adding a
+`[data-theme]` block and its `.dark[data-theme]` block with **every** token.
+
+- **Use tokens, never raw colours.** Area colour: put `data-area="<area>"` on a
+  container (`areaFor(pathname)` in `nav.ts`; `<main>` already has it), then
+  `bg-area`, `bg-area-soft`, `bg-area-tint`, `text-area-ink`, and
+  `text-on-area` on anything filled with `bg-area`.
+- `PageHeader` is a hero board in the page's area colour; `Section` and
+  `WorkspaceCard` are rounded surfaces with `shadow-card`.
+- Colour is wayfinding only; it never carries meaning without words.
+
 ## The Guide (right-hand help panel)
 
 For leaders and users first: help using the section they are on and finding

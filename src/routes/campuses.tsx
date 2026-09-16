@@ -60,7 +60,7 @@ function CampusesPage() {
           title="Campuses"
           description="Organisational context for a campus. Switching campus changes scope, never confidentiality."
         />
-        <div className="rounded-lg border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface shadow-card">
           <EmptyState icon={Building2} title="No campuses yet">
             An administrator adds campuses in Administration. Ministries and people are filed under
             one, so this page has something to show once the first exists.

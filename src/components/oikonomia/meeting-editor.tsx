@@ -404,7 +404,7 @@ export function MeetingToolbar({
             className={cn(
               "shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[12px] transition-colors",
               activeType === "follow-up"
-                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                ? "bg-area-soft font-medium text-area-ink"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
@@ -466,7 +466,7 @@ function ToolButton({
       className={cn(
         "grid size-8 shrink-0 place-items-center rounded-md transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-area-soft text-area-ink"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
         className,
       )}

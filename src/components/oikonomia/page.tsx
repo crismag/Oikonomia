@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
+import { useRouterState } from "@tanstack/react-router";
+
 import { cn } from "@/lib/utils";
+import { areaIconFor } from "./nav";
 
 /**
  * Shared page grammar.
@@ -59,21 +62,41 @@ export function PageHeader({
   actions?: ReactNode;
   children?: ReactNode;
 }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const Icon = areaIconFor(pathname);
+
+  /*
+   * A hero board in the colour of the area of work. It orients — which part
+   * of the binder this is, and what it is for — and then the page begins.
+   */
   return (
-    <header className="mb-5">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0">
-          {eyebrow ? <p className="text-[12px] text-muted-foreground">{eyebrow}</p> : null}
-          <h1 className={cn("text-[26px] leading-tight", eyebrow && "mt-0.5")}>{title}</h1>
-          {description ? (
-            <p className="mt-1 max-w-prose text-[14px] text-muted-foreground">{description}</p>
-          ) : null}
+    <header className="relative mb-6 overflow-hidden rounded-2xl border border-area/15 bg-area-tint shadow-card">
+      <div className="hero-glow pointer-events-none absolute inset-0" aria-hidden />
+      <div className="relative flex flex-wrap items-end justify-between gap-x-6 gap-y-4 px-5 py-5 sm:px-7 sm:py-6">
+        <div className="flex min-w-0 items-start gap-4">
+          <span
+            className="hidden size-12 shrink-0 place-items-center rounded-2xl bg-area text-on-area shadow-raised sm:grid"
+            aria-hidden
+          >
+            <Icon className="size-[22px]" />
+          </span>
+          <div className="min-w-0">
+            {eyebrow ? <p className="text-[12px] font-medium text-area-ink">{eyebrow}</p> : null}
+            <h1 className={cn("text-[26px] leading-tight sm:text-[30px]", eyebrow && "mt-0.5")}>
+              {title}
+            </h1>
+            {description ? (
+              <p className="mt-1.5 max-w-prose text-[14px] leading-relaxed text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+          </div>
         </div>
         {actions ? (
           <div className="flex flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>
         ) : null}
       </div>
-      {children}
+      {children ? <div className="relative px-5 pb-4 sm:px-7">{children}</div> : null}
     </header>
   );
 }
@@ -97,7 +120,9 @@ export function DetailHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="mb-5 border-b border-border pb-5">
+    <header className="relative mb-6 overflow-hidden rounded-2xl border border-border bg-surface px-5 py-5 shadow-card sm:px-6">
+      {/* The area's colour, as a band along the top edge. */}
+      <span className="absolute inset-x-0 top-0 h-1 bg-area" aria-hidden />
       {eyebrow ? (
         <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-muted-foreground">
           {eyebrow}

@@ -197,7 +197,7 @@ function Reports() {
         <ListSkeleton rows={5} />
       ) : visible.length > 0 ? (
         <>
-          <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+          <ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
             {visible.map((report) => (
               <ReportRow key={report.id} report={report} starred={starred} />
             ))}
@@ -209,7 +209,7 @@ function Reports() {
           />
         </>
       ) : (
-        <div className="rounded-lg border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface shadow-card">
           <EmptyState icon={NotebookPen} title={query ? "No reports match" : "No reports yet"}>
             {query
               ? "Try a different word from the report."

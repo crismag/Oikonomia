@@ -175,10 +175,7 @@ export function WeekCalendar({
         const isToday = iso === today;
 
         return (
-          <div
-            key={iso}
-            className={cn("min-h-[140px] bg-surface p-2", isToday && "bg-accent-soft")}
-          >
+          <div key={iso} className={cn("min-h-[140px] bg-surface p-2", isToday && "bg-area-soft")}>
             <p className="mb-1.5 flex items-baseline gap-1.5">
               <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 {format(fromISO(iso), "EEE")}

@@ -264,7 +264,7 @@ export function EntryDetail({
              * cancelled one week would be the wrong answer to a click.
              */}
             {confirmScope ? (
-              <div className="mt-3 rounded-lg border border-border bg-surface-muted px-3.5 py-3">
+              <div className="mt-3 rounded-xl border border-border bg-surface-muted px-3.5 py-3">
                 <p className="text-[13px] font-medium">This entry repeats.</p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">What should be deleted?</p>
                 <div className="mt-2 flex flex-col gap-1.5">

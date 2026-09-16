@@ -100,7 +100,10 @@ export function EscalationControl({
 
   return (
     <section
-      className={cn("rounded-lg border border-border bg-surface px-4 py-3.5", className)}
+      className={cn(
+        "rounded-2xl border border-border bg-surface shadow-card px-4 py-3.5",
+        className,
+      )}
       aria-label="Leadership response"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -148,7 +151,7 @@ export function EscalationControl({
               className={cn(
                 "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors",
                 choice === option
-                  ? "border-primary/40 bg-accent-soft text-foreground"
+                  ? "border-primary/40 bg-area-soft text-foreground"
                   : "border-border text-muted-foreground hover:bg-muted",
               )}
             >

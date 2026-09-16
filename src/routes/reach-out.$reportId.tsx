@@ -123,7 +123,7 @@ function Reading({ report, canEdit }: { report: ReachOutReport; canEdit: boolean
         </div>
       </header>
 
-      <article className="rounded-lg border border-border bg-surface px-5 py-5">
+      <article className="rounded-2xl border border-border bg-surface shadow-card px-5 py-5">
         {report.content.trim() ? (
           <Body content={report.content} />
         ) : (
@@ -243,7 +243,7 @@ function Comments({ report }: { report: ReachOutReport }) {
         </ul>
       ) : null}
 
-      <div className="mt-3 rounded-lg border border-border bg-surface px-3 py-2.5">
+      <div className="mt-3 rounded-2xl border border-border bg-surface shadow-card px-3 py-2.5">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -358,7 +358,7 @@ function Editor({ report }: { report: ReachOutReport }) {
         </div>
       ) : null}
 
-      <div className="space-y-4 rounded-lg border border-border bg-surface px-5 py-5">
+      <div className="space-y-4 rounded-2xl border border-border bg-surface shadow-card px-5 py-5">
         <label className="block">
           <span className="mb-1 block text-[12px] font-medium text-muted-foreground">Date</span>
           <input
@@ -486,7 +486,7 @@ function PrintSheet({ report }: { report: ReachOutReport }) {
 
       <article
         data-print="sheet"
-        className="mx-auto max-w-[820px] rounded-lg border border-border bg-surface px-6 py-6"
+        className="mx-auto max-w-[820px] rounded-2xl border border-border bg-surface shadow-card px-6 py-6"
       >
         <header data-print="section" className="border-b border-border pb-3">
           <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">

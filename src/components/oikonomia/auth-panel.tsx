@@ -32,7 +32,7 @@ export function AuthPanel({
         <p className="mt-2 font-display text-[15px]">Oikonomia</p>
       </div>
 
-      <div className="rounded-lg border border-border bg-surface px-5 py-6">
+      <div className="rounded-2xl border border-border bg-surface shadow-card px-5 py-6">
         <header className="mb-5 text-center">
           {Icon ? <Icon className="mx-auto mb-2 size-5 text-muted-foreground" aria-hidden /> : null}
           <h1 className="font-display text-[22px] leading-tight">{title}</h1>

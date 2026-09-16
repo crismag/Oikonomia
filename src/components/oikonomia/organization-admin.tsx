@@ -542,7 +542,7 @@ export function OrganizationAdmin() {
                 <PersonEditor person={person} write={write} onDone={() => setEditingPerson(null)} />
               ) : (
                 <>
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[10px] font-medium">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-area-soft text-[10px] font-medium">
                     {person.initials}
                   </span>
                   <span className="min-w-0 flex-1">

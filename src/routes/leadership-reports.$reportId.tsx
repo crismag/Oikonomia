@@ -495,7 +495,7 @@ function AccessPanel({ report, can }: { report: LeadershipReport; can: ReportCap
   const audience = namedAudience(report);
 
   return (
-    <div className="mt-3 rounded-lg border border-border bg-surface-muted px-4 py-3">
+    <div className="mt-3 rounded-xl border border-border bg-surface-muted px-4 py-3">
       <p className="text-[13px] font-medium">{visibilityLabel[report.visibility]}</p>
       <p className="mt-0.5 text-[12px] text-muted-foreground">
         {visibilityHint[report.visibility]}
@@ -557,7 +557,7 @@ function ReportBody({ report }: { report: LeadershipReport }) {
   if (report.contentSource === "linked-document") {
     const document = filed.documents.find((d) => d.id === report.primaryDocumentId);
     return (
-      <div className="rounded-lg border border-border bg-surface px-5 py-4">
+      <div className="rounded-2xl border border-border bg-surface shadow-card px-5 py-4">
         <p className="text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
           Report content
         </p>
@@ -588,14 +588,14 @@ function ReportBody({ report }: { report: LeadershipReport }) {
   const blocks = report.blocks ?? [];
   if (blocks.length === 0 || blocks.every((b) => !b.html)) {
     return (
-      <div className="rounded-lg border border-border bg-surface">
+      <div className="rounded-2xl border border-border bg-surface shadow-card">
         <EmptyState icon={Pencil} title="Nothing written yet" />
       </div>
     );
   }
 
   return (
-    <article className="rounded-lg border border-border bg-surface px-5 py-4">
+    <article className="rounded-2xl border border-border bg-surface shadow-card px-5 py-4">
       <MeetingDocument blocks={blocks} readOnly />
     </article>
   );
@@ -623,7 +623,7 @@ function FollowUpsForYourWeek({ report }: { report: LeadershipReport }) {
   return (
     <section
       aria-label="Follow-ups in this report"
-      className="rounded-lg border border-border bg-surface px-4 py-3.5"
+      className="rounded-2xl border border-border bg-surface shadow-card px-4 py-3.5"
     >
       <h3 className="text-[13px] font-medium">Follow-ups in this report</h3>
       <p className="text-[12px] text-muted-foreground">
@@ -699,7 +699,7 @@ function OpenedBy({ report }: { report: LeadershipReport }) {
   return (
     <section
       aria-label="Opened by"
-      className="mb-4 rounded-lg border border-border bg-surface-muted px-4 py-2.5 text-[13px]"
+      className="mb-4 rounded-xl border border-border bg-surface-muted px-4 py-2.5 text-[13px]"
     >
       <p className="font-medium">Confidential · who has opened it</p>
       {rows.length > 0 ? (
@@ -750,7 +750,7 @@ function Discussion({ report, can }: { report: LeadershipReport; can: ReportCapa
           ))}
         </ul>
       ) : (
-        <div className="mb-4 rounded-lg border border-border bg-surface">
+        <div className="mb-4 rounded-2xl border border-border bg-surface shadow-card">
           <EmptyState icon={MessagesSquare} title="No discussion yet">
             {can.comment
               ? "Questions, responses and feedback about this report go here."
@@ -760,7 +760,7 @@ function Discussion({ report, can }: { report: LeadershipReport; can: ReportCapa
       )}
 
       {can.comment ? (
-        <div className="rounded-lg border border-border bg-surface px-3 py-2.5">
+        <div className="rounded-2xl border border-border bg-surface shadow-card px-3 py-2.5">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -806,14 +806,14 @@ function Documents({ report }: { report: LeadershipReport }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-surface">
+      <div className="rounded-2xl border border-border bg-surface shadow-card">
         <EmptyState icon={Users} title="No documents on this report" />
       </div>
     );
   }
 
   return (
-    <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+    <ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
       {rows.map(({ document, role }) => {
         const openable = !!document.openUrl;
         const body = (
@@ -855,14 +855,14 @@ function Documents({ report }: { report: LeadershipReport }) {
 function Activity({ report }: { report: LeadershipReport }) {
   if (report.activity.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-surface">
+      <div className="rounded-2xl border border-border bg-surface shadow-card">
         <EmptyState icon={Users} title="Nothing recorded yet" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border bg-surface px-4 py-3">
+    <div className="rounded-2xl border border-border bg-surface shadow-card px-4 py-3">
       <ActivityTimeline entries={report.activity} />
     </div>
   );
@@ -929,7 +929,7 @@ function Editor({ report }: { report: LeadershipReport }) {
       <MetadataRow report={report} />
 
       {/* Confidentiality is a first-class control, not a settings screen. */}
-      <div className="mt-3 rounded-lg border border-border bg-surface-muted px-4 py-3">
+      <div className="mt-3 rounded-xl border border-border bg-surface-muted px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Lock className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
           <Field label="Who can read this">
@@ -1251,7 +1251,7 @@ function AudiencePicker({ report }: { report: LeadershipReport }) {
               className={cn(
                 "rounded-md border px-2 py-1 text-[12px] transition-colors",
                 on
-                  ? "border-primary/30 bg-accent-soft font-medium text-sidebar-accent-foreground"
+                  ? "border-primary/30 bg-area-soft font-medium text-area-ink"
                   : "border-border text-muted-foreground hover:bg-muted",
               )}
             >
@@ -1274,7 +1274,7 @@ function LinkedDocumentPicker({ report }: { report: LeadershipReport }) {
   const options = registry.page.items;
 
   return (
-    <div className="mt-4 rounded-lg border border-border bg-surface px-4 py-3">
+    <div className="mt-4 rounded-2xl border border-border bg-surface shadow-card px-4 py-3">
       <p className="text-[12px] font-medium text-muted-foreground">Report content</p>
       <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
         The writing lives in a document. The binder keeps the report — its title, author, audience
@@ -1332,7 +1332,7 @@ function PrintSheet({ report }: { report: LeadershipReport }) {
 
       <article
         data-print="sheet"
-        className="mx-auto max-w-[820px] rounded-lg border border-border bg-surface px-6 py-6"
+        className="mx-auto max-w-[820px] rounded-2xl border border-border bg-surface shadow-card px-6 py-6"
       >
         <header data-print="section" className="border-b border-border pb-3">
           {isRestricted(report) ? (

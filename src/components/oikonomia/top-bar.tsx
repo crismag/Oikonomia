@@ -20,7 +20,7 @@ export function TopBar({ onOpenNav }: { onOpenNav: () => void }) {
   return (
     <header
       data-print="hide"
-      className="sticky top-[var(--demo-bar)] z-20 border-b border-border bg-surface/95 backdrop-blur-sm"
+      className="sticky top-[var(--demo-bar)] z-20 border-b border-border bg-background/80 backdrop-blur-md"
     >
       <div className="grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">

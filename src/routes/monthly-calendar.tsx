@@ -178,7 +178,7 @@ function MonthlyCalendarPage() {
             className={cn(
               "rounded-md border px-2.5 py-1 text-[13px] transition-colors",
               show === option
-                ? "border-primary/30 bg-accent-soft font-medium text-sidebar-accent-foreground"
+                ? "border-primary/30 bg-area-soft font-medium text-area-ink"
                 : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
@@ -209,7 +209,7 @@ function MonthlyCalendarPage() {
         />
 
         <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-surface">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
             <div className="grid grid-cols-7 border-b border-border">
               {weekdayNames.map((name) => (
                 <div
@@ -395,7 +395,7 @@ function MonthAgenda({
   return (
     <div className="lg:hidden">
       {days.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface px-4 py-8 text-center">
+        <div className="rounded-2xl border border-border bg-surface shadow-card px-4 py-8 text-center">
           <CalendarDays className="mx-auto size-5 text-muted-foreground" aria-hidden />
           <p className="mt-2 text-[14px]">Nothing scheduled in {monthLabel(anchor)}</p>
           <button
@@ -412,7 +412,7 @@ function MonthAgenda({
           {days.map((day) => (
             <li
               key={day.iso}
-              className="overflow-hidden rounded-lg border border-border bg-surface"
+              className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card"
             >
               <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
                 <h2 className="min-w-0 truncate text-[13px] font-medium">
@@ -508,7 +508,7 @@ function DayPanel({
   );
 
   return (
-    <aside className="min-w-0 overflow-hidden rounded-lg border border-border bg-surface">
+    <aside className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
       <header className="border-b border-border px-4 py-2.5">
         <h2 className="text-[14px] font-medium">{format(fromISO(iso), "EEEE")}</h2>
         <p className="text-[12px] text-muted-foreground">

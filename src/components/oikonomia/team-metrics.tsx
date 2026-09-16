@@ -41,7 +41,7 @@ export function MetricCard({
   );
 
   const className = cn(
-    "block rounded-lg border border-border bg-surface px-4 py-3 text-left",
+    "block rounded-2xl border border-border bg-surface shadow-card px-4 py-3 text-left",
     onClick && "transition-colors hover:bg-muted",
     active && "border-border-strong bg-muted",
   );

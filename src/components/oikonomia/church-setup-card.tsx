@@ -44,7 +44,7 @@ export function ChurchSetupCard() {
   return (
     <section
       aria-label="Set up your church"
-      className="mb-5 rounded-lg border border-border bg-surface px-5 py-4"
+      className="mb-5 rounded-2xl border border-border bg-surface shadow-card px-5 py-4"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[14px] font-medium">Set up your church</h2>

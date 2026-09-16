@@ -103,7 +103,7 @@ function PeopleIndex() {
         ))}
       </ListToolbar>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {page.items.length > 0 ? (
           <ul className="divide-y divide-border">
             {page.items.map((person) => {

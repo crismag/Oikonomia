@@ -118,7 +118,7 @@ function LeaderDashboard() {
 
       <section
         aria-label="Leadership cycle"
-        className="mb-5 rounded-lg border border-border bg-surface px-5 py-4"
+        className="mb-5 rounded-2xl border border-border bg-surface shadow-card px-5 py-4"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 className="text-[15px] font-medium">This week</h2>

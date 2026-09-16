@@ -189,7 +189,7 @@ export function LeaderQuickView({
   return (
     <section
       aria-label={`${personById(leader.personId).name} — summary`}
-      className="mt-3 rounded-lg border border-border bg-surface-muted px-4 py-3.5"
+      className="mt-3 rounded-xl border border-border bg-surface-muted px-4 py-3.5"
     >
       <div className="flex items-start justify-between gap-3">
         <span className="inline-flex items-center gap-2">

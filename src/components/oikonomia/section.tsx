@@ -21,14 +21,19 @@ export function Section({
     <section
       {...(id ? { id } : {})}
       className={cn(
-        "scroll-mt-4 overflow-hidden rounded-lg border border-border bg-surface",
+        "scroll-mt-4 overflow-hidden rounded-2xl border border-border bg-surface shadow-card",
         className,
       )}
     >
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-2.5">
-        <div className="flex min-w-0 items-baseline gap-2.5">
-          <h2 className="truncate text-[15px] text-foreground">{title}</h2>
-          {meta ? <span className="shrink-0 text-[12px] text-muted-foreground">{meta}</span> : null}
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="size-2 shrink-0 rounded-full bg-area" aria-hidden />
+          <h2 className="truncate text-[16px] text-foreground">{title}</h2>
+          {meta ? (
+            <span className="shrink-0 rounded-full bg-area-soft px-2 text-[11px] font-semibold leading-5 tabular-nums text-area-ink">
+              {meta}
+            </span>
+          ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </header>

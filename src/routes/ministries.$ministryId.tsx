@@ -205,7 +205,7 @@ function Overview({
   return (
     <div className="space-y-4">
       {announcements.map((item) => (
-        <div key={item.id} className="rounded-lg border border-border bg-surface-muted px-4 py-3">
+        <div key={item.id} className="rounded-xl border border-border bg-surface-muted px-4 py-3">
           <p className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
             <Megaphone className="size-3.5" aria-hidden />
             Announcement
@@ -487,7 +487,7 @@ function Documents({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {shelf.status === "loading" ? (
           <ListSkeleton rows={4} />
         ) : shelf.status === "error" ? (
@@ -593,7 +593,7 @@ function TypeChip({
       className={cn(
         "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-[13px] transition-colors",
         active
-          ? "border-primary/30 bg-accent-soft font-medium text-sidebar-accent-foreground"
+          ? "border-primary/30 bg-area-soft font-medium text-area-ink"
           : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >

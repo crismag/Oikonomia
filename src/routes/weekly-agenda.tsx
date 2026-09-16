@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, MapPin, Plus, Printer, Repeat } from "lucide-react";
+import { areaOfEvent } from "@/domain/appearance";
 
 import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/oikonomia/async-state";
@@ -424,7 +425,7 @@ function WeeklyAgendaPage() {
         <ListSkeleton rows={7} />
       ) : view === "agenda" ? (
         busy ? (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface">
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
             {days.map((iso) => (
               <Day
                 key={iso}
@@ -468,7 +469,7 @@ function WeeklyAgendaPage() {
 
       {/* The binder's notes area: belongs to the week, not to any one day. */}
       {notes.length > 0 ? (
-        <section className="mt-4 overflow-hidden rounded-lg border border-border bg-surface">
+        <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           <h2 className="border-b border-border px-4 py-2.5 text-[14px] font-medium">This week</h2>
           <ul className="space-y-1 px-4 py-3">
             {notes.map((item) => (
@@ -546,21 +547,19 @@ function Day({
     <section
       className={cn(
         "grid grid-cols-1 gap-x-4 border-b border-border px-4 py-3 last:border-b-0 sm:grid-cols-[7rem_minmax(0,1fr)]",
-        isToday && "bg-accent-soft/40",
+        isToday && "bg-area-soft/40",
       )}
     >
       <div className="mb-1.5 flex items-baseline gap-2 sm:mb-0 sm:block">
         <h2
           className={cn(
             "text-[13px] font-medium uppercase tracking-wide",
-            isToday ? "text-sidebar-accent-foreground" : "text-muted-foreground",
+            isToday ? "text-area-ink" : "text-muted-foreground",
           )}
         >
           {dayLabel(iso).slice(0, 3)} {format(fromISO(iso), "d")}
         </h2>
-        {isToday ? (
-          <span className="text-[11px] text-sidebar-accent-foreground sm:block">Today</span>
-        ) : null}
+        {isToday ? <span className="text-[11px] text-area-ink sm:block">Today</span> : null}
       </div>
 
       <div className="min-w-0">
@@ -633,8 +632,11 @@ function EntryLine({
     <button
       type="button"
       onClick={() => onOpen(occurrence)}
-      className="-mx-2 flex w-[calc(100%+1rem)] items-baseline gap-3 rounded-md px-2 py-1 text-left transition-colors hover:bg-muted"
+      data-area={areaOfEvent(entry)}
+      className="-mx-2 flex w-[calc(100%+1rem)] items-stretch gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-area-tint"
     >
+      {/* The kind of event, as a colour bar; the words beside it say the rest. */}
+      <span className="w-1 shrink-0 rounded-full bg-area" aria-hidden />
       <span className="w-16 shrink-0 text-[12px] tabular-nums text-muted-foreground">
         {allDay ? "All day" : formatTime(entry.startTime ?? "")}
       </span>

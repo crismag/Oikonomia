@@ -38,7 +38,7 @@ export function HomeOrientation() {
   return (
     <aside
       aria-label="How Home works"
-      className="mb-5 rounded-lg border border-border bg-surface px-5 py-4"
+      className="mb-5 rounded-2xl border border-border bg-surface shadow-card px-5 py-4"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
