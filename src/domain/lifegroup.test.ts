@@ -12,7 +12,10 @@ import {
   composeReport,
   gatheringsAtVenue,
   gatheringHeadline,
+  homeGatherings,
   leadsGathering,
+  namedReaders,
+  namesItsReaders,
   otherScheduled,
   outstanding,
   readableEntries,
@@ -429,6 +432,24 @@ describe("the discarded model", () => {
  * from an older schema, a deactivated choice removed by hand. The narrowest
  * answer is the only safe one, and the author still reads their own entry.
  */
+describe("an audience the author names", () => {
+  it("is asked of the strategy, not the id", () => {
+    expect(namesItsReaders("selected-viewers")).toBe(true);
+    expect(namesItsReaders("leaders")).toBe(false);
+    expect(namesItsReaders("private")).toBe(false);
+    /* Unrecognised resolves to author-only, which names nobody. */
+    expect(namesItsReaders("shared-with-everyone-91827")).toBe(false);
+  });
+
+  it("lists each reader once and never the author", () => {
+    expect(namedReaders(["p-joel", "p-maria", "p-joel", "p-anna"], "p-maria")).toEqual([
+      "p-joel",
+      "p-anna",
+    ]);
+    expect(namedReaders(undefined, "p-maria")).toEqual([]);
+  });
+});
+
 describe("an unrecognised entry visibility", () => {
   const entry = (over: Record<string, unknown> = {}) =>
     ({
@@ -542,5 +563,66 @@ describe("an entry audience an administrator added", () => {
       true,
     );
     expect(canReadEntry(guarded, "p-joel", { isLeader: true, isAssignedLeader: true })).toBe(false);
+  });
+});
+
+describe("Home's LifeGroup card", () => {
+  const WEEK_START = "2026-09-07";
+  const TODAY = "2026-09-09";
+
+  it("lists this leader's gatherings, not another leader's", () => {
+    const list = homeGatherings(
+      [
+        gathering({ id: "mine", assignedLeaderIds: ["p-maria"], date: "2026-09-10" }),
+        gathering({ id: "joels", assignedLeaderIds: ["p-joel"], date: "2026-09-09" }),
+      ],
+      "p-maria",
+      WEEK_START,
+      TODAY,
+    );
+    expect(list.map((row) => row.gathering.id)).toEqual(["mine"]);
+  });
+
+  it("keeps one led earlier this week, which may still need writing up", () => {
+    const list = homeGatherings(
+      [gathering({ id: "monday", date: "2026-09-07" })],
+      "p-maria",
+      WEEK_START,
+      TODAY,
+    );
+    expect(list).toEqual([expect.objectContaining({ needsLeader: false })]);
+  });
+
+  it("follows with gatherings nobody has claimed, marked as needing a leader", () => {
+    const list = homeGatherings(
+      [
+        gathering({ id: "open", assignedLeaderIds: [], status: "planned", date: "2026-09-09" }),
+        gathering({ id: "mine", date: "2026-09-12" }),
+        gathering({ id: "gone", assignedLeaderIds: [], status: "planned", date: "2026-09-08" }),
+      ],
+      "p-maria",
+      WEEK_START,
+      TODAY,
+    );
+    expect(list.map((row) => [row.gathering.id, row.needsLeader])).toEqual([
+      ["mine", false],
+      ["open", true],
+    ]);
+  });
+
+  it("leaves out cancelled gatherings and stops at the limit", () => {
+    const list = homeGatherings(
+      [
+        gathering({ id: "a", date: "2026-09-08", status: "cancelled" }),
+        gathering({ id: "b", date: "2026-09-09" }),
+        gathering({ id: "c", date: "2026-09-10" }),
+        gathering({ id: "d", date: "2026-09-11" }),
+        gathering({ id: "e", date: "2026-09-12" }),
+      ],
+      "p-maria",
+      WEEK_START,
+      TODAY,
+    );
+    expect(list.map((row) => row.gathering.id)).toEqual(["b", "c", "d"]);
   });
 });

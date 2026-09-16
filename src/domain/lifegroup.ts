@@ -141,6 +141,34 @@ export function otherScheduled(
   );
 }
 
+/**
+ * Home's LifeGroup card: this leader's gatherings, then any still needing one.
+ *
+ * Home is personal, so another leader's gathering does not belong here —
+ * listing it beside this leader's own reads as theirs to do. Gatherings led
+ * earlier this week stay (one led last night may still need writing up).
+ * Unclaimed rows follow only where there is room, from today on, and
+ * `needsLeader` lets the card say plainly that nobody has taken them.
+ */
+export function homeGatherings(
+  gatherings: Gathering[],
+  personId: string,
+  weekStart: string,
+  today: string,
+  limit = 3,
+): { gathering: Gathering; needsLeader: boolean }[] {
+  const mine = byDateAscending(
+    gatherings.filter(
+      (g) => leadsGathering(g, personId) && g.date >= weekStart && g.status !== "cancelled",
+    ),
+  ).map((gathering) => ({ gathering, needsLeader: false }));
+  const open = needingLeaders(gatherings, today).map((gathering) => ({
+    gathering,
+    needsLeader: true,
+  }));
+  return [...mine, ...open].slice(0, limit);
+}
+
 export function upcoming(gatherings: Gathering[], today: string): Gathering[] {
   return byDateAscending(gatherings.filter((g) => g.date >= today && g.status !== "cancelled"));
 }
@@ -303,6 +331,25 @@ export function entryStrategyOf(visibility: string): EntryStrategy {
 
   const strategy = option?.entryStrategy;
   return strategy && entryStrategies.includes(strategy) ? strategy : "author-only";
+}
+
+/**
+ * Whether an audience choice is one the author fills in by naming people.
+ *
+ * Asked of the strategy rather than of the id, so a church's own choice that
+ * behaves like "selected viewers" offers the same picker.
+ */
+export const namesItsReaders = (visibility: string): boolean =>
+  entryStrategyOf(visibility) === "named-viewers";
+
+/**
+ * The people an entry is shared with, as it should be stored.
+ *
+ * Nobody twice, and never the author: they read their own entry anyway, and
+ * listing them would make an entry shared with nobody look shared.
+ */
+export function namedReaders(viewerIds: string[] | undefined, authorId: string): string[] {
+  return [...new Set(viewerIds ?? [])].filter((id) => id !== authorId);
 }
 
 /**

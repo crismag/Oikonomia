@@ -34,8 +34,8 @@ Add, in roughly this order:
 4. **Responsibility groups** — a body the church answers through: an eldership,
    a leadership team. Reports set to "leadership" reach the group you mark as
    the leadership audience.
-5. **Venues** — reused across gatherings; one can also be named while
-   scheduling.
+5. **Venues** — reused across gatherings; any leader can also add one by name
+   while choosing where a gathering meets.
 
 ## Giving somebody access
 

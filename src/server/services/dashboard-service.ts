@@ -156,7 +156,8 @@ export function createDashboardService(repos: {
        */
       const gatherings = repos.lifegroup
         .gatheringsInRange(weekStart, weekEnd)
-        .filter((g) => g.assignedLeaderIds.includes(me));
+        /* A cancelled gathering did not happen, so nothing is owed on it. */
+        .filter((g) => g.assignedLeaderIds.includes(me) && g.status !== "cancelled");
 
       for (const gathering of gatherings) {
         const attendance = repos.lifegroup.attendanceFor([gathering.id]);
@@ -198,9 +199,13 @@ export function createDashboardService(repos: {
       /*
        * Ongoing work with a weekly reporting expectation — the report is the
        * record, and there is no pipeline behind it.
+       *
+       * This leader's report: one they started or worked on (`contributorsOf`,
+       * which the repository's `personId` filter matches). Another leader's
+       * account dated this week is theirs, and must not mark this one done.
        */
       const reachOutThisWeek = repos.reachOut
-        .list({}, 200, 0)
+        .list({ personId: me }, 200, 0)
         .filter((r) => r.reportDate >= weekStart && r.reportDate <= weekEnd);
       const written = reachOutThisWeek.find((r) => r.content.trim().length > 0);
       const reachSteps = [

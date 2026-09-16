@@ -24,7 +24,7 @@ import {
 } from "@/lib/meeting-api";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
 import { config } from "@/config";
-import { emptyBlock, newBlockId, startingBlocks } from "@/domain/meeting";
+import { bringForwardBlocks, emptyBlock, newBlockId, startingBlocks } from "@/domain/meeting";
 import { toISO } from "@/domain/schedule";
 import type {
   MeetingBlock,
@@ -84,6 +84,14 @@ export interface MeetingStore {
 
   /** Which note is open on the writing surface, if any. */
   select: (id: string | null) => void;
+  /**
+   * The meeting before the open one in its series, with its tasks.
+   *
+   * Found by the server among notes this viewer may read — not among the page
+   * of the list that happens to be loaded, which missed it whenever it was on
+   * another page or outside the current search.
+   */
+  previous: { note: MeetingNote; tasks: MeetingTask[] } | null;
 
   status: "loading" | "ready" | "error";
   error: unknown;
@@ -388,6 +396,7 @@ export function MeetingProvider({ children }: { children: ReactNode }) {
       page: listQuery.data?.page ?? { page: 1, pageSize: 25, pageCount: 1, total: 0 },
       facets: listQuery.data?.facets ?? { tags: [], ministryIds: [] },
       select: setSelectedId,
+      previous: (openQuery.data?.note.id === selectedId ? openQuery.data?.previous : null) ?? null,
 
       status: listQuery.isError ? "error" : listQuery.data ? "ready" : "loading",
       error: listQuery.error,
@@ -486,20 +495,15 @@ export function MeetingProvider({ children }: { children: ReactNode }) {
       removeTask: (id) => runTask(() => deleteMeetingTask({ data: { id } })),
 
       bringForward: (noteId, items) =>
-        patchBlocks(noteId, (blocks) => [
-          ...blocks,
-          ...items.map((item) => ({
-            ...emptyBlock(item.kind === "task" ? "checklist" : "follow-up"),
-            html: item.text,
-            ...(item.kind === "follow-up" ? { state: "open" as const } : {}),
-          })),
-        ]),
+        patchBlocks(noteId, (blocks) => bringForwardBlocks(blocks, items)),
     }),
     [
       notes,
       tasks,
       query,
       listQuery,
+      openQuery.data,
+      selectedId,
       saveState,
       saveError,
       flush,

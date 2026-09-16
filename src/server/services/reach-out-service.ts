@@ -3,7 +3,7 @@ import { parse } from "../api/validation";
 import { windowFor } from "../api/pagination";
 import { PAGE_SIZE } from "@/domain/pagination";
 import { addComment, createReport, reportQuery, updateReport } from "@/domain/reach-out-contract";
-import { contributorsOf } from "@/domain/reach-out";
+import { canDeleteReport, contributorsOf } from "@/domain/reach-out";
 import { todayISO } from "@/domain/goals";
 import type { ReachOutRepository, ReportValues } from "../repositories/reach-out-repository";
 import type { PageMeta } from "@/lib/api-envelope";
@@ -137,7 +137,7 @@ export function createReachOutService(repo: ReachOutRepository) {
      */
     deleteReport(viewer: Viewer, id: string): void {
       const report = require(id);
-      if (report.authorId !== viewer.person.id) {
+      if (!canDeleteReport(report, viewer.person.id)) {
         throw ApiError.forbidden("Only whoever started this report can remove it.");
       }
       repo.delete(id);

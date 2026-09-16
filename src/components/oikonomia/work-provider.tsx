@@ -84,7 +84,10 @@ export function useWork(id: string) {
 
     transition: (action: string, note?: string) =>
       act(() => transitionWork({ data: { id, action, ...(note ? { note } : {}) } })),
-    comment: (body: string) => act(() => commentOnWork({ data: { workId: id, body } })),
+    /* Resolves once the comment is saved, and rejects with the server's
+       reason, so the box keeps what was typed until it has landed. */
+    comment: (body: string) =>
+      mutation.mutateAsync(() => commentOnWork({ data: { workId: id, body } })),
     requestDecision: (summary: string) =>
       act(() => requestWorkDecision({ data: { workId: id, summary } })),
     recordDecision: (summary: string, decisionId?: string) =>

@@ -9,6 +9,7 @@ import {
   markSeen as markSeenCall,
   moveEscalation,
   raiseEscalation,
+  replyToEscalation,
   withdrawEscalation,
   type EscalationView,
   type LeadershipInbox,
@@ -49,6 +50,7 @@ const EMPTY: LeadershipInbox = {
   flagged: [],
   mine: [],
   raisedByMe: [],
+  answeredForMe: [],
 };
 
 export interface RaiseInput {
@@ -107,6 +109,10 @@ export function useLeadershipInbox() {
       ) => mutation.mutateAsync(() => moveEscalation({ data: { id, status, ...fields } })),
 
       withdraw: (id: string) => mutation.mutateAsync(() => withdrawEscalation({ data: { id } })),
+
+      /** Answer a question the recipient asked; the ask goes back to them. */
+      reply: (id: string, note: string) =>
+        mutation.mutateAsync(() => replyToEscalation({ data: { id, note } })),
     }),
     [inbox, query, mutation],
   );

@@ -46,7 +46,7 @@ Parts of your cycle already under way, or not yet started. Selecting one opens w
 
 ### LifeGroup, Your reports, Shared with others
 
-- **LifeGroup** — gatherings from the start of this week. **Assign to me** on a row means nobody leads it yet and you could; selecting opens the gathering.
+- **LifeGroup** — gatherings you lead, from the start of this week, then any that nobody leads yet, marked **Needs a leader**. **Assign to me** on such a row means you could take it; selecting opens the gathering. Gatherings other leaders lead are on the schedule, not here.
 - **Your reports** — your open Leadership Reports; selecting opens the report.
 - **Shared with others** — ministries you lead or serve in; selecting opens the ministry.
 

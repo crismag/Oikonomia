@@ -154,6 +154,12 @@ export interface NoteFilters {
    * expressed as SQL, and `meeting-service.test.ts` asserts the two agree.
    */
   readableBy?: string | undefined;
+  /** Same kind of meeting (`meeting_type`), which is what makes a series. */
+  meetingType?: string | undefined;
+  /** Held strictly before this ISO date. */
+  before?: string | undefined;
+  /** Leave this note out — a note is never its own previous meeting. */
+  excludeId?: string | undefined;
 }
 
 export function createMeetingRepository(db: Db) {
@@ -213,6 +219,18 @@ export function createMeetingRepository(db: Db) {
       /* One copy of this rule, shared with the document registry. */
       clauses.push(noteReadableSql("meeting_note"));
       params.push(...noteReadableParams(filters.readableBy));
+    }
+    if (filters.meetingType) {
+      clauses.push("meeting_type = ?");
+      params.push(filters.meetingType);
+    }
+    if (filters.before) {
+      clauses.push("date < ?");
+      params.push(filters.before);
+    }
+    if (filters.excludeId) {
+      clauses.push("id <> ?");
+      params.push(filters.excludeId);
     }
     if (filters.search) {
       const q = `%${filters.search.toLowerCase()}%`;

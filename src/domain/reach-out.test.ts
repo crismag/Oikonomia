@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canContribute,
+  canDeleteReport,
   commentCount,
   contributorsOf,
   commentsInOrder,
@@ -269,5 +270,17 @@ describe("permissions are an open decision", () => {
    */
   it("ships no report with an assumed audience policy", () => {
     expect(reachOutReports.every((r) => r.policy === undefined)).toBe(true);
+  });
+});
+
+describe("who may delete a report", () => {
+  it("is whoever started it", () => {
+    expect(canDeleteReport(report(), "p-maria")).toBe(true);
+  });
+
+  it("is not a leader who only added to it", () => {
+    const continued = report({ contributorIds: ["p-joel"] });
+    expect(canContribute(continued, "p-joel")).toBe(true);
+    expect(canDeleteReport(continued, "p-joel")).toBe(false);
   });
 });

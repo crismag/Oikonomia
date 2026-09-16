@@ -2,14 +2,17 @@ import { config } from "@/config";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import {
+  Ban,
   BookOpen,
   ChevronLeft,
   Lock,
   MapPin,
   Pencil,
   Printer,
+  RotateCcw,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -29,7 +32,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { canAmendGathering } from "@/domain/authorize";
+import { canAmendGathering, canCancelGathering, canJoinGathering } from "@/domain/authorize";
+import { Combobox } from "@/components/oikonomia/combobox";
+import { useConfirm } from "@/config/messages/handlers";
+import { errorMessage } from "@/lib/calendar-client";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { Section } from "@/components/oikonomia/section";
 import { cn } from "@/lib/utils";
@@ -46,6 +52,8 @@ import {
   gatheringStatusLabel,
   isReported,
   leadsGathering,
+  myAction,
+  myActionLabel,
   outstanding,
   reportFor,
   venueFor,
@@ -77,6 +85,8 @@ function GatheringWorkspace() {
   const { person } = viewer;
   const store = useLifegroup();
   const amending = useOverlay<true>();
+  const confirm = useConfirm();
+  const [failure, setFailure] = useState<unknown>(null);
 
   const gathering = store.gatherings.find((g) => g.id === gatheringId);
 
@@ -105,7 +115,22 @@ function GatheringWorkspace() {
   const isAssignedLeader = leadsGathering(gathering, person.id);
   /* Every leader reads ordinary LifeGroup material; this page is leadership-facing. */
   const context = { isLeader: true, isAssignedLeader };
-  const canEdit = isAssignedLeader;
+  const cancelled = gathering.status === "cancelled";
+  /* A cancelled gathering did not happen: nothing is recorded on it until it
+     is restored, which is also what the server holds to. */
+  const canEdit = isAssignedLeader && !cancelled;
+  const mayCancel = canCancelGathering(viewer, gathering);
+  const joinAction = myAction(gathering, person.id, canJoinGathering(viewer, gathering));
+
+  const attempt = (work: () => Promise<void>) => {
+    setFailure(null);
+    void work().catch(setFailure);
+  };
+
+  const cancel = async () => {
+    if (!(await confirm("lifegroup.cancel.confirm", { day: dayLabel(gathering.date) }))) return;
+    attempt(() => store.cancelGathering(gathering.id));
+  };
 
   if (print) return <PrintSheet gathering={gathering} context={context} viewerId={person.id} />;
 
@@ -148,7 +173,9 @@ function GatheringWorkspace() {
                 Hosted by <PersonName personId={venue.hostId} />
               </span>
             ) : null}
-            <span>{gatheringStatusLabel[gathering.status]}</span>
+            <span className={cn(cancelled && "font-medium text-foreground")}>
+              {gatheringStatusLabel[gathering.status]}
+            </span>
           </p>
         </div>
 
@@ -159,10 +186,44 @@ function GatheringWorkspace() {
            * oversight may move a gathering without being able to mark its
            * attendance.
            */}
-          {canAmendGathering(viewer, gathering) ? (
+          {/* Taking the gathering on from its own page, not only from the roster. */}
+          {joinAction === "claim" || joinAction === "join" ? (
+            <Button
+              type="button"
+              variant="primary"
+              disabled={store.saving}
+              onClick={() => attempt(() => store.joinGathering(gathering.id, joinAction))}
+            >
+              <UserPlus className="size-3.5" aria-hidden />
+              {myActionLabel[joinAction]}
+            </Button>
+          ) : null}
+          {canAmendGathering(viewer, gathering) && !cancelled ? (
             <Button type="button" variant="secondary" onClick={() => amending.open(true)}>
               <Pencil className="size-3.5" aria-hidden />
               Edit details
+            </Button>
+          ) : null}
+          {mayCancel && cancelled ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={store.saving}
+              onClick={() => attempt(() => store.restoreGathering(gathering.id))}
+            >
+              <RotateCcw className="size-3.5" aria-hidden />
+              Restore gathering
+            </Button>
+          ) : null}
+          {mayCancel && !cancelled ? (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={store.saving}
+              onClick={() => void cancel()}
+            >
+              <Ban className="size-3.5" aria-hidden />
+              Cancel gathering
             </Button>
           ) : null}
           <Link
@@ -177,17 +238,26 @@ function GatheringWorkspace() {
         </div>
       </header>
 
+      {failure ? (
+        <p role="alert" className="mb-3 text-[13px] text-status-overdue">
+          {errorMessage(failure)}
+        </p>
+      ) : null}
+
+      {cancelled ? (
+        <p className="mb-4 rounded-md border border-border bg-surface-muted px-4 py-3 text-[13px] text-muted-foreground">
+          This gathering was cancelled. It stays on the schedule as a record and asks nobody for a
+          report.
+          {mayCancel ? " Restore it if it is going ahead after all." : ""}
+        </p>
+      ) : null}
+
       <div className="space-y-4">
         <AttendanceEditor gathering={gathering} canEdit={canEdit} />
         <ExhortationEditor gathering={gathering} canEdit={canEdit} />
 
         <Section title="Sharing and notes">
-          <LifegroupEntryList
-            gatheringId={gathering.id}
-            viewerId={person.id}
-            context={context}
-            canEdit={canEdit}
-          />
+          <LifegroupEntryList gatheringId={gathering.id} viewerId={person.id} context={context} />
           {canEdit ? <NewEntry gatheringId={gathering.id} authorId={person.id} /> : null}
         </Section>
 
@@ -247,10 +317,13 @@ const statuses = config.options("lifegroup.attendance").map((s) => s.id) as Atte
  * seven turning up are both true and the leader needs to see both.
  */
 function AttendanceEditor({ gathering, canEdit }: { gathering: Gathering; canEdit: boolean }) {
-  const { personById } = useOrganization();
+  const { personById, activePeople } = useOrganization();
   const nameOf = (id: string) => personById(id).name;
   const store = useLifegroup();
-  const [adding, setAdding] = useState("");
+  const [failure, setFailure] = useState<unknown>(null);
+  /* Remounts the picker after each addition so it starts empty again. */
+  const [pickerKey, setPickerKey] = useState(0);
+  const [visitor, setVisitor] = useState<string | null>(null);
 
   const marked = attendanceFor(store.attendance, gathering.id);
   const pending = awaitingMark(gathering, store.attendance);
@@ -263,11 +336,27 @@ function AttendanceEditor({ gathering, canEdit }: { gathering: Gathering; canEdi
      of it would be a second, emptier instruction. */
   const showPending = pending.length > 0 && canEdit;
 
-  const add = () => {
-    const name = adding.trim();
-    if (!name) return;
-    store.setAttendance(gathering.id, { name }, "present");
-    setAdding("");
+  const markedIds = new Set(marked.map((r) => r.personId).filter((id): id is string => !!id));
+
+  /*
+   * Somebody in People is marked by id, so the mark follows them onto their
+   * person page and into attendance history. A name that matches nobody is
+   * still enough — a visitor is recorded without inventing a person record.
+   */
+  const mark = (who: { personId: string } | { name: string }) => {
+    setFailure(null);
+    setVisitor(null);
+    void store.setAttendance(gathering.id, who, "present").catch(setFailure);
+    setPickerKey((key) => key + 1);
+  };
+
+  /*
+   * A name matching nobody is offered as a visitor rather than marked on the
+   * spot: leaving a half-typed field must not put "Jo" in the register.
+   */
+  const choose = (text: string, personId?: string) => {
+    if (personId) return mark({ personId });
+    setVisitor(text.trim() || null);
   };
 
   return (
@@ -328,30 +417,45 @@ function AttendanceEditor({ gathering, canEdit }: { gathering: Gathering; canEdi
         </ul>
       ) : showPending ? null : (
         <EmptyState icon={Users} title="Nobody marked yet">
-          Tick the people who came. Anyone not on the signup list can be added by name.
+          {canEdit
+            ? "Add the people who came from People below. A visitor who is not in People can be marked by name."
+            : "Attendance is marked by a leader assigned to this gathering."}
         </EmptyState>
       )}
 
       {canEdit ? (
-        <div className="flex items-center gap-2 border-t border-border px-4 py-2.5">
-          <UserPlus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <input
-            value={adding}
-            onChange={(e) => setAdding(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") add();
-            }}
-            placeholder="Add someone by name"
-            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-          />
-          {adding.trim() ? (
+        <div className="border-t border-border px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <UserPlus className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <Combobox
+              key={pickerKey}
+              label="Add someone who came"
+              value=""
+              placeholder="Add someone from People, or type a visitor's name"
+              width="w-full"
+              className="min-w-0 flex-1"
+              suggestions={activePeople
+                .filter((p) => !markedIds.has(p.id))
+                .map((p) => ({ id: p.id, label: p.name, ...(p.role ? { hint: p.role } : {}) }))}
+              onChange={choose}
+            />
+          </div>
+          {visitor ? (
             <button
               type="button"
-              onClick={add}
-              className="rounded-md bg-primary px-2.5 py-1 text-[12px] font-medium text-primary-foreground"
+              /* Keeps the field from blurring and offering the same name again. */
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => mark({ name: visitor })}
+              className="mt-1.5 ml-6 inline-flex items-center gap-1 text-[12px] text-primary underline-offset-2 hover:underline"
             >
-              Add
+              <UserPlus className="size-3" aria-hidden />
+              Mark “{visitor}” present by name — not in People
             </button>
+          ) : null}
+          {failure ? (
+            <p role="alert" className="mt-1.5 pl-6 text-[12px] text-status-overdue">
+              {errorMessage(failure)}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -390,7 +494,7 @@ function AttendanceRow({
       </span>
 
       {canEdit ? (
-        <div className="flex shrink-0 gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {statuses.map((status) => (
             <button
               key={status}
@@ -413,6 +517,15 @@ function AttendanceRow({
               {attendanceStatusLabel[status]}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => void store.removeAttendance(record.id)}
+            aria-label={`Remove ${label} from attendance`}
+            title="Remove this mark"
+            className="ml-1 grid size-6 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <X className="size-3.5" aria-hidden />
+          </button>
         </div>
       ) : (
         <span className="shrink-0 text-[12px] text-muted-foreground">

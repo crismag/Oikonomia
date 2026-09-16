@@ -5,6 +5,8 @@ import { parse } from "../api/validation";
 import {
   addressedTo,
   allowedTransitions,
+  canWithdraw,
+  isPartyTo,
   escalationOrder,
   initialStatus,
   isSettled,
@@ -80,6 +82,15 @@ const raise = z.object({
   neededBy: z.string().trim().max(40).optional(),
 });
 
+const reply = z.object({
+  id: z.string().min(1),
+  note: z
+    .string()
+    .trim()
+    .min(1, "Say what you want to tell them.")
+    .max(1000, "Keep the answer short enough to act on."),
+});
+
 const move = z.object({
   id: z.string().min(1),
   status: z.enum([
@@ -103,6 +114,8 @@ export interface EscalationView extends Escalation {
   activity: EscalationActivity[];
   /** True when this viewer is the one being asked. */
   mine: boolean;
+  /** True when this viewer made the ask. */
+  askedByMe: boolean;
   settled: boolean;
 }
 
@@ -145,7 +158,18 @@ export interface LeadershipInbox {
   mine: EscalationView[];
   /** Asks this viewer made, so they can see what they are waiting on. */
   raisedByMe: EscalationView[];
+  /**
+   * Asks this viewer made that were answered in the last fortnight.
+   *
+   * Settling an ask takes it out of "waiting on", which used to take the
+   * answer with it: a decline's reason, or why something could not be done,
+   * was recorded and never shown to the person it was for.
+   */
+  answeredForMe: EscalationView[];
 }
+
+/** How long an answered ask stays in front of the person who made it. */
+const ANSWERED_FOR_DAYS = 14;
 
 export function createEscalationService(
   repo: EscalationRepository,
@@ -232,12 +256,37 @@ export function createEscalationService(
     return membersOf(leadershipBodies().filter((group) => !group.campusId));
   }
 
-  const view = (viewer: Viewer, escalation: Escalation, held: RecipientRole[]): EscalationView => ({
-    ...escalation,
-    activity: repo.activityFor(escalation.id),
-    mine: addressedTo(escalation, viewer.person, held),
-    settled: isSettled(escalation.type, escalation.status),
-  });
+  /*
+   * A record's page lists every ask made from it, to anyone who may open the
+   * record. What was *said* on an ask — a question, why it was declined, why
+   * it could not be done — is between the people party to it, so everyone
+   * else receives the ask without its notes.
+   */
+  const view = (viewer: Viewer, escalation: Escalation, held: RecipientRole[]): EscalationView => {
+    const party = isPartyTo(escalation, viewer.person, held);
+    const { decisionNote, ...rest } = escalation;
+    return {
+      ...rest,
+      ...(party && decisionNote ? { decisionNote } : {}),
+      activity: party ? repo.activityFor(escalation.id) : [],
+      mine: addressedTo(escalation, viewer.person, held),
+      askedByMe: escalation.requestedById === viewer.person.id,
+      settled: isSettled(escalation.type, escalation.status),
+    };
+  };
+
+  /**
+   * One ask, for someone party to it. Anyone else is told it does not exist,
+   * the same answer as for an ask that really does not.
+   */
+  function partyOnly(viewer: Viewer, id: string): { current: Escalation; held: RecipientRole[] } {
+    const current = repo.find(id);
+    const held = rolesHeldBy(viewer);
+    if (!current || !isPartyTo(current, viewer.person, held)) {
+      throw ApiError.notFound("That request");
+    }
+    return { current, held };
+  }
 
   return {
     /** Which positions this viewer holds. Surfaced so the interface can say. */
@@ -255,6 +304,9 @@ export function createEscalationService(
       const all = repo.all().map((escalation) => view(viewer, escalation, held));
 
       const mine = all.filter((item) => item.mine && !item.settled).sort(escalationOrder);
+      const answeredSince = new Date(
+        Date.now() - ANSWERED_FOR_DAYS * 24 * 60 * 60 * 1000,
+      ).toISOString();
 
       /*
        * Flagged records, over reports this viewer may already discover.
@@ -290,21 +342,33 @@ export function createEscalationService(
         raisedByMe: all
           .filter((item) => item.requestedById === viewer.person.id && !item.settled)
           .sort(escalationOrder),
+        answeredForMe: all
+          .filter(
+            (item) =>
+              item.requestedById === viewer.person.id &&
+              item.settled &&
+              item.updatedAt >= answeredSince,
+          )
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
       };
     },
 
     /** Everything asked from one record, for the record's own page. */
     forSource(viewer: Viewer, sourceType: Escalation["sourceType"], sourceId: string) {
       const held = rolesHeldBy(viewer);
+      /* Only asks this viewer is party to. The list is keyed by a record id
+         the caller supplies, and this service cannot tell whether they may
+         see that record — so an ask on a record hidden from them must not
+         be how its existence, or what was asked about it, leaks. */
       return repo
         .forSource(sourceType, sourceId)
+        .filter((escalation) => isPartyTo(escalation, viewer.person, held))
         .map((escalation) => view(viewer, escalation, held));
     },
 
     get(viewer: Viewer, id: string): EscalationView {
-      const escalation = repo.find(id);
-      if (!escalation) throw ApiError.notFound("That request");
-      return view(viewer, escalation, rolesHeldBy(viewer));
+      const { current, held } = partyOnly(viewer, id);
+      return view(viewer, current, held);
     },
 
     /**
@@ -417,15 +481,48 @@ export function createEscalationService(
      * deleting the fact that it happened.
      */
     withdraw(viewer: Viewer, id: string): void {
-      const current = repo.find(id);
-      if (!current) throw ApiError.notFound("That request");
+      const { current } = partyOnly(viewer, id);
       if (current.requestedById !== viewer.person.id) {
         throw ApiError.forbidden("Only whoever asked may withdraw a request.");
       }
       if (current.decidedById) {
         throw ApiError.conflict("This has been decided. The decision stays on the record.");
       }
+      /* A finished ask is the record of what was done about it. */
+      if (!canWithdraw(current)) {
+        throw ApiError.conflict("This has already been answered, so it stays on the record.");
+      }
       repo.remove(id);
+    },
+
+    /**
+     * Answer a question about one's own ask.
+     *
+     * When the recipient asks for more information, the ask waits on the
+     * person who made it. Their answer is recorded as a note and puts the ask
+     * back in front of the recipient as requested — the same request, never a
+     * new one. Only the requester answers, and only while a question is open;
+     * the recipient's own responses are unchanged.
+     */
+    reply(viewer: Viewer, input: unknown): Escalation {
+      const parsed = parse(reply, input);
+      const { current } = partyOnly(viewer, parsed.id);
+      if (current.requestedById !== viewer.person.id) {
+        throw ApiError.forbidden("Only whoever asked answers a question about it.");
+      }
+      if (current.status !== "more-information") {
+        throw ApiError.conflict("Nobody has asked a question about this.");
+      }
+
+      const saved = repo.setStatus(parsed.id, "requested");
+      if (!saved) throw ApiError.notFound("That request");
+
+      repo.addActivity(parsed.id, {
+        actorId: viewer.person.id,
+        summary: "answered the question",
+        note: parsed.note,
+      });
+      return saved;
     },
 
     /** Who a semantic recipient is at this moment. For the interface to say. */

@@ -29,7 +29,7 @@ Who can read a meeting note follows from its kind. There is no separate sharing 
 
 ### Someone can read it but not change it
 
-Only the person who wrote a note can change it. A participant reading minutes may see the page as editable, but their changes are not saved: the save indicator shows *This note belongs to whoever wrote it.* Ask the writer to make the change, or write your own personal note.
+Only the person who wrote a note, or whoever took it down, can change it. A participant opening minutes gets a reading page: the note, who was present and its tasks, with *You can read these minutes. Only whoever wrote them or took them down can change them.* There is no toolbar, **Create task** or **Mark complete**. They can still **Print** it, tick a task that was given to them, and ask a leader for something with the request control at the bottom. Ask the writer to make a change, or write your own personal note.
 
 ### A task from a note they cannot read
 

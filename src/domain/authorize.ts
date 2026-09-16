@@ -279,6 +279,24 @@ export function canAmendGathering(viewer: Viewer, gathering: Gathering): boolean
   return unclaimed && stillOpen && canScheduleGathering(viewer);
 }
 
+/**
+ * Take a gathering off the schedule, or put a cancelled one back.
+ *
+ * The same people who may amend the row: its assigned leaders and campus
+ * oversight — and, before anybody has claimed it, any leader, because a
+ * duplicate row added while the roster was being prepared is the shared
+ * schedule's to tidy. Undoing is allowed to whoever could have cancelled, so a
+ * mistaken cancellation never needs somebody else to repair it.
+ *
+ * A written-up gathering happened. It is reopened first, never cancelled.
+ */
+export function canCancelGathering(viewer: Viewer, gathering: Gathering): boolean {
+  if (gathering.status === "completed") return false;
+  if (gathering.assignedLeaderIds.includes(viewer.person.id)) return true;
+  if (canAssignGatheringLeaders(viewer)) return true;
+  return gathering.assignedLeaderIds.length === 0 && canScheduleGathering(viewer);
+}
+
 /* -------------------------------------------------------------- shorthands */
 
 export const canView = (viewer: Viewer, subject: Subject) => permissionsFor(viewer, subject).view;

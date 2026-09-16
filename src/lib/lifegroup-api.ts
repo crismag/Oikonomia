@@ -85,6 +85,16 @@ export const updateGathering = createServerFn({ method: "POST" })
   .validator((input: { id: string; patch: unknown }) => input)
   .handler(({ data }) => withLifegroup((s, v) => s.updateGathering(v, data.id, data.patch)));
 
+/** Take a gathering off the schedule. It stays in the book, marked cancelled. */
+export const cancelGathering = createServerFn({ method: "POST" })
+  .validator((input: { id: string }) => input)
+  .handler(({ data }) => withLifegroup((s, v) => s.cancelGathering(v, data.id)));
+
+/** Put a cancelled gathering back on the schedule. */
+export const restoreGathering = createServerFn({ method: "POST" })
+  .validator((input: { id: string }) => input)
+  .handler(({ data }) => withLifegroup((s, v) => s.restoreGathering(v, data.id)));
+
 export const markAttendance = createServerFn({ method: "POST" })
   .validator((input: unknown) => input)
   .handler(({ data }) => withLifegroup((s, v) => s.markAttendance(v, data)));

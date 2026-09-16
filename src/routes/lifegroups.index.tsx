@@ -253,6 +253,7 @@ function LifegroupSchedule() {
                           "LifeGroup"}
                       </span>
                       <span className="shrink-0 text-[12px] text-muted-foreground">
+                        {gathering.status === "cancelled" ? "Cancelled · " : ""}
                         {gathering.date}
                       </span>
                     </Link>

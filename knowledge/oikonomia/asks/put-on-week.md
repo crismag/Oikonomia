@@ -21,7 +21,7 @@ destinations: [inbox, weekly-agenda]
 When another leader asks you for an **action**, you can give the work a day on your week. **Put on my week** is offered in two places:
 
 - on the ask's row in the [Leadership Inbox](destination:inbox);
-- in the **Asked of you** card on the record the ask came from — a leadership report, a Reach-Out report or a work record.
+- in the **Asked of you** card on the record the ask came from — a leadership report, a Reach-Out report, a meeting note or a work record.
 
 ### What it does
 

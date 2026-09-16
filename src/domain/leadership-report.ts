@@ -346,6 +346,24 @@ export const isFiled = (status: string) => statusBehavior(status).final;
 export const isCurrent = (status: string) => statusBehavior(status).current;
 
 /**
+ * Whether this person may delete the report outright.
+ *
+ * Only its author, and only while its content is still editable. Once a stage
+ * has frozen the content, leadership may have read it as the submitted record;
+ * archiving is how it stops being current, not deleting. The service asks the
+ * same question, so the page never offers a delete the server would refuse.
+ */
+export const mayRemoveReport = (
+  report: Pick<LeadershipReport, "authorId" | "status" | "revisions">,
+  personId: string,
+) =>
+  report.authorId === personId &&
+  statusBehavior(report.status).editable &&
+  /* Once submitted, always a record. Reopening a published report to correct
+     it keeps its submitted copy; deleting it would erase what leadership read. */
+  (report.revisions?.length ?? 0) === 0;
+
+/**
  * What this person may do with this report.
  *
  * The audience resolver decides *whether* they are an audience at all; the

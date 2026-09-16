@@ -14,7 +14,7 @@ aliases:
   - does publishing a report notify my leader
 capabilities: []
 hideWhen: []
-related: [inbox.page, asks.put-on-week, reports.report-page, reports.visibility]
+related: [inbox.page, asks.waiting-on, asks.put-on-week, reports.report-page, reports.visibility]
 destinations: [inbox]
 ---
 
@@ -34,6 +34,6 @@ Most of what leaders write is information. It reaches its readers and asks nothi
 4. For an action or an approval, add **Needed by** if there is a date.
 5. Choose **Send request**.
 
-The ask is listed on the record, reaches the recipient's [Leadership Inbox](destination:inbox), and appears under _What you are waiting on_ in yours until it is settled. If nobody holds the position yet, the ask waits until someone does.
+The ask is listed on the record with where it stands, reaches the recipient's [Leadership Inbox](destination:inbox), and appears under _What you are waiting on_ in yours until it is settled. If nobody holds the position yet, the ask waits until someone does. To answer a question about it or take it back, see [Follow an ask you made](topic:asks.waiting-on).
 
 > Asking does not give access. A leader you ask who may not read the report still may not.

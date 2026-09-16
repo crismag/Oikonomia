@@ -749,3 +749,52 @@ describe("a task follows the person it was given to", () => {
     expect(service.myTasks(bishop)).toEqual([]);
   });
 });
+
+/**
+ * "What was left open last time" is found in the notebook, not on the page of
+ * the list that happened to be loaded — and never in a note the viewer may not
+ * read.
+ */
+describe("the meeting before this one", () => {
+  it("is the latest earlier meeting of the same type, with its tasks", () => {
+    service.createNote(maria, note({ type: "leaders", date: "2026-07-14" }));
+    const august = service.createNote(maria, note({ type: "leaders", date: "2026-08-11" }));
+    service.createNote(maria, note({ type: "coaching", date: "2026-09-01" }));
+    service.createNote(maria, note({ type: "leaders", date: "2026-10-06" }));
+    const task = service.createTask(maria, { meetingId: august.id, title: "Book the hall" });
+    const september = service.createNote(maria, note({ type: "leaders", date: "2026-09-08" }));
+
+    const { previous } = service.getNote(maria, september.id);
+    expect(previous?.note.id).toBe(august.id);
+    expect(previous?.tasks.map((t) => t.id)).toEqual([task.id]);
+  });
+
+  it("finds it however many notes came in between", () => {
+    const first = service.createNote(maria, note({ type: "leaders", date: "2026-01-06" }));
+    for (let i = 0; i < 30; i++) {
+      service.createNote(maria, note({ type: "coaching", date: "2026-02-10" }));
+    }
+    const later = service.createNote(maria, note({ type: "leaders", date: "2026-03-03" }));
+    expect(service.getNote(maria, later.id).previous?.note.id).toBe(first.id);
+  });
+
+  it("has none for a meeting with no type", () => {
+    service.createNote(maria, note({ type: "leaders", date: "2026-08-11" }));
+    const untyped = service.createNote(maria, note({ date: "2026-09-08" }));
+    expect(service.getNote(maria, untyped.id)).not.toHaveProperty("previous");
+  });
+
+  it("skips an earlier meeting the viewer may not read", () => {
+    const readable = service.createNote(
+      maria,
+      note({ type: "leaders", date: "2026-07-14", participantIds: [joel.person.id] }),
+    );
+    /* Joel was not at August's meeting, so it is not his to see. */
+    service.createNote(maria, note({ type: "leaders", date: "2026-08-11", participantIds: [] }));
+    const september = service.createNote(
+      maria,
+      note({ type: "leaders", date: "2026-09-08", participantIds: [joel.person.id] }),
+    );
+    expect(service.getNote(joel, september.id).previous?.note.id).toBe(readable.id);
+  });
+});

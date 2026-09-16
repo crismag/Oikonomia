@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAmendGathering,
   canAssignGatheringLeaders,
+  canCancelGathering,
   canComment,
   canEdit,
   canReview,
@@ -221,6 +222,33 @@ describe("scheduling, amending and recording are three different rights", () => 
     const subject = { kind: "gathering", gathering: gathering([maria.person.id]) } as const;
     expect(canAmendGathering(bishop, subject.gathering)).toBe(true);
     expect(canEdit(bishop, subject)).toBe(false);
+  });
+
+  describe("cancelling", () => {
+    it("is for the assigned leaders and campus oversight", () => {
+      expect(canCancelGathering(maria, gathering([maria.person.id]))).toBe(true);
+      expect(canCancelGathering(bishop, gathering([maria.person.id]))).toBe(true);
+      expect(canCancelGathering(joel, gathering([maria.person.id]))).toBe(false);
+    });
+
+    /* A duplicate row nobody has claimed is the shared schedule's to tidy. */
+    it("is open to any leader before anyone has claimed the row", () => {
+      expect(canCancelGathering(joel, gathering([]))).toBe(true);
+    });
+
+    /* Whoever could cancel can undo it, including an unclaimed row. */
+    it("can be undone by the same people", () => {
+      const cancelled = { ...gathering([]), status: "cancelled" as const };
+      expect(canCancelGathering(joel, cancelled)).toBe(true);
+      const claimed = { ...gathering([maria.person.id]), status: "cancelled" as const };
+      expect(canCancelGathering(joel, claimed)).toBe(false);
+    });
+
+    it("never applies to a gathering that has been written up", () => {
+      const done = { ...gathering([maria.person.id]), status: "completed" as const };
+      expect(canCancelGathering(maria, done)).toBe(false);
+      expect(canCancelGathering(bishop, done)).toBe(false);
+    });
   });
 });
 

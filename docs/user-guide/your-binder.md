@@ -16,6 +16,10 @@ Open anything on Home to continue it where it lives. A week item opens that
 item; an ask opens the report or gathering it came from. Home does not keep a
 second copy.
 
+The **LifeGroup** card lists the gatherings you lead from the start of the
+week, then any still marked **Needs a leader**. Other leaders' gatherings are
+on the LifeGroup schedule, not on your Home.
+
 When something needs you, the primary button continues it. **Add to the week**
 is always there, and is the main action when the week is quiet.
 
@@ -49,8 +53,9 @@ filter, and open a **printable page** — the binder is meant to be carried into
 a meeting on paper when that is easier.
 
 Tasks that come out of meeting notes appear here, in the week of whoever they
-were given to. Opening one takes you back to the meeting, not to a copy of the
-task.
+were given to. Ticking one, in the Agenda or the List view, completes the
+meeting's own task. Opening one takes you back to the meeting, not to a copy of
+the task.
 
 ## Monthly Calendar
 
@@ -88,6 +93,16 @@ the assignee's week — each task says whether it is on a week yet, and what it
 still needs if not. Nothing picks a date for you. This is the main way work travels from a meeting to a person,
 and it is explicit: nothing becomes somebody's task because a meeting happened.
 
+When a meeting has a type, the most recent earlier meeting of that type you may
+read is found, and what it left open can be brought in once, under a
+**Previous actions** heading.
+
+Only whoever wrote a note, or took it down, can change it. A participant
+reading minutes gets a reading page — the note and its tasks, **Print**, the
+tasks given to them to tick, and the request control — rather than an editor
+that would refuse their changes. An action somebody asked of you from a note
+shows there as **Asked of you**.
+
 Formatting is deliberately small — bold, italic, underline, links, headings,
 lists, quotes, checklists. Notes are documents to read, not pages to design.
 
@@ -102,7 +117,12 @@ report the second is told rather than silently overwriting the first.
 
 A report you have not written anything in yet offers **Discard** rather than
 Delete — it was created by pressing Add and has nothing in it to lose. Once it
-has content, deleting asks first, because there is no undo and no trash.
+has content, deleting asks first, because there is no undo and no trash. Only
+the leader who started a report sees either: anyone may add to a report, but
+nobody removes somebody else's account of what happened.
+
+Home and My Progress ask for **this week's Reach-Out report** — one you started
+or added to. Another leader's report dated this week does not count as yours.
 
 ## Leadership Reports
 
@@ -117,6 +137,11 @@ it once you share it, by moving it to **Shared** (still open to your changes)
 or **Published** (the submitted record). Sharing is always your move: nobody
 else shares your report, and nothing shares it for you.
 
+While a report is a Draft or Shared, its author can **Delete report** — it asks
+first, because there is no undo and no trash. A Published report is the
+submitted record: leadership may have read it, so it cannot be deleted. Archive
+it when it is no longer current.
+
 Tick **Confidential** beside _Who can read this_ when a report must be handled
 that way. It is your mark and nobody else's, and it does not change who may
 read the report. Anyone else who may read it sees it listed as Confidential
@@ -128,7 +153,10 @@ open follow-ups under the text with **Put on my week**. It goes on this week's
 notes rather than on a day, so nothing is given a deadline you did not choose,
 and the report shows **On your week** once it is there. Only the author sees
 this: to ask somebody else for something, use _Does this need anything from
-leadership?_
+leadership?_ The asks already made from a report are listed there with where
+each stands; you see what was said on an ask only if you made it or it was made
+of you. Follow your own asks — answer a question, or withdraw one still open —
+under _What you are waiting on_ in the Leadership Inbox.
 
 Four things are independent, and keeping them apart is the point:
 

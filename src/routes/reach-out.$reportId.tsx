@@ -15,6 +15,7 @@ import { AskedOfYou } from "@/components/oikonomia/put-on-week";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import {
   canContribute,
+  canDeleteReport,
   commentsInOrder,
   displayTitle,
   contributorsOf,
@@ -393,16 +394,20 @@ function Editor({ report }: { report: ReachOutReport }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => void discard()}
-          className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-status-overdue"
-        >
-          <Trash2 className="size-3.5" aria-hidden />
-          {untouched ? "Discard" : "Delete report"}
-        </button>
+        {/* Anyone may continue a report; only whoever started it may remove
+            it. Offering Delete to anyone else would end in a refusal. */}
+        {canDeleteReport(report, person.id) ? (
+          <button
+            type="button"
+            onClick={() => void discard()}
+            className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-status-overdue"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+            {untouched ? "Discard" : "Delete report"}
+          </button>
+        ) : null}
 
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-3">
           <SaveState state={store.saveState} conflict={conflict} />
           <Button type="button" onClick={done} variant="primary">
             Save report

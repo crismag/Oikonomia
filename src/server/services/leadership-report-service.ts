@@ -10,6 +10,7 @@ import {
 import {
   canDiscover,
   initialStatus,
+  mayRemoveReport,
   planTransition,
   reportCapabilities,
   statusBehavior,
@@ -446,8 +447,9 @@ export function createLeadershipReportService(
         throw ApiError.forbidden("A report belongs to whoever wrote it.");
       }
       /* A record leadership has read is not deletable, whatever the stage
-         that froze it is called. */
-      if (!statusBehavior(report.status).editable) {
+         that froze it is called. The same rule the page asks before offering
+         Delete. */
+      if (!mayRemoveReport(report, viewer.person.id)) {
         throw ApiError.forbidden(
           "This report has been submitted. Archive it rather than removing the record.",
         );

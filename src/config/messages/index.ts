@@ -86,6 +86,15 @@ export const messages = {
     cancelLabel: "Stay",
   },
 
+  /* ---------------------------------------------------------- lifegroup */
+  "lifegroup.cancel.confirm": {
+    title: "Cancel the gathering on {day}?",
+    body: "It stays on the schedule marked Cancelled and stops asking anyone for a report. You can restore it.",
+    severity: "warning",
+    confirmLabel: "Cancel the gathering",
+    cancelLabel: "Keep it",
+  },
+
   /* ------------------------------------------------------------ reports */
   "reports.publish.success": {
     title: "Report published",
@@ -143,6 +152,15 @@ export const messages = {
   "escalation.approval.approved": { title: "Request approved", severity: "success" },
   "escalation.approval.declined": { title: "Request declined", severity: "info" },
   "escalation.clarification.requested": { title: "Clarification requested", severity: "info" },
+  "escalation.withdraw.confirm": {
+    title: "Withdraw this ask?",
+    body: "It is taken back from the people it was sent to, with anything said on it. This cannot be undone.",
+    severity: "warning",
+    confirmLabel: "Withdraw the ask",
+    cancelLabel: "Keep it",
+  },
+  "escalation.withdrawn": { title: "Ask withdrawn", severity: "info" },
+  "escalation.answered": { title: "Answer sent", severity: "success" },
 
   /* ------------------------------------------------------- empty states */
   "empty.attention": { title: "Nothing currently needs your attention.", severity: "info" },

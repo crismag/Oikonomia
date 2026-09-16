@@ -8,6 +8,7 @@ import { openDatabase } from "../db/connection";
 import { createLifegroupRepository } from "../repositories/lifegroup-repository";
 import { createLifegroupService } from "./lifegroup-service";
 import { viewerFor } from "@/test/viewer";
+import { seedOrganization } from "@/test/seeds/seed-organization";
 import type { Database as Db } from "better-sqlite3";
 
 /**
@@ -31,6 +32,8 @@ const bishop = viewerFor("bishop");
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "oikonomia-lifegroup-"));
   db = openDatabase(join(dir, "test.db"));
+  /* Marks and named readers must be people in the directory. */
+  seedOrganization(db);
   repo = createLifegroupRepository(db);
   service = createLifegroupService(repo);
 });
@@ -604,5 +607,203 @@ describe("the shared schedule", () => {
       expect(left.status).toBe("confirmed");
       expect(left.assignedLeaderIds).toEqual([]);
     });
+  });
+});
+
+/**
+ * Cancelling keeps the row and stops it asking for anything. It has its own
+ * rule, so it has its own operation — not a stage typed into "Edit details".
+ */
+describe("cancelling a gathering", () => {
+  it("lets an assigned leader cancel it, and keeps it on the schedule", () => {
+    const g = led();
+    const cancelled = service.cancelGathering(maria, g.id);
+    expect(cancelled.status).toBe("cancelled");
+    expect(cancelled.updatedBy).toBe(maria.person.id);
+    expect(service.listAll(joel).gatherings.map((x) => x.id)).toContain(g.id);
+  });
+
+  it("lets campus oversight cancel one it does not lead", () => {
+    expect(service.cancelGathering(bishop, led().id).status).toBe("cancelled");
+  });
+
+  it("does not let an unrelated leader cancel a claimed gathering", () => {
+    const g = led();
+    expect(() => service.cancelGathering(joel, g.id)).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+    expect(repo.findGathering(g.id)?.status).toBe("assigned");
+  });
+
+  /* A duplicate row nobody has claimed is the shared schedule's to tidy. */
+  it("lets any leader cancel a row nobody has claimed", () => {
+    const row = service.createGathering(maria, { date: "2026-10-06" });
+    expect(service.cancelGathering(joel, row.id).status).toBe("cancelled");
+  });
+
+  it("refuses to cancel a gathering that has been written up", () => {
+    const g = led();
+    service.complete(maria, g.id);
+    expect(() => service.cancelGathering(maria, g.id)).toThrow(
+      expect.objectContaining({ code: "conflict" }),
+    );
+  });
+
+  it("stops anything being recorded on it until it is restored", () => {
+    const g = led();
+    service.cancelGathering(maria, g.id);
+    expect(() =>
+      service.markAttendance(maria, { gatheringId: g.id, personId: "p-anna", status: "present" }),
+    ).toThrow(expect.objectContaining({ code: "conflict" }));
+    expect(() => service.complete(maria, g.id)).toThrow(
+      expect.objectContaining({ code: "conflict" }),
+    );
+  });
+
+  it("restores it to the stage its leaders put it at", () => {
+    const g = led();
+    service.cancelGathering(maria, g.id);
+    expect(service.restoreGathering(maria, g.id).status).toBe("assigned");
+
+    const row = service.createGathering(maria, { date: "2026-10-06" });
+    service.cancelGathering(joel, row.id);
+    expect(service.restoreGathering(joel, row.id).status).toBe("planned");
+  });
+
+  it("does not let an unrelated leader restore a claimed gathering", () => {
+    const g = led();
+    service.cancelGathering(maria, g.id);
+    expect(() => service.restoreGathering(joel, g.id)).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+  });
+
+  it("refuses to restore something that was not cancelled", () => {
+    expect(() => service.restoreGathering(maria, led().id)).toThrow(
+      expect.objectContaining({ code: "conflict" }),
+    );
+  });
+
+  /* Otherwise the amend path would cancel or complete without either rule. */
+  it("cannot be done, or a report completed, by patching the stage", () => {
+    const g = led();
+    for (const status of ["cancelled", "completed", "open"]) {
+      expect(() => service.updateGathering(maria, g.id, { status })).toThrow(
+        expect.objectContaining({ code: "conflict" }),
+      );
+    }
+    expect(repo.findGathering(g.id)?.status).toBe("assigned");
+  });
+});
+
+/** "Selected viewers" is only a real audience when somebody is selected. */
+describe("naming who may read an entry", () => {
+  it("refuses a selected-viewers entry that names nobody", () => {
+    const g = led();
+    expect(() =>
+      service.addEntry(maria, { gatheringId: g.id, body: "For…", visibility: "selected-viewers" }),
+    ).toThrow(expect.objectContaining({ code: "validation" }));
+    /* Naming only yourself is naming nobody else. */
+    expect(() =>
+      service.addEntry(maria, {
+        gatheringId: g.id,
+        body: "For…",
+        visibility: "selected-viewers",
+        viewerIds: [maria.person.id],
+      }),
+    ).toThrow(expect.objectContaining({ code: "validation" }));
+  });
+
+  it("refuses a reader who is not in People", () => {
+    const g = led();
+    expect(() =>
+      service.addEntry(maria, {
+        gatheringId: g.id,
+        body: "For…",
+        visibility: "selected-viewers",
+        viewerIds: ["p-nobody"],
+      }),
+    ).toThrow(expect.objectContaining({ code: "validation" }));
+  });
+
+  it("stores each reader once", () => {
+    const g = led();
+    const entry = service.addEntry(maria, {
+      gatheringId: g.id,
+      body: "For Joel",
+      visibility: "selected-viewers",
+      viewerIds: [joel.person.id, joel.person.id, maria.person.id],
+    });
+    expect(entry.viewerIds).toEqual([joel.person.id]);
+  });
+
+  it("keeps no reader list on an audience that is not named", () => {
+    const g = led();
+    const entry = service.addEntry(maria, {
+      gatheringId: g.id,
+      body: "Ordinary",
+      visibility: "leaders",
+      viewerIds: [joel.person.id],
+    });
+    expect(entry.viewerIds).toBeUndefined();
+  });
+
+  /* A stale list would silently reopen if the entry were changed back. */
+  it("drops the readers when the audience changes to one that is not named", () => {
+    const g = led();
+    const entry = service.addEntry(maria, {
+      gatheringId: g.id,
+      body: "For Joel",
+      visibility: "selected-viewers",
+      viewerIds: [joel.person.id],
+    });
+    expect(
+      service.updateEntry(maria, entry.id, { visibility: "private" }).viewerIds,
+    ).toBeUndefined();
+  });
+
+  /* Leading the gathering beside the author does not make their words yours. */
+  it("does not let a co-leader remove somebody else's entry", () => {
+    const g = service.createGathering(
+      maria,
+      gathering({ assignedLeaderIds: [maria.person.id, joel.person.id] }),
+    );
+    const entry = service.addEntry(maria, { gatheringId: g.id, body: "Maria's note" });
+    expect(() => service.removeEntry(joel, entry.id)).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+    expect(repo.findEntry(entry.id)).toBeDefined();
+  });
+});
+
+describe("attendance marks", () => {
+  it("refuses a person who is not in People", () => {
+    const g = led();
+    expect(() =>
+      service.markAttendance(maria, { gatheringId: g.id, personId: "p-nobody", status: "present" }),
+    ).toThrow(expect.objectContaining({ code: "validation" }));
+  });
+
+  /* Changing a visitor from Present to Absent used to add a second visitor. */
+  it("corrects a visitor's mark rather than adding them again", () => {
+    const g = led();
+    service.markAttendance(maria, { gatheringId: g.id, name: "Visitor Ruth", status: "present" });
+    service.markAttendance(maria, { gatheringId: g.id, name: "Visitor Ruth", status: "absent" });
+
+    const marks = repo.attendanceFor([g.id]);
+    expect(marks).toHaveLength(1);
+    expect(marks[0]?.status).toBe("absent");
+  });
+
+  it("does not let a leader who did not lead it remove a mark", () => {
+    const g = led();
+    const mark = service.markAttendance(maria, {
+      gatheringId: g.id,
+      personId: "p-anna",
+      status: "present",
+    });
+    expect(() => service.removeAttendance(joel, mark.id)).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
   });
 });

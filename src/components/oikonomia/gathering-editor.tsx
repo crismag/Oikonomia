@@ -3,12 +3,12 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/oikonomia/combobox";
+import { VenuePicker } from "@/components/oikonomia/venue-picker";
 import { errorMessage } from "@/lib/calendar-client";
 import { useLifegroup } from "@/components/oikonomia/lifegroup-provider";
 import { PersonAvatar, PersonName } from "@/components/oikonomia/person";
 import { useOrganization } from "./organization-provider";
 import { canAssignGatheringLeaders } from "@/domain/authorize";
-import { venueTypeLabel } from "@/domain/types";
 import type { Gathering } from "@/domain/types";
 import type { Viewer } from "@/domain/viewer";
 
@@ -36,7 +36,7 @@ export function GatheringEditor({
   onDone: (gatheringId: string) => void;
   onCancel: () => void;
 }) {
-  const { people, venues } = useOrganization();
+  const { people } = useOrganization();
   const store = useLifegroup();
   const mayAssignOthers = canAssignGatheringLeaders(viewer);
 
@@ -44,9 +44,6 @@ export function GatheringEditor({
   const [startTime, setStartTime] = useState(gathering?.startTime ?? "");
   const [endTime, setEndTime] = useState(gathering?.endTime ?? "");
   const [venueId, setVenueId] = useState(gathering?.venueId ?? "");
-  const [venueText, setVenueText] = useState(
-    gathering ? (venues.find((v) => v.id === gathering.venueId)?.name ?? "") : "",
-  );
 
   /*
    * A leader schedules gatherings they will lead, so they start on the list.
@@ -58,10 +55,14 @@ export function GatheringEditor({
 
   const [touched, setTouched] = useState(false);
 
+  /*
+   * Only what the server itself requires. A row on the shared schedule may be
+   * saved with no venue and nobody leading it yet — that is how a roster is
+   * prepared — so demanding either here offered a Save that could never
+   * succeed for a leader amending an unclaimed row, who may not add a leader.
+   */
   const problems = {
     ...(date ? {} : { date: "Pick the date this gathering meets." }),
-    ...(venueId ? {} : { venue: "Choose where it meets." }),
-    ...(leaderIds.length > 0 ? {} : { leaders: "A gathering needs someone leading it." }),
     ...(startTime && endTime && endTime <= startTime
       ? { endTime: "The end time is before the start." }
       : {}),
@@ -88,8 +89,9 @@ export function GatheringEditor({
     if (gathering) {
       await store.updateGathering(gathering.id, {
         date,
-        venueId,
-        assignedLeaderIds: leaderIds,
+        ...(venueId ? { venueId } : {}),
+        /* Naming leaders is campus oversight's; anybody else leaves the list as it is. */
+        ...(mayAssignOthers ? { assignedLeaderIds: leaderIds } : {}),
         startTime: startTime || undefined,
         endTime: endTime || undefined,
       });
@@ -99,7 +101,7 @@ export function GatheringEditor({
 
     const id = await store.addGathering({
       date,
-      venueId,
+      ...(venueId ? { venueId } : {}),
       assignedLeaderIds: leaderIds,
       createdBy: viewer.person.id,
       ...(startTime ? { startTime } : {}),
@@ -143,25 +145,15 @@ export function GatheringEditor({
         </Field>
       </div>
 
-      <Field label="Where" error={touched ? problems.venue : undefined}>
-        <Combobox
-          label="Venue"
-          value={venueText}
+      {/* Not a <label>: the picker holds a second control for adding a venue. */}
+      <div>
+        <span className="mb-1 block text-[12px] font-medium text-muted-foreground">Where</span>
+        <VenuePicker
+          venueId={venueId || undefined}
           placeholder="Baronia Residence, SC Church…"
-          width="w-full"
-          suggestions={venues.map((venue) => ({
-            id: venue.id,
-            label: venue.name,
-            meta: venue.area,
-            group: venueTypeLabel[venue.type],
-          }))}
-          onChange={(text, id) => {
-            setVenueText(text);
-            /* Only a chosen venue counts. A half-typed name is not a place. */
-            setVenueId(id ?? "");
-          }}
+          onChoose={(id) => setVenueId(id ?? "")}
         />
-      </Field>
+      </div>
 
       <div>
         <span className="mb-1 block text-[12px] font-medium text-muted-foreground">
@@ -216,13 +208,13 @@ export function GatheringEditor({
            * one sentence, and that is the whole of it.
            */
           <p className="mt-1.5 text-[12px] text-muted-foreground">
-            You are leading this gathering. Assigning someone else is a campus responsibility.
+            {leaderIds.includes(viewer.person.id)
+              ? "You are leading this gathering. Assigning someone else is a campus responsibility."
+              : leaderIds.length === 0
+                ? "Nobody is leading this yet. You can save the details now, and use Assign to me on the gathering to take it on. Naming someone else is a campus responsibility."
+                : "Assigning someone else is a campus responsibility."}
           </p>
         )}
-
-        {touched && problems.leaders ? (
-          <p className="mt-1.5 text-[12px] text-status-overdue">{problems.leaders}</p>
-        ) : null}
       </div>
 
       {failure ? (

@@ -142,6 +142,28 @@ describe("it does not report a record as finished work", () => {
     }
   });
 
+  /** A cancelled gathering did not happen, so no report is owed on it. */
+  it("owes nothing on a gathering that was cancelled", () => {
+    const today = toISO(new Date());
+    const week = weekDays(today);
+    db.prepare("UPDATE person SET created_at = ? WHERE id = ?").run(
+      "2000-01-01T00:00:00.000Z",
+      maria.person.id,
+    );
+
+    const lifegroup = createLifegroupRepository(db);
+    const gathering = lifegroup
+      .gatheringsInRange(week[0]!, week[week.length - 1]!)
+      .find((g) => g.assignedLeaderIds.includes(maria.person.id));
+    if (!gathering) throw new Error("The fixtures should give this leader a gathering this week.");
+
+    const id = `lifegroup-${gathering.id}`;
+    expect(service.build(maria, today).weekly.obligations.map((o) => o.id)).toContain(id);
+
+    lifegroup.setStatus(gathering.id, "cancelled");
+    expect(service.build(maria, today).weekly.obligations.map((o) => o.id)).not.toContain(id);
+  });
+
   /** Follow-ups are worth doing and must never hold the report open. */
   it("marks follow-up entries optional so they cannot hold a gathering open", () => {
     const board = service.build(maria, TODAY);
@@ -178,5 +200,63 @@ describe("it cannot widen access", () => {
       const gathering = lifegroup.findGathering(obligation.id.replace("lifegroup-", ""))!;
       expect(gathering.assignedLeaderIds).toContain(joel.person.id);
     }
+  });
+});
+
+/**
+ * Home and My Progress are this leader's. Somebody else's work in the same
+ * week must not mark this leader's obligation done.
+ */
+describe("it is personal", () => {
+  const reachOut = () => {
+    const board = service.build(maria, TODAY);
+    return board.weekly.obligations.find((o) => o.id === "reach-out")!;
+  };
+
+  beforeEach(() => {
+    db.prepare("DELETE FROM reach_out_report").run();
+    /* Nothing is owed from before a person was entered, and the seed enters
+       them today — so Maria has to have been here before the week in question. */
+    db.prepare("UPDATE person SET created_at = '2026-01-01T00:00:00Z' WHERE id = ?").run(
+      maria.person.id,
+    );
+  });
+
+  it("does not count another leader's Reach-Out report as this leader's", () => {
+    createReachOutRepository(db).insert({
+      title: "Joel's reach-out",
+      reportDate: TODAY,
+      content: "Called three families.",
+      authorId: joel.person.id,
+      contributorIds: [],
+    });
+    const obligation = reachOut();
+    expect(obligation.steps.every((s) => !s.done)).toBe(true);
+    expect(obligation.destination).toBe("/reach-out");
+    expect(JSON.stringify(obligation)).not.toContain("Joel's reach-out");
+  });
+
+  it("counts a report this leader wrote", () => {
+    const written = createReachOutRepository(db).insert({
+      title: "Park walk",
+      reportDate: TODAY,
+      content: "Met two neighbours.",
+      authorId: maria.person.id,
+      contributorIds: [],
+    });
+    const obligation = reachOut();
+    expect(obligation.steps.every((s) => s.done)).toBe(true);
+    expect(obligation.destination).toBe(`/reach-out/${written.id}`);
+  });
+
+  it("counts a report this leader worked on after someone else started it", () => {
+    createReachOutRepository(db).insert({
+      title: "Shared visit",
+      reportDate: TODAY,
+      content: "Visited together.",
+      authorId: joel.person.id,
+      contributorIds: [maria.person.id],
+    });
+    expect(reachOut().steps.every((s) => s.done)).toBe(true);
   });
 });

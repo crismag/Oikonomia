@@ -24,6 +24,7 @@ import { dueLabel, needsAttention, statusLabel } from "@/domain/obligations";
 import {
   gatheringHeadline,
   gatheringStatusLabel,
+  homeGatherings,
   myAction,
   myActionLabel,
 } from "@/domain/lifegroup";
@@ -119,13 +120,11 @@ function HomePage() {
   /*
    * The week, not the future. A gathering led last night still needs writing
    * up, and a card that showed only what is ahead would say "nothing
-   * scheduled" to a leader who owes a report for Thursday.
+   * scheduled" to a leader who owes a report for Thursday. And this leader's,
+   * not the whole schedule: unclaimed rows follow, labelled as needing a leader.
    */
   const weekStart = days[0]!;
-  const myGatherings = [...lifegroup.gatherings]
-    .filter((g) => g.date >= weekStart && g.status !== "cancelled")
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3);
+  const myGatherings = homeGatherings(lifegroup.gatherings, person.id, weekStart, today);
 
   /*
    * What is still open first, then the most recent. A card that led with last
@@ -372,12 +371,25 @@ function HomePage() {
               <ListSkeleton rows={2} />
             ) : myGatherings.length > 0 ? (
               <ul>
-                {myGatherings.map((gathering) => {
+                {myGatherings.map(({ gathering, needsLeader }) => {
                   const action = myAction(
                     gathering,
                     person.id,
                     canJoinGathering(viewer, gathering),
                   );
+                  if (needsLeader) {
+                    return (
+                      <ObjectRow
+                        key={gathering.id}
+                        to={`/lifegroups/${gathering.id}`}
+                        search={{}}
+                        title={gatheringHeadline(venues, gathering)}
+                        context={`${format(fromISO(gathering.date), "EEE d MMM")}${gathering.startTime ? ` · ${gathering.startTime}` : ""}`}
+                        {...(action === "claim" ? { action: myActionLabel.claim } : {})}
+                        meta="Needs a leader"
+                      />
+                    );
+                  }
                   return (
                     <ObjectRow
                       key={gathering.id}
@@ -406,7 +418,7 @@ function HomePage() {
                   </Link>
                 }
               >
-                Nothing scheduled yet. Claim a gathering, or add one.
+                You are not leading a gathering this week, and none is waiting for a leader.
               </CardEmpty>
             )}
           </WorkspaceCard>

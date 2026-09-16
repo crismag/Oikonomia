@@ -45,4 +45,4 @@ Change the person with the assignee list; clear the date and it leaves the week 
 
 ### Completing it
 
-Tick the box beside the task in the note, or on the week. Only the person it was given to and the note's writer may change it. A done task stays listed under the meeting, ticked.
+Tick the box beside the task in the note, or on the week — in the Agenda or the List view — or in the day panel on Monthly Calendar. Only the person it was given to and whoever keeps the note (its writer or note-taker) may change it; a participant who may only read the note can tick the tasks given to them and no others. A done task stays listed under the meeting, ticked.

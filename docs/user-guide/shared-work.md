@@ -26,18 +26,32 @@ its own visibility (below).
 
 Date, time, venue and who is leading. The **venue is reused and never owned**
 by a gathering — the same home or room appears across weeks, and renaming it
-once renames it everywhere.
+once renames it everywhere. A place that is not a venue yet can be added by
+name while choosing where a gathering meets.
+
+While nobody has claimed a gathering, any leader may fill in its date, time and
+venue — on the row or with **Edit details** — without leading it.
+
+**Cancel gathering** takes a gathering that will not happen, or a row added
+twice, off the schedule after a confirmation. It stays listed as **Cancelled**,
+nothing is recorded on it, and it owes nothing on Home or My Progress.
+**Restore gathering** puts it back. Its assigned leaders and campus oversight
+may do either — and any leader while nobody has claimed it. A completed
+gathering is reopened, never cancelled.
 
 ### Attendance
 
 Marked at the gathering. Participation is recorded against the canonical
 person records, not a separate list kept by the group, so the same person is
-the same person across ministries, outreach and attendance.
+the same person across ministries, outreach and attendance. Choose people from
+People; a visitor who is not there can be marked by name. A mark made by
+mistake can be removed.
 
 ### Entries and the gathering report
 
 Entries are written collaboratively during or after a gathering, each with its
-own visibility. After it, a gathering report records what happened.
+own visibility. **Selected viewers** asks you to name at least one person from
+People. Only an entry's author can remove it. After it, a gathering report records what happened.
 
 > A gathering with attendance taken and no report written shows as **in
 > progress**, not done. Saying otherwise would tell a leader they had finished
@@ -59,8 +73,8 @@ is the ministry's own question — its lead and the people on its team.
 A ministry's lead can add material that lives elsewhere from **New → Add link**
 or **Add from Drive**. Both register the document's address and file it under
 the ministry; nothing is copied, and Oikonomia does not connect to Drive — the
-document's own sharing still decides who can open it. **Upload file** is marked
-Soon: the binder does not store files.
+document's own sharing still decides who can open it. There is no upload: the
+binder does not store files.
 
 > **Being shared with a ministry is not membership.** A leader who can read a
 > ministry's document may not have a cursor in it, and is told so plainly

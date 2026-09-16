@@ -34,4 +34,4 @@ It now appears on the ministry's **Documents** view and in Resource Search. Open
 
 - **Add existing material** is shown only to the ministry's lead. Team members can still register a document from [Documents & Forms](topic:documents.register) and choose this ministry.
 - Nothing is copied. The document's own sharing — in Drive or wherever it lives — still decides who can open it.
-- **Upload file** is marked Soon and does nothing. Uploading files is not possible.
+- There is no upload. Oikonomia records where a document lives; it does not store files.

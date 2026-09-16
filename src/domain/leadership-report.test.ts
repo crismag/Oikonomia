@@ -35,6 +35,7 @@ import {
   reportsToYou,
   openFollowUps,
   followUpOnWeek,
+  mayRemoveReport,
 } from "./leadership-report";
 import { resolveAccess } from "./access";
 import { applyOverrides, config, resetOverrides } from "@/config";
@@ -1236,5 +1237,34 @@ describe("report follow-ups", () => {
     expect(followUpOnWeek(agenda, "r1", "b2")?.text).toBe("renamed");
     expect(followUpOnWeek(agenda, "r2", "b2")).toBeUndefined();
     expect(followUpOnWeek([{ ...agenda[0]!, completed: true }], "r1", "b2")).toBeUndefined();
+  });
+});
+
+/**
+ * Deleting is for work in progress. A report whose content is the submitted
+ * record is archived, never removed — and nobody but its author removes it.
+ */
+describe("removing a report", () => {
+  it("lets its author remove it while the content is still editable", () => {
+    expect(mayRemoveReport(report({ status: "draft" }), "p-maria")).toBe(true);
+    expect(mayRemoveReport(report({ status: "shared" }), "p-maria")).toBe(true);
+  });
+
+  it("does not let its author remove the submitted record", () => {
+    expect(mayRemoveReport(report({ status: "published" }), "p-maria")).toBe(false);
+    expect(mayRemoveReport(report({ status: "archived" }), "p-maria")).toBe(false);
+  });
+
+  it("does not let its author remove a report that was once submitted, even reopened", () => {
+    const reopened = report({ status: "draft", revisions: [{} as never] });
+    expect(mayRemoveReport(reopened, "p-maria")).toBe(false);
+  });
+
+  it("does not let anyone else remove it", () => {
+    expect(mayRemoveReport(report({ status: "draft" }), joel.personId)).toBe(false);
+  });
+
+  it("treats a stage it does not recognise as closed", () => {
+    expect(mayRemoveReport(report({ status: "unheard-of" as never }), "p-maria")).toBe(false);
   });
 });

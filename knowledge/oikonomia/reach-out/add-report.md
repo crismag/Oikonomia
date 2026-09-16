@@ -38,6 +38,6 @@ Open the report and choose **Edit**. Any leader may do the same — see [Contrib
 - A report with no title and nothing written offers **Discard** at the bottom of the editor. It is removed at once.
 - Once something is written, the button reads **Delete report** and asks you to confirm. The report and its comments go with it, and there is no undo.
 
-Only the leader who started a report can delete it. For anyone else, the delete is refused.
+Only the leader who started a report can delete it, so only they see **Discard** or **Delete report**. A leader who opens someone else's report in the editor can add to it and save it, but not remove it.
 
 Print a report from **Printable view** on the report.
