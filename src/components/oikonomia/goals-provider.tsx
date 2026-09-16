@@ -14,7 +14,7 @@ import {
   type GoalYear,
 } from "@/lib/goals-api";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
-import type { Goal, GoalTarget, GoalUpdate } from "@/domain/types";
+import type { Goal, GoalScope, GoalTarget, GoalUpdate } from "@/domain/types";
 
 /**
  * Goals state, over real persistence.
@@ -49,12 +49,14 @@ export interface GoalsStore {
   retry: () => void;
   saving: boolean;
 
+  /** Whose the goal is is part of setting it; the server checks the rest. */
   addGoal: (input: {
     title: string;
     year: number;
+    scope: GoalScope;
     target?: GoalTarget;
     ministryId?: string;
-    ownerId?: string;
+    groupId?: string;
   }) => Promise<void>;
   editGoal: (id: string, patch: Partial<Goal>) => Promise<void>;
   removeGoal: (id: string) => Promise<void>;

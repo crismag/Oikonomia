@@ -26,6 +26,7 @@ import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { formatTarget, updatesFor } from "@/domain/goals";
 import { formatTime, fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
+import { canEdit } from "@/domain/authorize";
 import { format } from "date-fns";
 import type { Goal } from "@/domain/types";
 
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/goals/$goalId")({
  * conversation, and there is no percentage anywhere.
  */
 function GoalDetail() {
-  const { campuses, ministries } = useOrganization();
+  const { campuses, ministries, groups } = useOrganization();
   const { goalId } = Route.useParams();
   const navigate = useNavigate();
   const store = useGoals();
@@ -105,6 +106,18 @@ function GoalDetail() {
 
   const history = updatesFor(updates, goal.id);
   const ministry = ministries.find((m) => m.id === goal.ministryId);
+  const group = groups.find((g) => g.id === goal.groupId);
+  /* Offered only to whoever may change it; the server refuses everyone else
+     anyway, and a button that always fails is a dead end. */
+  const editable = canEdit(
+    { persona, person },
+    {
+      kind: "goal",
+      goal,
+      ...(goal.scope === "ministry" && ministry ? { ministry } : {}),
+      ...(goal.scope === "other" && group ? { group } : {}),
+    },
+  );
   const campus = campuses.find((c) => c.id === goal.campusId);
   const origin = goal.carriedFromGoalId
     ? goals.find((g) => g.id === goal.carriedFromGoalId)
@@ -119,7 +132,7 @@ function GoalDetail() {
     <Page>
       <Link
         to="/goals"
-        search={{ year: goal.year }}
+        search={{ year: goal.year, view: goal.scope }}
         className="mb-3 inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
       >
         <ChevronLeft className="size-3.5" aria-hidden />
@@ -134,18 +147,44 @@ function GoalDetail() {
             </span>
             <span aria-hidden>·</span>
             <span>{goal.year}</span>
-            {ministry ? (
-              <>
-                <span aria-hidden>·</span>
-                <Link
-                  to="/ministries/$ministryId"
-                  params={{ ministryId: ministry.id }}
-                  className="transition-colors hover:text-primary"
-                >
-                  {ministry.name}
-                </Link>
-              </>
-            ) : null}
+            <span aria-hidden>·</span>
+            {/* Whose it is, first: a personal goal that relates to a ministry
+                is still the leader's. */}
+            {goal.scope === "personal" ? (
+              <span>
+                Personal goal
+                {ministry ? (
+                  <>
+                    {" · relates to "}
+                    <Link
+                      to="/ministries/$ministryId"
+                      params={{ ministryId: ministry.id }}
+                      className="transition-colors hover:text-primary"
+                    >
+                      {ministry.name}
+                    </Link>
+                  </>
+                ) : null}
+              </span>
+            ) : goal.scope === "ministry" ? (
+              <span>
+                Ministry goal
+                {ministry ? (
+                  <>
+                    {" · "}
+                    <Link
+                      to="/ministries/$ministryId"
+                      params={{ ministryId: ministry.id }}
+                      className="transition-colors hover:text-primary"
+                    >
+                      {ministry.name}
+                    </Link>
+                  </>
+                ) : null}
+              </span>
+            ) : (
+              <span>Group goal{group ? ` · ${group.name}` : ""}</span>
+            )}
           </>
         }
         title={goal.title}
@@ -175,7 +214,7 @@ function GoalDetail() {
             </RailBlock>
 
             {goal.ownerId ? (
-              <RailBlock label="Carried by">
+              <RailBlock label={goal.scope === "personal" ? "Whose goal" : "Carried by"}>
                 <span className="flex min-w-0 items-center gap-2 text-[13px]">
                   <PersonAvatar personId={goal.ownerId} size="sm" />
                   <Link
@@ -207,27 +246,29 @@ function GoalDetail() {
               </ul>
             </RailBlock>
 
-            <RailBlock label="Actions">
-              <GoalActions
-                goal={goal}
-                busy={store.saving}
-                onComplete={(note) => void attempt(() => complete(goal.id, note))}
-                onHold={(reason) => void attempt(() => hold(goal.id, reason))}
-                onResume={() => void attempt(() => resume(goal.id))}
-                onCarry={() =>
-                  void attempt(async () => {
-                    await carryForward(goal.id, goal.year + 1);
-                    /* Only once it exists in the new year. */
-                    void navigate({ to: "/goals", search: { year: goal.year + 1 } });
-                  })
-                }
-              />
-              {failure ? (
-                <p role="alert" className="mt-2 text-[12px] text-status-overdue">
-                  {errorMessage(failure)}
-                </p>
-              ) : null}
-            </RailBlock>
+            {editable ? (
+              <RailBlock label="Actions">
+                <GoalActions
+                  goal={goal}
+                  busy={store.saving}
+                  onComplete={(note) => void attempt(() => complete(goal.id, note))}
+                  onHold={(reason) => void attempt(() => hold(goal.id, reason))}
+                  onResume={() => void attempt(() => resume(goal.id))}
+                  onCarry={() =>
+                    void attempt(async () => {
+                      await carryForward(goal.id, goal.year + 1);
+                      /* Only once it exists in the new year. */
+                      void navigate({ to: "/goals", search: { year: goal.year + 1 } });
+                    })
+                  }
+                />
+                {failure ? (
+                  <p role="alert" className="mt-2 text-[12px] text-status-overdue">
+                    {errorMessage(failure)}
+                  </p>
+                ) : null}
+              </RailBlock>
+            ) : null}
           </>
         }
       >
@@ -289,10 +330,14 @@ function GoalDetail() {
             </ol>
           ) : (
             <p className="px-4 py-4 text-[13px] text-muted-foreground">
-              Nothing recorded yet. Add a note as things move.
+              {editable
+                ? "Nothing recorded yet. Add a note as things move."
+                : "Nothing recorded yet."}
             </p>
           )}
-          <AddUpdate onAdd={(text) => attempt(() => addUpdate(goal.id, text, person.id))} />
+          {editable ? (
+            <AddUpdate onAdd={(text) => attempt(() => addUpdate(goal.id, text, person.id))} />
+          ) : null}
         </Section>
 
         {/*

@@ -312,6 +312,7 @@ describe("goals", () => {
     number: 1,
     year: 2026,
     title: "Training for excellence",
+    scope: "ministry",
     status: "active",
     createdAt: "2026-01-06",
     links: [],
@@ -365,8 +366,38 @@ describe("goals", () => {
     expect(canEdit(maria, shared)).toBe(false);
   });
 
-  it("lets whoever set a goal with no ministry edit it", () => {
-    expect(canEdit(maria, { kind: "goal", goal: goal() })).toBe(true);
+  it("lets only its owner edit a personal goal", () => {
+    const personal = goal({ scope: "personal", ownerId: maria.person.id });
+    expect(canEdit(maria, { kind: "goal", goal: personal })).toBe(true);
+    expect(canEdit(maria, { kind: "goal", goal: { ...personal, ownerId: "p-somebody" } })).toBe(
+      false,
+    );
+  });
+
+  /** Relating to a ministry does not hand a leader's own goal to the ministry. */
+  it("does not let a ministry's people edit a personal goal that relates to it", () => {
+    const personal = goal({ scope: "personal", ownerId: "p-somebody", ministryId: "min-music" });
+    expect(
+      canEdit(maria, { kind: "goal", goal: personal, ministry: ministryById("min-music") }),
+    ).toBe(false);
+  });
+
+  it("lets a group's members edit its goal, and nobody else", () => {
+    const groupGoal = goal({ scope: "other", groupId: "grp-1" });
+    const group = {
+      id: "grp-1",
+      name: "Elders",
+      description: "",
+      leadershipAudience: false,
+      active: true,
+      memberIds: [maria.person.id],
+      groupType: "team",
+    };
+    expect(canEdit(maria, { kind: "goal", goal: groupGoal, group })).toBe(true);
+    expect(
+      canEdit(maria, { kind: "goal", goal: groupGoal, group: { ...group, memberIds: [] } }),
+    ).toBe(false);
+    expect(canEdit(maria, { kind: "goal", goal: groupGoal })).toBe(false);
   });
 });
 

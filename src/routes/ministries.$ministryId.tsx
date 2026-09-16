@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useState } from "react";
 import {
   ChevronLeft,
+  ChevronRight,
   Cloud,
   ExternalLink,
   FileText,
@@ -26,7 +27,8 @@ import { Section } from "@/components/oikonomia/section";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
-import { goalCounts, goalsForYear } from "@/domain/goals";
+import { goalCounts, goalsForYear, ministryGoals, personalGoalsRelatingTo } from "@/domain/goals";
+import { GoalStatusLine } from "@/components/oikonomia/goal-status";
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { createBinderDocument } from "@/lib/documents-api";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
@@ -42,7 +44,7 @@ import {
 import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
-import type { Ministry, ResourceSearchResult } from "@/domain/types";
+import type { Goal, Ministry, ResourceSearchResult } from "@/domain/types";
 
 type View = "overview" | "goals" | "documents" | "activity";
 
@@ -185,7 +187,9 @@ function Overview({
   const { goals } = useGoals();
   const { notes } = useMeetings();
   const year = new Date().getFullYear();
-  const tally = goalCounts(goalsForYear(goals, year).filter((g) => g.ministryId === ministry.id));
+  /* The ministry's own goals. Leaders' personal goals that relate to it are
+     theirs, and are not the ministry's progress. */
+  const tally = goalCounts(ministryGoals(goalsForYear(goals, year), ministry.id));
 
   const announcements = documents.filter((doc) => doc.kind === "Announcement");
   const recent = documents.filter((doc) => doc.kind !== "Announcement").slice(0, 6);
@@ -305,62 +309,114 @@ function Overview({
 /* ------------------------------------------------------------------ goals */
 
 /**
- * The ministry's own goals.
+ * The ministry's goals, then its leaders' own goals that relate to it.
  *
- * Listed here in full rather than linked away, so goals read as the ministry's
- * own rather than as a separate system that happens to know about ministries.
+ * The ministry's goals are what the ministry wants to improve. A leader's
+ * personal goal that says it relates to this ministry is still that leader's,
+ * so it is kept under their name — closed until opened — rather than numbered
+ * into the ministry's list, where a dozen leaders' goals would read as one
+ * incoherent plan.
  */
 function Goals({ ministry }: { ministry: Ministry }) {
   const { goals } = useGoals();
+  const { people } = useOrganization();
   const year = new Date().getFullYear();
-  const mine = goalsForYear(goals, year).filter((g) => g.ministryId === ministry.id);
+  const ofYear = goalsForYear(goals, year);
+  const own = ministryGoals(ofYear, ministry.id);
+
+  const byLeader = new Map<string, Goal[]>();
+  for (const goal of personalGoalsRelatingTo(ofYear, ministry.id)) {
+    const owner = goal.ownerId ?? "";
+    byLeader.set(owner, [...(byLeader.get(owner) ?? []), goal]);
+  }
+  const leaders = [...byLeader.entries()]
+    .map(([personId, theirs]) => ({
+      personId,
+      name: people.find((p) => p.id === personId)?.name ?? "A leader",
+      goals: theirs,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <Section
-      title={`${year} Goals`}
-      meta={mine.length > 0 ? `${mine.length}` : undefined}
-      action={
-        mine.length > 0 ? (
+    <div className="space-y-4">
+      <Section
+        title={`${year} ministry goals`}
+        meta={own.length > 0 ? `${own.length}` : undefined}
+        action={
           <Link
             to="/goals"
-            search={{ year }}
+            search={{ year, view: "ministry" }}
             className="inline-flex min-h-6 items-center text-[13px] font-medium text-primary transition-colors hover:text-primary/80"
           >
-            Every goal this year
+            All ministry goals
           </Link>
-        ) : undefined
-      }
-    >
-      {mine.length > 0 ? (
-        <ol className="divide-y divide-border">
-          {mine.map((goal) => (
-            <li key={goal.id} className="row-quiet">
-              <Link
-                to="/goals/$goalId"
-                params={{ goalId: goal.id }}
-                className="flex items-start gap-3 px-4 py-2.5"
-              >
-                <span className="w-6 shrink-0 pt-0.5 text-right font-display text-[14px] tabular-nums text-foreground">
-                  {String(goal.number).padStart(2, "0")}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px]">{goal.title}</span>
-                  {goal.description ? (
-                    <span className="block truncate text-[12px] text-muted-foreground">
-                      {goal.description}
+        }
+      >
+        {own.length > 0 ? (
+          <ol className="divide-y divide-border">
+            {own.map((goal) => (
+              <MinistryGoalRow key={goal.id} goal={goal} />
+            ))}
+          </ol>
+        ) : (
+          <EmptyState icon={Target} title="No goals set for this year yet">
+            Goals set for {ministry.name} stay with {ministry.name}. Set one from Goals, choosing
+            this ministry.
+          </EmptyState>
+        )}
+      </Section>
+
+      {leaders.length > 0 ? (
+        <Section title="Leaders' own goals that relate to this ministry">
+          <p className="border-b border-border px-4 py-2 text-[12px] leading-relaxed text-muted-foreground">
+            Each is that leader&apos;s personal goal, not the ministry&apos;s.
+          </p>
+          <ul className="divide-y divide-border">
+            {leaders.map((leader) => (
+              <li key={leader.personId}>
+                <details className="group">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2.5 transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
+                    <ChevronRight
+                      className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate text-[14px]">{leader.name}</span>
+                    <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
+                      {leader.goals.length} {leader.goals.length === 1 ? "goal" : "goals"}
                     </span>
-                  ) : null}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <EmptyState icon={Target} title="No goals set for this year yet">
-          Goals set here stay with {ministry.name}.
-        </EmptyState>
-      )}
-    </Section>
+                  </summary>
+                  <ol className="divide-y divide-border border-t border-border">
+                    {leader.goals.map((goal) => (
+                      <MinistryGoalRow key={goal.id} goal={goal} />
+                    ))}
+                  </ol>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+    </div>
+  );
+}
+
+function MinistryGoalRow({ goal }: { goal: Goal }) {
+  return (
+    <li className="row-quiet">
+      <Link
+        to="/goals/$goalId"
+        params={{ goalId: goal.id }}
+        className="flex items-start gap-3 px-4 py-2.5"
+      >
+        <span className="w-6 shrink-0 pt-0.5 text-right font-display text-[14px] tabular-nums text-foreground">
+          {String(goal.number).padStart(2, "0")}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px]">{goal.title}</span>
+          <GoalStatusLine goal={goal} className="mt-0.5" />
+        </span>
+      </Link>
+    </li>
   );
 }
 
@@ -555,7 +611,7 @@ function Activity({ ministry }: { ministry: Ministry }) {
   const { goals, updates } = useGoals();
   const { notes } = useMeetings();
 
-  const goalIds = new Set(goals.filter((goal) => goal.ministryId === ministry.id).map((g) => g.id));
+  const goalIds = new Set(ministryGoals(goals, ministry.id).map((g) => g.id));
   const titleOf = (goalId: string) => goals.find((goal) => goal.id === goalId)?.title ?? "a goal";
 
   const entries = [

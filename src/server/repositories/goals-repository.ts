@@ -1,7 +1,7 @@
 import type { Database as Db } from "better-sqlite3";
 
 import { newId, nowIso, type Writable } from "../db/records";
-import type { AudiencePolicy, BinderLink, Goal, GoalUpdate } from "@/domain/types";
+import type { AudiencePolicy, BinderLink, Goal, GoalScope, GoalUpdate } from "@/domain/types";
 
 /**
  * Goals rows.
@@ -17,7 +17,9 @@ interface GoalRow {
   year: number;
   title: string;
   description: string | null;
+  scope: GoalScope;
   ministry_id: string | null;
+  group_id: string | null;
   campus_id: string | null;
   owner_id: string | null;
   target_precision: string | null;
@@ -58,11 +60,13 @@ function toGoal(row: GoalRow): Goal {
     number: row.number,
     year: row.year,
     title: row.title,
+    scope: row.scope,
     status: row.status,
     links: list<BinderLink>(row.links),
     createdAt: row.created_at,
     ...has(row.description, "description"),
     ...has(row.ministry_id, "ministryId"),
+    ...has(row.group_id, "groupId"),
     ...has(row.campus_id, "campusId"),
     ...has(row.owner_id, "ownerId"),
     ...(row.target_precision && row.target_value
@@ -97,7 +101,9 @@ function goalColumns(values: GoalValues) {
     year: values.year,
     title: values.title,
     description: values.description ?? null,
+    scope: values.scope,
     ministry_id: values.ministryId ?? null,
+    group_id: values.groupId ?? null,
     campus_id: values.campusId ?? null,
     owner_id: values.ownerId ?? null,
     target_precision: values.target?.precision ?? null,
@@ -115,7 +121,13 @@ function goalColumns(values: GoalValues) {
 
 export function createGoalsRepository(db: Db) {
   const columns = Object.keys(
-    goalColumns({ number: 0, year: 0, title: "", status: "active" } as GoalValues),
+    goalColumns({
+      number: 0,
+      year: 0,
+      title: "",
+      scope: "personal",
+      status: "active",
+    } as GoalValues),
   );
 
   const insert = db.prepare(

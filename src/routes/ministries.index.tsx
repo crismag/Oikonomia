@@ -8,7 +8,7 @@ import { Page, PageHeader } from "@/components/oikonomia/page";
 import { PersonAvatar, PersonStack } from "@/components/oikonomia/person";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
-import { goalCounts, goalsForYear } from "@/domain/goals";
+import { goalCounts, goalsForYear, ministryGoals } from "@/domain/goals";
 import { useGoals } from "@/components/oikonomia/goals-provider";
 import { useFiledDocuments } from "@/components/oikonomia/filed-documents";
 import { relationshipLabel, relationshipTo } from "@/domain/ministry";
@@ -85,9 +85,7 @@ function MinistriesIndex() {
               ministry={ministry}
               relationship={relation(ministry)}
               goalTally={goalCounts(
-                goalsForYear(goals, new Date().getFullYear()).filter(
-                  (g) => g.ministryId === ministry.id,
-                ),
+                ministryGoals(goalsForYear(goals, new Date().getFullYear()), ministry.id),
               )}
             />
           ))}

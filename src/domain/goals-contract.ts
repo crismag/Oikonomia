@@ -35,7 +35,9 @@ const binderLink = z.object({
   label: z.string().optional(),
 });
 
-export const createGoal = z.object({
+export const goalScopes = ["personal", "ministry", "other"] as const;
+
+const goalFields = {
   title: z.string().trim().min(1, "Write what the goal is."),
   year: z.coerce
     .number()
@@ -43,12 +45,39 @@ export const createGoal = z.object({
     .min(2000, "That year is too far back.")
     .max(2100, "That year is too far ahead."),
   description: z.string().trim().max(2000).optional(),
-  ministryId: z.string().min(1).optional(),
   campusId: z.string().min(1).optional(),
-  ownerId: z.string().min(1).optional(),
   target: goalTarget.optional(),
   links: z.array(binderLink).default([]),
-});
+};
+
+/**
+ * Setting a goal says whose it is.
+ *
+ * The scope decides what else is required, so a ministry's goal cannot be
+ * saved without its ministry and a group's without its group. A personal goal
+ * is always the person setting it; the server takes the owner from the
+ * request, never from the form.
+ */
+export const createGoal = z.discriminatedUnion("scope", [
+  z.object({
+    ...goalFields,
+    scope: z.literal("personal"),
+    /* What it relates to, if anything. It does not make it the ministry's. */
+    ministryId: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...goalFields,
+    scope: z.literal("ministry"),
+    ministryId: z.string().min(1, "Choose the ministry this goal belongs to."),
+    ownerId: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...goalFields,
+    scope: z.literal("other"),
+    groupId: z.string().min(1, "Choose the group this goal belongs to."),
+    ownerId: z.string().min(1).optional(),
+  }),
+]);
 
 export const updateGoal = z.object({
   title: z.string().trim().min(1, "Write what the goal is.").optional(),

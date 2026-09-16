@@ -12,8 +12,8 @@ import { useOrganization } from "./organization-provider";
 import { Section } from "./section";
 
 /**
- * The goals behind the reports a leader receives — one person or ministry at
- * a time.
+ * The goals behind the reports a leader receives — one person, ministry or
+ * group at a time.
  *
  * This replaced a panel that pooled every readable goal's progress into one
  * list sorted by status. A leader's goals are personal; mixed with everybody
@@ -23,7 +23,7 @@ import { Section } from "./section";
  */
 export function GoalsByWhose({ year }: { year: number }) {
   const { goals } = useGoals();
-  const { people, ministries, ministryById } = useOrganization();
+  const { people, ministries, groups, ministryById } = useOrganization();
   const { persona, person } = useViewer();
 
   /* Only goals this viewer may read. */
@@ -33,10 +33,16 @@ export function GoalsByWhose({ year }: { year: number }) {
     return level === "full" || level === "limited";
   });
 
-  const grouped = goalsByWhose(readable, { year, viewerId: person.id, people, ministries });
+  const grouped = goalsByWhose(readable, {
+    year,
+    viewerId: person.id,
+    people,
+    ministries,
+    groups,
+  });
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? "Someone";
 
-  if (grouped.people.length + grouped.ministries.length + grouped.shared.length === 0) {
+  if (grouped.people.length + grouped.ministries.length + grouped.groups.length === 0) {
     return null;
   }
 
@@ -55,8 +61,8 @@ export function GoalsByWhose({ year }: { year: number }) {
       }
     >
       <p className="border-b border-border px-4 py-2 text-[12px] leading-relaxed text-muted-foreground">
-        Each leader&apos;s goals are their own. Open a person or a ministry to see theirs, and a
-        goal to read it.
+        Each leader&apos;s goals are their own. Open a person, a ministry or a group to see theirs,
+        and a goal to read it.
       </p>
 
       <div className="divide-y divide-border">
@@ -80,9 +86,15 @@ export function GoalsByWhose({ year }: { year: number }) {
           </Group>
         ) : null}
 
-        {grouped.shared.length > 0 ? (
-          <Group label="Shared">
-            <Whose name="Shared goals" goals={grouped.shared} />
+        {grouped.groups.length > 0 ? (
+          <Group label="Other groups">
+            {grouped.groups.map(({ groupId, goals: theirs }) => (
+              <Whose
+                key={groupId}
+                name={groups.find((g) => g.id === groupId)?.name ?? "A group"}
+                goals={theirs}
+              />
+            ))}
           </Group>
         ) : null}
       </div>

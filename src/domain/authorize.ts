@@ -11,6 +11,7 @@ import type {
   MeetingNote,
   Ministry,
   ReachOutReport,
+  ResponsibilityGroup,
   ScheduleEntry,
 } from "./types";
 
@@ -50,7 +51,12 @@ export type Subject =
   /* The ministry travels with the goal rather than being looked up: this
      module decides rules, and a module that reaches for a directory of its own
      ends up deciding them against a different one than the caller saw. */
-  | { kind: "goal"; goal: Goal; ministry?: Ministry | undefined }
+  | {
+      kind: "goal";
+      goal: Goal;
+      ministry?: Ministry | undefined;
+      group?: ResponsibilityGroup | undefined;
+    }
   | { kind: "schedule-entry"; entry: ScheduleEntry };
 
 /** What a viewer may do with one subject. All four default to `false`. */
@@ -142,9 +148,12 @@ export function permissionsFor(viewer: Viewer, subject: Subject): Permissions {
     }
 
     /*
-     * Goals are a ministry's annual plan rather than a private record, so they
-     * are readable by anyone who can reach the page, and editable by anyone who
-     * works in that ministry. A goal with no ministry belongs to whoever set it.
+     * A goal is readable by anyone who can reach the page (its audience policy
+     * is applied before it gets here). Who may change it follows whose it is:
+     *
+     * - a personal goal, only the leader it belongs to;
+     * - a ministry's goal, anyone who works in that ministry;
+     * - another group's goal, that group's members.
      *
      * Membership is asked of `relationshipTo`, the ministry module's own rule,
      * rather than read off `person.ministryIds`. The two disagree — a person
@@ -153,11 +162,18 @@ export function permissionsFor(viewer: Viewer, subject: Subject): Permissions {
      * Ministry page says they serve in.
      */
     case "goal": {
-      const ministryId = subject.goal.ministryId;
-      if (!ministryId) return { view: true, edit: true, comment: false, review: false };
-
+      const { goal } = subject;
+      if (goal.scope === "personal") {
+        return { view: true, edit: goal.ownerId === me, comment: false, review: false };
+      }
+      if (goal.scope === "other") {
+        const group =
+          subject.group && subject.group.id === goal.groupId ? subject.group : undefined;
+        const edit = !!group && group.active && group.memberIds.includes(me);
+        return { view: true, edit, comment: false, review: false };
+      }
       const ministry =
-        subject.ministry && subject.ministry.id === ministryId ? subject.ministry : undefined;
+        subject.ministry && subject.ministry.id === goal.ministryId ? subject.ministry : undefined;
       const edit = ministry ? canContributeMinistry(relationshipTo(ministry, me)) : false;
       return { view: true, edit, comment: false, review: false };
     }

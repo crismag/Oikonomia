@@ -2,7 +2,7 @@ import { differenceInCalendarDays, format, parse } from "date-fns";
 
 import { fromISO, toISO } from "./schedule";
 import { config } from "@/config";
-import type { Goal, GoalStatus, GoalTarget, GoalUpdate, ReportableItem } from "./types";
+import type { GoalScope, Goal, GoalStatus, GoalTarget, GoalUpdate, ReportableItem } from "./types";
 
 /**
  * Goal logic.
@@ -158,66 +158,137 @@ export function reportableFromGoals(goals: Goal[], updates: GoalUpdate[]): Repor
 }
 
 /** Today as an ISO date, for update stamps. */
+/** What each scope is called where goals are grouped. */
+export const goalScopeLabel: Record<GoalScope, string> = {
+  personal: "Personal goals",
+  ministry: "Ministry goals",
+  other: "Other groups",
+};
+
+/** A ministry's own goals — not leaders' personal goals that relate to it. */
+export const ministryGoals = (goals: Goal[], ministryId: string) =>
+  goals.filter((goal) => goal.scope === "ministry" && goal.ministryId === ministryId);
+
+/** Leaders' personal goals that say they relate to this ministry. */
+export const personalGoalsRelatingTo = (goals: Goal[], ministryId: string) =>
+  goals.filter((goal) => goal.scope === "personal" && goal.ministryId === ministryId);
+
+/** One group of goals: whose they are, and whether the viewer is part of it. */
+export interface GoalGroup {
+  id: string;
+  goals: Goal[];
+  /** The viewer leads, serves in, or is a member of it. */
+  yours: boolean;
+}
+
+interface Structure {
+  year: number;
+  viewerId: string;
+  ministries: { id: string; leadId: string; teamIds: string[] }[];
+  groups: { id: string; memberIds: string[] }[];
+}
+
 /**
- * Goals as a leader who receives reports should reach them: one owner or one
- * ministry at a time.
+ * Goals for My Work, kept apart by whose they are.
  *
- * A leader's goals are theirs. Pooled with everybody else's and sorted by
- * progress they stop meaning anything — "In progress" across twelve people
- * and four ministries is a list, not a picture of anyone. So they are grouped
- * by whose they are, and each is a way into its own record:
+ * A leader's personal goals, each ministry's goals, and each other group's
+ * goals are different things; one list of all of them is incoherent. Personal
+ * means **this leader's own** — other leaders' personal goals are theirs, and
+ * are reached through that person. Ministries and groups the viewer belongs
+ * to come first.
  *
- * - **people who report to this leader** — every goal that person owns, even
- *   one filed under a ministry: a goal with an owner is that leader's goal,
- *   and the ministry is only its context;
- * - **ministries** this leader leads or serves in, or that one of their
- *   people leads — only the ministry's own goals, which nobody owns;
- * - **shared** goals, which belong to no one person or ministry.
+ * An `other` goal with no group (from before groups were required) is kept in
+ * a group of its own with an empty id rather than dropped.
+ */
+export function goalsForMyWork(
+  goals: Goal[],
+  context: Structure,
+): { personal: Goal[]; ministries: GoalGroup[]; groups: GoalGroup[] } {
+  const ofYear = goalsForYear(goals, context.year);
+  const me = context.viewerId;
+
+  const personal = ofYear.filter((goal) => goal.scope === "personal" && goal.ownerId === me);
+
+  const ministryYours = (id: string) => {
+    const ministry = context.ministries.find((m) => m.id === id);
+    return !!ministry && (ministry.leadId === me || ministry.teamIds.includes(me));
+  };
+  const groupYours = (id: string) =>
+    !!context.groups.find((g) => g.id === id)?.memberIds.includes(me);
+
+  return {
+    personal,
+    ministries: bucket(ofYear, "ministry", (goal) => goal.ministryId ?? "", ministryYours),
+    groups: bucket(ofYear, "other", (goal) => goal.groupId ?? "", groupYours),
+  };
+}
+
+function bucket(
+  goals: Goal[],
+  scope: GoalScope,
+  keyOf: (goal: Goal) => string,
+  yours: (id: string) => boolean,
+): GoalGroup[] {
+  const byKey = new Map<string, Goal[]>();
+  for (const goal of goals) {
+    if (goal.scope !== scope) continue;
+    const key = keyOf(goal);
+    byKey.set(key, [...(byKey.get(key) ?? []), goal]);
+  }
+  return [...byKey.entries()]
+    .map(([id, grouped]) => ({ id, goals: grouped, yours: id !== "" && yours(id) }))
+    .sort((a, b) => Number(b.yours) - Number(a.yours));
+}
+
+/**
+ * Goals as a leader who receives reports should reach them: one person, one
+ * ministry or one group at a time.
  *
+ * - **people who report to this leader** — each person's personal goals;
+ * - **ministries** this leader or one of their people leads or serves in —
+ *   each ministry's own goals;
+ * - **other groups** this leader or one of their people belongs to.
+ *
+ * Grouped by the goal's stated scope, never by which fields happen to be set.
  * Pass only goals the viewer may read. A group with no goals is omitted.
  */
 export interface GoalsByWhose {
   people: { personId: string; goals: Goal[] }[];
   ministries: { ministryId: string; goals: Goal[] }[];
-  shared: Goal[];
+  groups: { groupId: string; goals: Goal[] }[];
 }
 
 export function goalsByWhose(
   goals: Goal[],
-  context: {
-    year: number;
-    viewerId: string;
-    people: { id: string; reportsToId?: string | undefined }[];
-    ministries: { id: string; leadId: string; teamIds: string[] }[];
-  },
+  context: Structure & { people: { id: string; reportsToId?: string | undefined }[] },
 ): GoalsByWhose {
   const ofYear = goalsForYear(goals, context.year);
   const reportees = context.people.filter((person) => person.reportsToId === context.viewerId);
-  const reporteeIds = new Set(reportees.map((person) => person.id));
+  const circle = new Set([context.viewerId, ...reportees.map((person) => person.id)]);
 
   const people = reportees
     .map((person) => ({
       personId: person.id,
-      goals: ofYear.filter((goal) => goal.ownerId === person.id),
+      goals: ofYear.filter((goal) => goal.scope === "personal" && goal.ownerId === person.id),
     }))
     .filter((group) => group.goals.length > 0);
 
   const ministries = context.ministries
     .filter(
-      (ministry) =>
-        ministry.leadId === context.viewerId ||
-        ministry.teamIds.includes(context.viewerId) ||
-        reporteeIds.has(ministry.leadId),
+      (ministry) => circle.has(ministry.leadId) || ministry.teamIds.some((id) => circle.has(id)),
     )
-    .map((ministry) => ({
-      ministryId: ministry.id,
-      goals: ofYear.filter((goal) => goal.ministryId === ministry.id && !goal.ownerId),
+    .map((ministry) => ({ ministryId: ministry.id, goals: ministryGoals(ofYear, ministry.id) }))
+    .filter((group) => group.goals.length > 0);
+
+  const groups = context.groups
+    .filter((group) => group.memberIds.some((id) => circle.has(id)))
+    .map((group) => ({
+      groupId: group.id,
+      goals: ofYear.filter((goal) => goal.scope === "other" && goal.groupId === group.id),
     }))
     .filter((group) => group.goals.length > 0);
 
-  const shared = ofYear.filter((goal) => !goal.ministryId && !goal.ownerId);
-
-  return { people, ministries, shared };
+  return { people, ministries, groups };
 }
 
 export const todayISO = () => toISO(new Date());

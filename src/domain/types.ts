@@ -959,6 +959,16 @@ export interface AttendanceRecord {
 export type GoalStatus = "active" | "completed" | "on-hold" | "carried-forward";
 
 /**
+ * What a goal belongs to — chosen when it is set, never inferred.
+ *
+ * - `personal`: a leader's own goal (`ownerId`). A `ministryId` on it is only
+ *   what it relates to.
+ * - `ministry`: the ministry's goal (`ministryId`).
+ * - `other`: a goal of another group the church has named (`groupId`).
+ */
+export type GoalScope = "personal" | "ministry" | "other";
+
+/**
  * The binder writes "June", "target July" and "May 2026" interchangeably.
  * Month-precision is modelled explicitly rather than faked as the 1st, so a
  * month target never renders as a spurious day.
@@ -1008,7 +1018,11 @@ export interface Goal {
   year: number;
   title: string;
   description?: string;
+  /** Whose goal this is. Decides where it is listed and who may change it. */
+  scope: GoalScope;
   ministryId?: string;
+  /** The responsibility group an `other` goal belongs to. */
+  groupId?: string;
   campusId?: string;
   ownerId?: string;
   target?: GoalTarget;
