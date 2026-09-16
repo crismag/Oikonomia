@@ -20,10 +20,10 @@ import type { Viewer } from "@/domain/viewer";
  * - The structure is **copied onto a record** when it is created, with the
  *   version it came from. Editing a master checklist must never retroactively
  *   rewrite what somebody already completed.
- * - Deleting a definition does not delete its records in spirit — a completed
- *   checklist is evidence of what was done. The schema cascades today because
- *   an orphaned record has no structure to render, and the honest fix is
- *   archiving rather than deleting; that is recorded as deferred.
+ * - Deleting a definition never deletes its records — a completed checklist is
+ *   evidence of what was done. A definition that has records is archived: it
+ *   is no longer offered for new records, and each record renders from its own
+ *   copy of the structure. Only a definition nothing was made from is deleted.
  *
  * Who may edit a form is the ministry's question, and Ministry already answers
  * it. Until a form carries a ministry that can be checked, editing is limited
@@ -175,12 +175,18 @@ export function createFormsService(repo: FormsRepository) {
       } as DefinitionValues);
     },
 
-    deleteDefinition(viewer: Viewer, id: string): void {
+    /** Deleted if nothing was made from it; archived, keeping its records, if it was. */
+    deleteDefinition(viewer: Viewer, id: string): { outcome: "deleted" | "archived" } {
       const definition = requireDefinition(id);
       if (!mayDesign(viewer, definition)) {
         throw ApiError.forbidden(text("refusal.form.owner"));
       }
+      if (repo.records(id).length > 0) {
+        repo.archiveDefinition(id);
+        return { outcome: "archived" };
+      }
       repo.deleteDefinition(id);
+      return { outcome: "deleted" };
     },
 
     /**
@@ -192,6 +198,11 @@ export function createFormsService(repo: FormsRepository) {
     createRecord(viewer: Viewer, input: unknown): FormRecord {
       const parsed = parse(createRecord, input);
       const definition = requireDefinition(parsed.definitionId);
+      if (definition.archivedAt) {
+        throw ApiError.conflict(
+          "This form has been retired. Its records are kept, but no new ones can be started.",
+        );
+      }
 
       return repo.insertRecord({
         formDefinitionId: definition.id,

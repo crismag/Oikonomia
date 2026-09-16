@@ -44,7 +44,10 @@ function FormsLibrary() {
   const [ministryId, setMinistryId] = useState<string | null>(null);
 
   const q = query.trim().toLowerCase();
+  /* A retired form is not offered for new records; it keeps its own list. */
+  const retired = definitions.filter((definition) => !!definition.archivedAt);
   const visible = definitions.filter((definition) => {
+    if (definition.archivedAt) return false;
     if (ministryId && definition.ministryId !== ministryId) return false;
     if (!q) return true;
     /* Search reaches into the design: section names and field labels are how a
@@ -137,11 +140,44 @@ function FormsLibrary() {
               })}
             </ul>
           ) : (
-            <EmptyState icon={ClipboardList} title="No forms match that search">
+            <EmptyState
+              icon={ClipboardList}
+              title={query.trim() || ministryId ? "No forms match that search" : "No forms yet"}
+            >
               Create the checklist or form your ministry needs — no programming required.
             </EmptyState>
           )}
         </Section>
+
+        {retired.length > 0 ? (
+          <Section title="Retired forms" meta={`${retired.length}`}>
+            <p className="border-b border-border px-4 py-2 text-[12px] leading-relaxed text-muted-foreground">
+              Deleted after records were made with them. The records are kept; no new ones can be
+              started.
+            </p>
+            <ul className="divide-y divide-border">
+              {retired.map((definition) => {
+                const count = recordsFor(definition.id).length;
+                return (
+                  <li key={definition.id} className="row-quiet">
+                    <Link
+                      to="/forms/$formId"
+                      params={{ formId: definition.id }}
+                      className="flex items-center justify-between gap-3 px-4 py-2.5"
+                    >
+                      <span className="min-w-0 flex-1 truncate text-[14px] text-muted-foreground">
+                        {definition.title}
+                      </span>
+                      <span className="shrink-0 text-[12px] text-muted-foreground">
+                        {count} {count === 1 ? "record" : "records"}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+        ) : null}
 
         {recent.length > 0 ? (
           <Section title="Recent records" meta={`${records.length} total`}>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   ChevronDown,
@@ -13,11 +13,13 @@ import {
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FormSheet } from "@/components/oikonomia/form-sheet";
+import { DetailSkeleton, ErrorState } from "@/components/oikonomia/async-state";
 import { FormFieldView } from "@/components/oikonomia/form-field";
 import { useForms } from "@/components/oikonomia/forms-provider";
 import { Page } from "@/components/oikonomia/page";
 import { PersonName } from "@/components/oikonomia/person";
 import { cn } from "@/lib/utils";
+import { errorMessage } from "@/lib/calendar-client";
 import {
   duplicateField,
   duplicateSection,
@@ -29,7 +31,7 @@ import {
 import { fromISO } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
-import type { FormField, FormFieldType, FormSection } from "@/domain/types";
+import type { FormDefinition, FormField, FormFieldType, FormSection } from "@/domain/types";
 
 export const Route = createFileRoute("/forms/$formId")({
   validateSearch: (search: Record<string, unknown>): { mode?: "print" } =>
@@ -66,12 +68,40 @@ const addableTypes: FormFieldType[] = [
  */
 function FormBuilder() {
   const { formId } = Route.useParams();
-  const { mode } = Route.useSearch();
-  const { definitions, saveDefinition, renameDefinition, recordsFor } = useForms();
-  const { person } = useViewer();
+  const store = useForms();
+  const definition = store.definitions.find((d) => d.id === formId);
 
-  const definition = definitions.find((d) => d.id === formId);
+  /* Absent is not missing while the forms are still loading: opening a form by
+     its address used to answer "not found" for one that exists. */
+  if (!definition && store.status === "loading") {
+    return (
+      <Page>
+        <DetailSkeleton />
+      </Page>
+    );
+  }
+  if (!definition && store.status === "error") {
+    return (
+      <Page>
+        <ErrorState title="This form could not be loaded" onRetry={store.retry}>
+          Your forms are safe. This is a problem reaching them.
+        </ErrorState>
+      </Page>
+    );
+  }
   if (!definition) throw notFound();
+
+  return <FormDesigner key={definition.id} definition={definition} />;
+}
+
+function FormDesigner({ definition }: { definition: FormDefinition }) {
+  const formId = definition.id;
+  const { mode } = Route.useSearch();
+  const { saveDefinition, renameDefinition, recordsFor, deleteDefinition } = useForms();
+  const navigate = useNavigate();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteFailure, setDeleteFailure] = useState<unknown>(null);
+  const { person } = useViewer();
 
   const [sections, setSections] = useState<FormSection[]>(definition.sections);
   const [selected, setSelected] = useState<string | null>(null);
@@ -206,8 +236,64 @@ function FormBuilder() {
           >
             {dirty ? `Save as v${definition.version + 1}` : "Saved"}
           </button>
+
+          {definition.ownerId === person.id && !definition.archivedAt ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              className="rounded-md px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted hover:text-status-overdue"
+            >
+              Delete form
+            </button>
+          ) : null}
         </div>
       </header>
+
+      {definition.archivedAt ? (
+        <p className="mb-3 rounded-md border border-border bg-surface-muted px-3 py-2 text-[13px] text-muted-foreground">
+          This form was retired on{" "}
+          {format(fromISO(definition.archivedAt.slice(0, 10)), "d MMMM yyyy")}. Its {records.length}{" "}
+          {records.length === 1 ? "record is" : "records are"} kept; no new ones can be started.
+        </p>
+      ) : null}
+
+      {confirmingDelete ? (
+        <div
+          role="alertdialog"
+          aria-label="Delete this form?"
+          className="mb-3 rounded-md border border-status-overdue/30 bg-surface px-3 py-2.5 text-[13px]"
+        >
+          <p>
+            {records.length > 0
+              ? `${records.length} ${records.length === 1 ? "record was" : "records were"} filled in with this form. They are kept: the form is retired instead of deleted, and no new records can be started from it.`
+              : "Nothing has been filled in with this form, so it is deleted. There is no undo."}
+          </p>
+          {deleteFailure ? (
+            <p role="alert" className="mt-1 text-status-overdue">
+              {errorMessage(deleteFailure)}
+            </p>
+          ) : null}
+          <div className="mt-2 flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() =>
+                void deleteDefinition(definition.id)
+                  .then((outcome) => {
+                    setConfirmingDelete(false);
+                    if (outcome === "deleted") void navigate({ to: "/forms" });
+                  })
+                  .catch(setDeleteFailure)
+              }
+            >
+              {records.length > 0 ? "Retire the form" : "Delete the form"}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setConfirmingDelete(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {dirty ? (
         <p className="mb-3 rounded-md border border-status-waiting/30 bg-status-waiting-soft px-3 py-2 text-[13px] text-status-waiting">

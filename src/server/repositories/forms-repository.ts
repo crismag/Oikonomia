@@ -35,6 +35,7 @@ interface DefinitionRow {
   sections: string;
   history: string;
   policy: string | null;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +77,7 @@ function toDefinition(row: DefinitionRow): FormDefinition {
     ...has(row.description, "description"),
     ...has(row.ministry_id, "ministryId"),
     ...has(row.campus_id, "campusId"),
+    ...has(row.archived_at, "archivedAt"),
     ...(row.policy ? { policy: JSON.parse(row.policy) as AudiencePolicy } : {}),
   } as FormDefinition;
 }
@@ -168,9 +170,16 @@ export function createFormsRepository(db: Db) {
       return this.findDefinition(id);
     },
 
+    /** Only a definition nothing was made from; the foreign key refuses others. */
     deleteDefinition(id: string): boolean {
-      /* Records go with it — the foreign key cascades. */
       return db.prepare("DELETE FROM form_definition WHERE id = ?").run(id).changes > 0;
+    },
+
+    archiveDefinition(id: string): FormDefinition | undefined {
+      db.prepare(
+        "UPDATE form_definition SET archived_at = COALESCE(archived_at, @at), updated_at = @at WHERE id = @id",
+      ).run({ id, at: nowIso() });
+      return this.findDefinition(id);
     },
 
     records(definitionId?: string): FormRecord[] {

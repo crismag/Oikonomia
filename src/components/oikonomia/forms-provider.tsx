@@ -69,7 +69,8 @@ export interface FormsStore {
   ) => Promise<void>;
   renameDefinition: (id: string, title: string, description?: string) => Promise<void>;
   copyForm: (id: string, title: string, ownerId: string) => Promise<string | undefined>;
-  deleteDefinition: (id: string) => Promise<void>;
+  /** Deleted if nothing was made from it; archived, keeping its records, if it was. */
+  deleteDefinition: (id: string) => Promise<"deleted" | "archived">;
 
   createRecord: (
     definitionId: string,
@@ -172,7 +173,13 @@ export function FormsProvider({ children }: { children: ReactNode }) {
         return copy.id;
       },
 
-      deleteDefinition: (id) => call(() => deleteFormDefinition({ data: { id } })),
+      deleteDefinition: async (id) => {
+        const result = unwrap(
+          (await withTimeout(deleteFormDefinition({ data: { id } }))) as never,
+        ) as { outcome: "deleted" | "archived" };
+        invalidate();
+        return result.outcome;
+      },
 
       createRecord: async (definitionId, input) => {
         const record = unwrap(
