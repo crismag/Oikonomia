@@ -111,6 +111,8 @@ dependency audit.
 | `GOOGLE_CLIENT_ID` / `_SECRET`                            | Google sign-in                                                 | The screen does not offer Google                                                |
 | `OIKONOMIA_BACKUP_DIR`                                    | A second backup destination                                    | Every backup is on this machine, and the panel says so                          |
 | `OIKONOMIA_BACKUP_OFFSITE`                                | Declares that directory leaves this machine                    | Treated as a second local copy                                                  |
+| `OIKONOMIA_BACKUP_KEY`                                    | Encrypts backup files — see [data](data.md#encrypted-backups)  | Backups are the plain SQLite file                                               |
+| `OIKONOMIA_BACKUP_TIMEOUT_SECONDS`                        | How long a backup may run before it is stopped                 | 600                                                                             |
 | `OIKONOMIA_MAINTENANCE_TOKEN`                             | Scheduled maintenance                                          | **The endpoint is off, not open**                                               |
 | `OIKONOMIA_ALERT_TO`                                      | Email on a failed scheduled task                               | Only cron's exit code reports it                                                |
 | `OIKONOMIA_DEMO_MODE`                                     | A public demonstration — see [Demo Mode](#demo-mode)           | An ordinary installation. Only `true`/`false`; anything else serves 503         |
@@ -726,16 +728,26 @@ curl -fsS -X POST -H "Authorization: Bearer $TOKEN" \
   http://127.0.0.1:8080/maintenance/run?task=backup
 ```
 
-SQLite's own online backup into a scratch file, read back and stored through
-the artifact provider. Copying the database file directly would capture it
+SQLite's own online backup (`VACUUM INTO`) into a scratch file, stored in the
+artifact directory. Copying the database file directly would capture it
 mid-transaction, and a torn backup is one nobody discovers is useless until
 they need it.
 
 With `OIKONOMIA_BACKUP_DIR` set, every backup is written to **both**
-destinations — after the local copy rather than instead of it. If the second
-write fails, the backup that already succeeded is still a backup and the job
-records that the copy did not happen. A failure to duplicate is not a failure
-to back up.
+destinations, under the same file name — after the local copy rather than
+instead of it. If the second write fails, the backup that already succeeded is
+still a backup and the job records that the copy did not happen. A failure to
+duplicate is not a failure to back up — but a scheduled run where it happens
+answers 500 with `"backupCompleted": true` and sends the failure alert, because
+the copy meant to survive this machine is the one a failing mount quietly stops
+making.
+
+Every file is written under a `.partial` name and renamed only when whole, so
+an interrupted copy is never at the name a job records.
+
+With `OIKONOMIA_BACKUP_KEY` set, both copies are encrypted and end in
+`.db.enc`. Key custody and rotation are in
+[data.md](data.md#encrypted-backups); read that before setting it.
 
 **`OIKONOMIA_BACKUP_OFFSITE` is your assertion, not a measurement.** From
 inside the process, a volume mounted from another building and a folder on the
@@ -744,14 +756,28 @@ interface attributes the claim to you. What Oikonomia _can_ check, it does:
 whether the directory is on a different filesystem device to the database, and
 it warns when it is not.
 
-### A limit worth knowing
+### A destination that stops answering
 
-A backup runs **synchronously** — the process serving requests is the process
-taking it. On a local disk that is a few seconds. A destination that neither
-succeeds nor fails is different: a hung network mount is the real-world case,
-so a local path _synced_ elsewhere is safer than a network path written to
-directly. A destination that merely refuses is well behaved: a read-only
-directory returns a 500 naming the reason and leaves the server responsive.
+The copy is taken by a **child process** with its own read-only connection;
+the server only waits for it. A destination that neither succeeds nor fails —
+a hung network mount is the real-world case — keeps that child waiting, not
+the process answering requests: `/healthz` and every page keep answering.
+
+After `OIKONOMIA_BACKUP_TIMEOUT_SECONDS` (600 by default) the child is killed.
+If the local copy had not finished, the job is **failed** with the reason, its
+`.partial` files are removed, and a scheduled run answers 500 and sends the
+failure alert. If only the second copy hung, the local backup stands and the
+copy is reported as failed, as above.
+
+A child process rather than a worker thread, deliberately: a thread blocked
+inside a system call cannot be stopped, and a process holding one cannot exit.
+One limit remains outside any program's reach — a process stuck in
+uninterruptible I/O on a `hard` NFS mount is not reclaimed until the mount
+answers, even after it is killed. The server stays responsive; the stuck
+process is the operator's to see. A local path _synced_ elsewhere is still
+safer than a network path written to directly. A destination that merely
+refuses is well behaved: a read-only directory fails at once, naming the
+reason.
 
 ## Scheduling
 
@@ -810,10 +836,22 @@ cannot hold.
        ORDER BY completed_at DESC LIMIT 1;"
    ```
 
-   If they differ, stop.
+   If they differ, stop. The checksum is of the stored file, so for an
+   encrypted backup compare it **before** decrypting.
 
 4. **Copy it into place** as `oikonomia.db` — copy, so the backup is still a
    backup afterwards.
+
+   An encrypted backup (`.db.enc`) is decrypted into place instead, with the
+   key it was taken with. The script reads the key from the environment, never
+   its arguments — load it from wherever you keep it rather than typing it
+   into shell history — refuses to overwrite a file, and removes what it wrote
+   if the key does not open the backup:
+
+   ```bash
+   set -a; . /path/to/the/file/holding/the/key; set +a
+   node scripts/ops/decrypt-backup.mjs /mnt/backup/oikonomia/<artifact>.db.enc oikonomia.db
+   ```
 
 5. **Start, and ask whether it is well.**
 

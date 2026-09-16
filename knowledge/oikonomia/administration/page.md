@@ -54,7 +54,7 @@ Claims and correction requests about where people serve. See [Confirm where peop
 
 ### Looking after the data
 
-**Continuity** (Back up now, Verify the last backup, Apply retention now), **Export** of the whole site as JSON, CSV or OPK, **Check a package**, and **Recent data operations**. An export contains only what you may read.
+**Continuity** (Back up now, Verify the last backup, Apply retention now; it also says whether backup files are encrypted), **Export** of the whole site as JSON, CSV or OPK, **Check a package**, and **Recent data operations**. An export contains only what you may read.
 
 ### Configuration
 

@@ -161,18 +161,11 @@ export const Route = createFileRoute("/maintenance/run")({
             return json(200, { ok: true, task: requested, ...result });
           }
 
-          /* `null` viewer: taken by the system, not by an administrator. */
-          const job = continuity.runBackup(null);
-          if (job.status !== "completed") {
-            return failed(job.errorSummary ?? "The backup did not complete.", job.id);
-          }
-
-          return json(200, {
-            ok: true,
-            task: requested,
-            jobId: job.id,
-            bytes: job.artifactBytes ?? 0,
-          });
+          /* Taken in a child process with a time limit, so a destination that
+             stops answering cannot stop this server answering. */
+          const { scheduledBackup } = await import("@/server/data/scheduled-backup");
+          const outcome = await scheduledBackup(continuity, alertMaintenanceFailure);
+          return json(outcome.status, outcome.body);
         } catch (error) {
           console.error(`Maintenance task "${requested}" failed:`, error);
           return failed(error instanceof Error ? error.message : "Unknown failure");

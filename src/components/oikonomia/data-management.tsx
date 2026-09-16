@@ -126,6 +126,18 @@ export function DataManagement() {
                 : "Configured"
             }
           />
+          <Row
+            label="Encryption"
+            value={
+              !status
+                ? "—"
+                : status.encryption === "on"
+                  ? "On — backup files can be opened only with this server's backup key"
+                  : status.encryption === "invalid"
+                    ? "The backup key is not usable — backups will fail until it is corrected"
+                    : "Off — anyone who can read the backup files can read them"
+            }
+          />
           <Row label="Scheduled backups" value="Not configured — run manually or from cron" />
         </dl>
 
