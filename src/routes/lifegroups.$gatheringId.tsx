@@ -510,7 +510,7 @@ function AttendanceRow({
               className={cn(
                 "rounded-md px-2 py-1 text-[12px] transition-colors",
                 record.status === status
-                  ? "bg-accent-soft font-medium text-sidebar-accent-foreground"
+                  ? "bg-area-soft font-medium text-area-ink"
                   : "text-muted-foreground hover:bg-muted",
               )}
             >
@@ -727,7 +727,7 @@ function PrintSheet({
 
       <article
         data-print="sheet"
-        className="mx-auto max-w-[820px] rounded-lg border border-border bg-surface px-6 py-6"
+        className="mx-auto max-w-[820px] rounded-2xl border border-border bg-surface shadow-card px-6 py-6"
       >
         <header data-print="section" className="border-b border-border pb-3">
           <h1 className="font-display text-[22px] leading-tight">{sheet.venue}</h1>

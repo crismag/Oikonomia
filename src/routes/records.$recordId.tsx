@@ -113,7 +113,7 @@ function RecordPage() {
             </p>
           ) : null}
 
-          <div className="rounded-lg border border-border bg-surface p-5">
+          <div className="rounded-2xl border border-border bg-surface shadow-card p-5">
             <FormSheet
               title={record.title}
               subtitle={subtitle}
@@ -135,7 +135,7 @@ function RecordPage() {
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-20">
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
             <h2 className="text-[13px] font-medium">Standing</h2>
             <RecordTally record={record} className="mt-1.5" />
             <p className="mt-2 text-[12px] text-muted-foreground">
@@ -202,7 +202,7 @@ function RecordPage() {
             </div>
           ) : null}
 
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
             <h2 className="flex items-center gap-1.5 text-[13px] font-medium">
               <History className="size-3.5 text-muted-foreground" aria-hidden />
               History

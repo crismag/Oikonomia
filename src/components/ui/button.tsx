@@ -24,8 +24,8 @@ import { cn } from "@/lib/utils";
  */
 const buttonVariants = cva(
   cn(
-    "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
-    "font-medium transition-colors",
+    "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[calc(var(--radius)-2px)]",
+    "font-semibold transition-[color,background-color,box-shadow,transform] active:translate-y-px",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-surface",
     "disabled:pointer-events-none disabled:text-disabled",
     "[&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0",
@@ -33,8 +33,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted",
-        secondary: "border border-border bg-surface hover:bg-muted",
+        primary:
+          "bg-primary text-primary-foreground shadow-card hover:bg-primary/90 hover:shadow-raised disabled:bg-muted disabled:shadow-none",
+        secondary:
+          "border border-border bg-surface shadow-card hover:border-border-strong hover:bg-muted",
         ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         destructive: "text-muted-foreground hover:bg-status-overdue-soft hover:text-status-overdue",
         link: "text-primary underline-offset-4 hover:underline",

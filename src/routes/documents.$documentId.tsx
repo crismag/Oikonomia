@@ -202,7 +202,7 @@ function BinderDocumentPage() {
         </p>
       )}
 
-      <div className="rounded-lg border border-border bg-surface px-5 py-4">
+      <div className="rounded-2xl border border-border bg-surface shadow-card px-5 py-4">
         <MeetingDocument
           blocks={store.blocks}
           readOnly={!store.mayWrite}

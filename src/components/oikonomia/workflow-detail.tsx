@@ -39,7 +39,7 @@ export function WorkflowDetail({
   return (
     <section
       aria-label={`${obligation.title} — detail`}
-      className="mt-3 rounded-lg border border-border bg-surface-muted px-4 py-3.5"
+      className="mt-3 rounded-xl border border-border bg-surface-muted px-4 py-3.5"
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">

@@ -83,7 +83,7 @@ export function RegisterDocument({
   };
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-surface px-5 py-5">
+    <div className="space-y-4 rounded-2xl border border-border bg-surface shadow-card px-5 py-5">
       <div>
         <h2 className="text-[15px] font-medium">
           {from === "drive" ? "Add a document from Drive" : "Register a document"}

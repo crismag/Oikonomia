@@ -53,5 +53,5 @@ Everything below is in the sidebar. A page you do not see there is not part of y
 
 ### You
 
-- **Your password and signed-in devices** — [Account & security](destination:account-security).
+- **Your password, signed-in devices, and how Oikonomia looks** — [Account & security](destination:account-security). See [Change how Oikonomia looks](topic:account.appearance).
 - **Say where you serve** — [Saying where you serve](topic:assignments.claims).

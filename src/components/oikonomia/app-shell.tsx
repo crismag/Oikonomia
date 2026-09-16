@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarContent } from "./app-sidebar";
 import { TopBar } from "./top-bar";
+import { areaFor } from "./nav";
+import { useAppearance } from "./appearance";
 import { ErrorState, ListSkeleton } from "./async-state";
 import { ScheduleProvider } from "./schedule-provider";
 import { GoalsProvider } from "./goals-provider";
@@ -31,6 +33,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const organization = useOrganization();
+  /* Keeps the chosen theme applied, and follows the device in "system" mode. */
+  useAppearance();
 
   if (OUTSIDE_THE_APPLICATION.some((route) => pathname.startsWith(route))) {
     return (
@@ -126,7 +130,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <div className="flex min-w-0 flex-1 flex-col">
               <TopBar onOpenNav={() => setMobileOpen(true)} />
-              <main className="min-w-0 flex-1">{children}</main>
+              {/* The page takes the colour of the area of work it belongs to. */}
+              <main data-area={areaFor(pathname)} className="min-w-0 flex-1">
+                {children}
+              </main>
             </div>
 
             {/* The Guide: a rail beside the page when wide, a sheet when not. */}

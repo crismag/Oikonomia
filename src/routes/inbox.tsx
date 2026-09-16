@@ -130,7 +130,7 @@ function InboxPage() {
               className={cn(
                 "inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors",
                 tab === t.id
-                  ? "border-primary/40 bg-accent-soft text-foreground"
+                  ? "border-primary/40 bg-area-soft text-foreground"
                   : "border-border text-muted-foreground hover:bg-muted",
               )}
             >

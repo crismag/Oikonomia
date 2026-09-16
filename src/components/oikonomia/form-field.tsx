@@ -137,7 +137,7 @@ export function FormFieldView({
                     className={cn(
                       "rounded-md border px-2 py-1 text-[12px] transition-colors",
                       current === option
-                        ? "border-primary/40 bg-accent-soft font-medium text-sidebar-accent-foreground"
+                        ? "border-primary/40 bg-area-soft font-medium text-area-ink"
                         : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
@@ -215,7 +215,7 @@ export function FormFieldView({
                 className={cn(
                   "rounded-md border px-2.5 py-1 text-[13px] transition-colors",
                   active
-                    ? "border-primary/40 bg-accent-soft font-medium text-sidebar-accent-foreground"
+                    ? "border-primary/40 bg-area-soft font-medium text-area-ink"
                     : "border-border text-muted-foreground",
                   !readOnly && !active && "hover:bg-muted hover:text-foreground",
                 )}

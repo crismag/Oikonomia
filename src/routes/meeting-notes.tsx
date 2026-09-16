@@ -334,7 +334,7 @@ function MeetingList({
       ) : store.status === "loading" ? (
         <ListSkeleton rows={6} />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           {page.items.length > 0 ? (
             <ul className="divide-y divide-border">
               {page.items.map((note) => {
@@ -470,7 +470,7 @@ function Chip({
       className={cn(
         "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-[13px] transition-colors",
         active
-          ? "border-primary/30 bg-accent-soft font-medium text-sidebar-accent-foreground"
+          ? "border-primary/30 bg-area-soft font-medium text-area-ink"
           : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
@@ -1106,7 +1106,7 @@ function Participants({ note }: { note: MeetingNote }) {
             className={cn(
               "rounded-md border px-2 py-1 text-[12px] transition-colors",
               on
-                ? "border-primary/30 bg-accent-soft text-sidebar-accent-foreground"
+                ? "border-primary/30 bg-area-soft text-area-ink"
                 : "border-border text-muted-foreground hover:bg-muted",
             )}
           >

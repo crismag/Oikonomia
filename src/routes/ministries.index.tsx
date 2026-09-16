@@ -91,7 +91,7 @@ function MinistriesIndex() {
           ))}
         </ul>
       ) : (
-        <div className="rounded-lg border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface shadow-card">
           <EmptyState icon={UsersRound} title="No ministries match that search" />
         </div>
       )}
@@ -140,7 +140,7 @@ function MinistryCard({
       <Link
         to="/ministries/$ministryId"
         params={{ ministryId: ministry.id }}
-        className="flex h-full flex-col rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong hover:bg-surface-muted"
+        className="flex h-full flex-col rounded-2xl border border-border bg-surface shadow-card p-4 transition-colors hover:border-border-strong hover:bg-surface-muted"
       >
         <div className="mb-4">
           <h2 className="text-[15px] font-medium">{ministry.name}</h2>
@@ -150,9 +150,7 @@ function MinistryCard({
           </p>
 
           {relationship === "lead" ? (
-            <p className="mt-2 text-[13px] text-sidebar-accent-foreground">
-              You lead this ministry
-            </p>
+            <p className="mt-2 text-[13px] text-area-ink">You lead this ministry</p>
           ) : null}
         </div>
 
@@ -186,7 +184,7 @@ function QuietGroup({
       {note ? <p className="mb-2 text-[12px] text-muted-foreground">{note}</p> : null}
       <ul
         className={cn(
-          "overflow-hidden rounded-lg border border-border bg-surface",
+          "overflow-hidden rounded-2xl border border-border bg-surface shadow-card",
           !note && "mt-2",
         )}
       >

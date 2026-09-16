@@ -417,7 +417,7 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
                 className={cn(
                   "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-[12px] transition-colors",
                   tag === option
-                    ? "border-primary/30 bg-accent-soft font-medium text-sidebar-accent-foreground"
+                    ? "border-primary/30 bg-area-soft font-medium text-area-ink"
                     : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
@@ -431,7 +431,7 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
       {visible.length > 0 ? (
         page ? (
           <>
-            <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+            <ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
               {page.items.map((report) => (
                 <ReportRow key={report.id} report={report} starred={starred} />
               ))}
@@ -460,7 +460,7 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
                     </span>
                   </h3>
                 ) : null}
-                <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+                <ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
                   {g.reports.map((report) => (
                     <ReportRow key={report.id} report={report} starred={starred} />
                   ))}
@@ -470,7 +470,7 @@ function ReportList({ scope }: { scope: "mine" | "shared" }) {
           </div>
         )
       ) : (
-        <div className="rounded-lg border border-border bg-surface">
+        <div className="rounded-2xl border border-border bg-surface shadow-card">
           {filtering ? (
             <EmptyState icon={Search} title="No reports match" />
           ) : scope === "mine" ? (
@@ -655,7 +655,7 @@ function MobileFilters(p: FilterProps) {
         <SlidersHorizontal className="size-3.5" aria-hidden />
         Filters
         {active > 0 ? (
-          <span className="rounded-full bg-accent-soft px-1.5 text-[11px] text-sidebar-accent-foreground">
+          <span className="rounded-full bg-area-soft px-1.5 text-[11px] text-area-ink">
             {active}
           </span>
         ) : null}

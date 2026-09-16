@@ -169,7 +169,7 @@ function GoalsIndex() {
                   className={cn(
                     "rounded-sm px-2.5 py-1 text-[13px] tabular-nums transition-colors",
                     option === year
-                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                      ? "bg-area-soft font-medium text-area-ink"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
@@ -206,7 +206,7 @@ function GoalsIndex() {
       </nav>
 
       {attention.length > 0 ? (
-        <section className="mb-4 rounded-lg border border-border bg-surface-muted px-4 py-3">
+        <section className="mb-4 rounded-xl border border-border bg-surface-muted px-4 py-3">
           <h2 className="text-[13px] font-medium text-muted-foreground">
             Needs attention · {goalScopeLabel[view]}
           </h2>
@@ -288,7 +288,7 @@ function GoalsIndex() {
       ) : store.status === "loading" ? (
         <ListSkeleton rows={5} />
       ) : view === "personal" ? (
-        <div className="overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           {sorted.personal.filter(matches).length > 0 ? (
             <ol className="divide-y divide-border">
               {sorted.personal.filter(matches).map((goal) => (
@@ -358,7 +358,7 @@ function GoalBuckets({
 }) {
   if (buckets.length === 0) {
     return (
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         <EmptyState icon={Target} title={empty}>
           {emptyDetail}
         </EmptyState>
@@ -372,7 +372,7 @@ function GoalBuckets({
         <details
           key={bucket.id || "unfiled"}
           open={bucket.yours}
-          className="group overflow-hidden rounded-lg border border-border bg-surface"
+          className="group overflow-hidden rounded-2xl border border-border bg-surface shadow-card"
         >
           <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-2.5 transition-colors hover:bg-muted [&::-webkit-details-marker]:hidden">
             <ChevronRight
@@ -562,7 +562,7 @@ function AddGoal({ year, scope: initialScope }: { year: number; scope: GoalScope
                   className={cn(
                     "flex cursor-pointer items-center justify-center rounded-md border px-2 py-1.5 text-[12px] transition-colors",
                     scope === value
-                      ? "border-primary/40 bg-accent-soft text-foreground"
+                      ? "border-primary/40 bg-area-soft text-foreground"
                       : "border-border text-muted-foreground hover:bg-muted",
                   )}
                 >

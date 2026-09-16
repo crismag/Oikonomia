@@ -51,7 +51,7 @@ export function SectionDocuments({
         />
       </label>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {results.length === 0 ? (
           <p className="px-4 py-4 text-[13px] text-muted-foreground">{emptyLabel}</p>
         ) : (

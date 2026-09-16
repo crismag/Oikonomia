@@ -82,7 +82,7 @@ export function Pagination<T>({
                   className={cn(
                     "min-w-8 rounded-md px-2 py-1.5 text-[13px] tabular-nums transition-colors",
                     token === page.page
-                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                      ? "bg-area-soft font-medium text-area-ink"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >

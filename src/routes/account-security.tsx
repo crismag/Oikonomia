@@ -13,6 +13,7 @@ import {
 import { Section } from "@/components/oikonomia/section";
 import { useAuth } from "@/components/oikonomia/auth-provider";
 import { AuthField } from "@/components/oikonomia/auth-panel";
+import { AppearancePicker } from "@/components/oikonomia/appearance-picker";
 import { notify } from "@/config/messages/handlers";
 import { errorMessage, unwrap } from "@/lib/calendar-client";
 import {
@@ -91,10 +92,14 @@ function AccountSecurityPage() {
     <Page width="regular">
       <PageHeader
         title="Account & security"
-        description="How you sign in to Oikonomia, and where you are signed in."
+        description="How Oikonomia looks for you, how you sign in, and where you are signed in."
       />
 
       <div className="space-y-4">
+        <Section id="appearance" title="Appearance">
+          <AppearancePicker />
+        </Section>
+
         <Section
           title="Sign-in methods"
           meta={data ? String(data.methods.filter((m) => Boolean(m.since)).length) : undefined}

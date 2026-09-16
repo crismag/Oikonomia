@@ -104,7 +104,7 @@ export function AskedOfYou({
   return (
     <section
       aria-label="Asked of you"
-      className="rounded-lg border border-border bg-surface px-4 py-3.5"
+      className="rounded-2xl border border-border bg-surface shadow-card px-4 py-3.5"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-[13px] font-medium">Asked of you</h3>

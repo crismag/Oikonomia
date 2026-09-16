@@ -156,7 +156,7 @@ function WorkPage() {
           {access.level !== "full" ? <AccessNotice decision={access} /> : null}
 
           {/* Current state: the answer to "where does this stand?" */}
-          <div className="rounded-lg border border-border bg-surface-muted px-4 py-3.5">
+          <div className="rounded-xl border border-border bg-surface-muted px-4 py-3.5">
             <h2 className="text-[13px] font-medium text-muted-foreground">Where this stands</h2>
             <p className="mt-1.5 text-[15px] leading-relaxed">{work.currentState}</p>
           </div>
@@ -193,7 +193,7 @@ function WorkPage() {
           ) : null}
 
           {work.openQuestions.length > 0 ? (
-            <section className="rounded-lg border border-border bg-surface p-4">
+            <section className="rounded-2xl border border-border bg-surface shadow-card p-4">
               <h2 className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
                 <HelpCircle className="size-3.5" aria-hidden />
                 Unresolved
@@ -220,7 +220,7 @@ function WorkPage() {
               {(work.sections ?? []).map((section) => (
                 <article
                   key={section.title}
-                  className="rounded-lg border border-border bg-surface px-4 py-3.5"
+                  className="rounded-2xl border border-border bg-surface shadow-card px-4 py-3.5"
                 >
                   <h3 className="text-[14px] font-medium">{section.title}</h3>
                   <p className="mt-1.5 text-[14px] leading-relaxed text-foreground/90">
@@ -237,7 +237,7 @@ function WorkPage() {
           {artifacts.length > 0 ? (
             <section className="space-y-2.5">
               <h2 className="text-[13px] font-medium text-muted-foreground">Working material</h2>
-              <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
+              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
                 {artifacts.map((resource: (typeof artifacts)[number]) => (
                   <li key={resource.id} className="flex items-center gap-3 px-4 py-2.5">
                     <span className="min-w-0 flex-1">
@@ -266,7 +266,7 @@ function WorkPage() {
             </section>
           ) : null}
 
-          <details className="group rounded-lg border border-border bg-surface lg:hidden">
+          <details className="group rounded-2xl border border-border bg-surface shadow-card lg:hidden">
             <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] font-medium">
               Details, people and activity
               <ChevronDown
@@ -319,7 +319,7 @@ function WorkPage() {
 
           <section>
             <h2 className="text-[13px] font-medium text-muted-foreground">Discussion</h2>
-            <div className="mt-2 rounded-lg border border-border bg-surface px-4">
+            <div className="mt-2 rounded-2xl border border-border bg-surface shadow-card px-4">
               <DiscussionThread comments={work.comments} />
             </div>
             {/*
@@ -508,7 +508,7 @@ function ReviewActions({
   if (!canSubmit && !canStart && !canReturn && !canAcknowledge && !canResolve) return null;
 
   return (
-    <div className="rounded-lg border border-border bg-surface px-4 py-3.5">
+    <div className="rounded-2xl border border-border bg-surface shadow-card px-4 py-3.5">
       <h2 className="text-[13px] font-medium text-muted-foreground">
         {reviewRequired && isReviewer ? "Your review" : "Yours to move"}
       </h2>

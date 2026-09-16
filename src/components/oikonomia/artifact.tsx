@@ -38,7 +38,9 @@ export function ArtifactCard({
   const editor = personById(artifact.updatedBy);
 
   return (
-    <article className={cn("rounded-lg border border-border bg-surface p-3.5", className)}>
+    <article
+      className={cn("rounded-2xl border border-border bg-surface shadow-card p-3.5", className)}
+    >
       <div className="flex min-w-0 items-start gap-3">
         <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md bg-surface-muted">
           <Icon className="size-4 text-muted-foreground" aria-hidden />
@@ -66,7 +68,7 @@ export function ArtifactCard({
                   className={cn(
                     "rounded-sm border px-1.5 py-0.5 text-[11px] leading-5",
                     section === highlightSection
-                      ? "border-primary/30 bg-accent-soft text-sidebar-accent-foreground"
+                      ? "border-primary/30 bg-area-soft text-area-ink"
                       : "border-border text-muted-foreground",
                   )}
                 >

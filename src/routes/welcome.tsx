@@ -137,7 +137,7 @@ function WelcomePage() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]",
                   position === index
-                    ? "bg-accent-soft font-medium text-sidebar-accent-foreground"
+                    ? "bg-area-soft font-medium text-area-ink"
                     : "text-muted-foreground",
                 )}
               >
@@ -295,7 +295,7 @@ function StepBody({
       return (
         <>
           <Heading title="Your details">This is what the church has recorded about you.</Heading>
-          <dl className="divide-y divide-border rounded-lg border border-border bg-surface">
+          <dl className="divide-y divide-border rounded-2xl border border-border bg-surface shadow-card">
             <Row label="Name" value={context.person.name} />
             <Row label="What you are called here" value={context.person.role || "Not set"} />
             <Row label="Campus" value={context.campus?.name ?? "Not set"} />
@@ -315,12 +315,12 @@ function StepBody({
             Everywhere the church has recorded that you serve.
           </Heading>
           {context.assignments.length === 0 ? (
-            <p className="rounded-lg border border-border bg-surface px-4 py-5 text-[14px] text-muted-foreground">
+            <p className="rounded-2xl border border-border bg-surface shadow-card px-4 py-5 text-[14px] text-muted-foreground">
               Nothing yet. That is normal for a new account — the next screens let you say where you
               serve, and somebody will confirm it.
             </p>
           ) : (
-            <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+            <ul className="divide-y divide-border rounded-2xl border border-border bg-surface shadow-card">
               {context.assignments.map((assignment) => (
                 <li
                   key={`${assignment.scope}-${assignment.targetId}`}
@@ -396,7 +396,7 @@ function StepBody({
             Who you answer to, and who answers to you. This decides where a request you raise is
             sent.
           </Heading>
-          <dl className="divide-y divide-border rounded-lg border border-border bg-surface">
+          <dl className="divide-y divide-border rounded-2xl border border-border bg-surface shadow-card">
             <Row label="You report to" value={context.reportsTo?.name ?? "Nobody recorded"} />
             <Row
               label="Reporting to you"
@@ -427,7 +427,7 @@ function StepBody({
           <Heading title="Your workspace is ready">
             Here is what Oikonomia has, and what it will show you.
           </Heading>
-          <dl className="divide-y divide-border rounded-lg border border-border bg-surface">
+          <dl className="divide-y divide-border rounded-2xl border border-border bg-surface shadow-card">
             <Row
               label="Where you serve"
               value={
@@ -446,7 +446,7 @@ function StepBody({
           </dl>
 
           <h2 className="mb-2 mt-6 text-[14px] font-medium">A quick tour</h2>
-          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface shadow-card">
             {context.tour.map((stop) => (
               <li key={stop.to} className="px-4 py-3">
                 <Link
@@ -529,7 +529,7 @@ function Chooser({
                 className={cn(
                   "w-full rounded-lg border px-4 py-3 text-left transition-colors",
                   on
-                    ? "border-border-strong bg-accent-soft"
+                    ? "border-border-strong bg-area-soft"
                     : "border-border bg-surface hover:bg-muted",
                   assignment?.status === "confirmed" && "cursor-default",
                 )}
@@ -544,7 +544,7 @@ function Chooser({
         })}
       </ul>
       {options.length === 0 ? (
-        <p className="rounded-lg border border-border bg-surface px-4 py-5 text-[14px] text-muted-foreground">
+        <p className="rounded-2xl border border-border bg-surface shadow-card px-4 py-5 text-[14px] text-muted-foreground">
           Nothing has been set up yet.
         </p>
       ) : null}

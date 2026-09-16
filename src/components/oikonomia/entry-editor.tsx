@@ -283,7 +283,7 @@ export function EntryEditor({
                     className={cn(
                       "rounded-md border px-2 py-1 text-[12px] transition-colors",
                       on
-                        ? "border-primary/30 bg-accent-soft text-sidebar-accent-foreground"
+                        ? "border-primary/30 bg-area-soft text-area-ink"
                         : "border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
@@ -301,7 +301,7 @@ export function EntryEditor({
        * or a corrected time silently rewrites months of history.
        */}
       {repeating ? (
-        <fieldset className="rounded-lg border border-border bg-surface-muted px-3 py-2.5">
+        <fieldset className="rounded-xl border border-border bg-surface-muted px-3 py-2.5">
           <legend className="px-1 text-[12px] font-medium text-muted-foreground">
             This entry repeats
           </legend>

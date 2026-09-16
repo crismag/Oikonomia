@@ -1,7 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Plus } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarRange,
+  FileText,
+  Gauge,
+  Inbox,
+  Plus,
+  Sprout,
+  Target,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
@@ -35,6 +46,7 @@ import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { fromISO, toISO, weekDays, weekOf } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
+import { daylight, type AreaId } from "@/domain/appearance";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -113,9 +125,20 @@ function HomePage() {
     (o) => o.status === "in_progress" || o.status === "not_started",
   );
 
-  const week = planningForDays(days, schedule.entries, schedule.agenda, ministryName, myTasks.tasks)
-    .filter((item) => item.date >= today && !item.completed)
-    .slice(0, 6);
+  const weekOpen = planningForDays(
+    days,
+    schedule.entries,
+    schedule.agenda,
+    ministryName,
+    myTasks.tasks,
+  ).filter((item) => item.date >= today && !item.completed);
+  const week = weekOpen.slice(0, 6);
+  const weekLeft = weekOpen.length;
+
+  /* The board's light, read after mount so the server's render and the
+     browser's agree; the day's light is the neutral first guess. */
+  const [light, setLight] = useState<ReturnType<typeof daylight>>("day");
+  useEffect(() => setLight(daylight(new Date().getHours())), []);
 
   /*
    * The week, not the future. A gathering led last night still needs writing
@@ -157,55 +180,105 @@ function HomePage() {
 
   return (
     <Page width="workspace">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[28px] leading-tight">
-            {greeting()}, <PersonName personId={person.id} />
-          </h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            {format(fromISO(today), "EEEE, d MMMM")}
-            {attention.length > 0 ? (
-              <>
-                {" · "}
-                <span className="text-foreground">
-                  {attention.length === 1
-                    ? "one thing needs you"
-                    : `${attention.length} things need you`}
-                </span>
-              </>
-            ) : askedOfMe.length > 0 ? (
-              <>
-                {" · "}
-                <span className="text-foreground">
-                  {askedOfMe.length === 1
-                    ? "one thing has been asked of you"
-                    : `${askedOfMe.length} things have been asked of you`}
-                </span>
-              </>
-            ) : (
-              " · nothing is waiting on you"
-            )}
-          </p>
-        </div>
+      {/*
+       * The greeting board. Its light follows the time of day; the tiles are
+       * the four questions Home answers, each a door to where it is answered.
+       */}
+      <header
+        data-area="home"
+        data-daylight={light}
+        style={{ backgroundImage: `var(--hero-${light})` }}
+        className={cn(
+          "relative mb-6 overflow-hidden rounded-3xl border border-border shadow-card",
+          light === "night" ? "text-white" : "text-foreground",
+        )}
+      >
+        <div className="hero-glow pointer-events-none absolute inset-0 opacity-60" aria-hidden />
+        <div className="relative grid gap-6 px-6 py-7 sm:px-9 sm:py-9 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+          <div className="min-w-0">
+            <p
+              className={cn(
+                "text-[13px] font-medium",
+                light === "night" ? "text-white/75" : "text-muted-foreground",
+              )}
+            >
+              {format(fromISO(today), "EEEE, d MMMM")}
+            </p>
+            <h1 className="mt-1 text-[32px] leading-[1.08] sm:text-[42px]">
+              {greeting()}, <PersonName personId={person.id} />
+            </h1>
+            <p
+              className={cn(
+                "mt-2 max-w-xl text-[15px]",
+                light === "night" ? "text-white/85" : "text-foreground/80",
+              )}
+            >
+              {attention.length > 0
+                ? attention.length === 1
+                  ? "One thing needs you. The rest of the week is below."
+                  : `${attention.length} things need you. The rest of the week is below.`
+                : inbox.mine.length > 0
+                  ? inbox.mine.length === 1
+                    ? "One thing has been asked of you."
+                    : `${inbox.mine.length} things have been asked of you.`
+                  : "Nothing is waiting on you."}
+            </p>
 
-        {/*
-         * When something needs you, the one press continues it. Adding to the
-         * week is always available — it is not the thing the page is for when
-         * something is already overdue.
-         */}
-        <div className="flex flex-wrap items-center gap-2">
-          {next ? (
-            <Link to={next.destination} className={buttonVariants({ variant: "primary" })}>
-              {next.nextAction ?? "Continue"}
-            </Link>
-          ) : null}
-          <Link
-            to="/weekly-agenda"
-            className={buttonVariants({ variant: next ? "secondary" : "primary" })}
-          >
-            <Plus className="size-3.5" aria-hidden />
-            Add to the week
-          </Link>
+            {/*
+             * When something needs you, the one press continues it. Adding to
+             * the week is always available — it is not the thing the page is
+             * for when something is already overdue.
+             */}
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {next ? (
+                <Link to={next.destination} className={buttonVariants({ variant: "primary" })}>
+                  {next.nextAction ?? "Continue"}
+                </Link>
+              ) : null}
+              <Link
+                to="/weekly-agenda"
+                className={buttonVariants({ variant: next ? "secondary" : "primary" })}
+              >
+                <Plus className="size-3.5" aria-hidden />
+                Add to the week
+              </Link>
+            </div>
+          </div>
+
+          <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:w-[34rem]">
+            <HeroTile
+              area="home"
+              icon={Gauge}
+              label="Need you"
+              value={dashboard.isLoading ? undefined : attention.length}
+              to="/my-progress"
+              night={light === "night"}
+            />
+            <HeroTile
+              area="lead"
+              icon={Inbox}
+              label="Asked of you"
+              value={inbox.mine.length}
+              to="/inbox"
+              night={light === "night"}
+            />
+            <HeroTile
+              area="plan"
+              icon={CalendarRange}
+              label="Left this week"
+              value={schedule.status === "loading" ? undefined : weekLeft}
+              to="/weekly-agenda"
+              night={light === "night"}
+            />
+            <HeroTile
+              area="life"
+              icon={Sprout}
+              label="Gatherings"
+              value={lifegroup.status === "loading" ? undefined : myGatherings.length}
+              to="/lifegroups"
+              night={light === "night"}
+            />
+          </ul>
         </div>
       </header>
 
@@ -222,6 +295,8 @@ function HomePage() {
 
           <WorkspaceCard
             title="Needs your attention"
+            area="home"
+            icon={Gauge}
             count={attention.length}
             action={{ label: "My Progress", to: "/my-progress" }}
             className="lg:col-span-2"
@@ -260,7 +335,10 @@ function HomePage() {
           {askedOfMe.length > 0 ? (
             <WorkspaceCard
               title="Asked of you"
-              count={askedOfMe.length}
+              area="lead"
+              icon={Inbox}
+              /* All that is waiting, though the card previews only a few. */
+              count={inbox.mine.length}
               action={{ label: "Leadership Inbox", to: "/inbox" }}
               className="lg:col-span-2"
             >
@@ -293,6 +371,8 @@ function HomePage() {
 
           <WorkspaceCard
             title="This week"
+            area="plan"
+            icon={CalendarRange}
             action={{ label: "Weekly Agenda", to: "/weekly-agenda" }}
           >
             {schedule.status === "loading" ? (
@@ -338,6 +418,8 @@ function HomePage() {
 
           <WorkspaceCard
             title="What you are carrying"
+            area="goals"
+            icon={Target}
             count={mine.length}
             action={{ label: "My Progress", to: "/my-progress" }}
           >
@@ -366,7 +448,12 @@ function HomePage() {
 
           {/* ------------------------------------------ 4. lifegroups */}
 
-          <WorkspaceCard title="LifeGroup" action={{ label: "The schedule", to: "/lifegroups" }}>
+          <WorkspaceCard
+            title="LifeGroup"
+            area="life"
+            icon={Sprout}
+            action={{ label: "The schedule", to: "/lifegroups" }}
+          >
             {lifegroup.status === "loading" ? (
               <ListSkeleton rows={2} />
             ) : myGatherings.length > 0 ? (
@@ -427,6 +514,8 @@ function HomePage() {
 
           <WorkspaceCard
             title="Your reports"
+            area="reports"
+            icon={FileText}
             action={{ label: "Leadership Reports", to: "/leadership-reports" }}
           >
             {myReports.length > 0 ? (
@@ -461,6 +550,8 @@ function HomePage() {
 
           <WorkspaceCard
             title="Shared with others"
+            area="ministry"
+            icon={UsersRound}
             action={{ label: "Ministry", to: "/ministries" }}
             className="lg:col-span-2"
           >
@@ -514,4 +605,60 @@ function greeting(): string {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
+}
+
+/**
+ * One of the questions Home answers, as a number and a door.
+ *
+ * The number is a count of real records; a dash while it is still loading, never
+ * a zero that is not yet true.
+ */
+function HeroTile({
+  area,
+  icon: Icon,
+  label,
+  value,
+  to,
+  night,
+}: {
+  area: AreaId;
+  icon: LucideIcon;
+  label: string;
+  value: number | undefined;
+  to: string;
+  night: boolean;
+}) {
+  return (
+    <li data-area={area}>
+      <Link
+        to={to}
+        className={cn(
+          "group flex h-full items-center gap-3 rounded-2xl p-3 backdrop-blur-md transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-col sm:items-start sm:p-3.5",
+          night
+            ? "bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
+            : "bg-surface/70 ring-1 ring-border hover:bg-surface/90",
+        )}
+      >
+        <span
+          className="grid size-8 place-items-center rounded-xl bg-area text-on-area shadow-raised"
+          aria-hidden
+        >
+          <Icon className="size-4" />
+        </span>
+        <span>
+          <span className="block font-display text-[22px] leading-none tabular-nums sm:text-[26px]">
+            {value === undefined ? "–" : value}
+          </span>
+          <span
+            className={cn(
+              "mt-1 block text-[12px] font-medium",
+              night ? "text-white/75" : "text-muted-foreground",
+            )}
+          >
+            {label}
+          </span>
+        </span>
+      </Link>
+    </li>
+  );
 }

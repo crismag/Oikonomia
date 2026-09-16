@@ -308,7 +308,7 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/account-security",
     module: "account",
     page: "account-security",
-    topics: ["account.password", "account.sign-in"],
+    topics: ["account.appearance", "account.password", "account.sign-in"],
   },
 ];
 

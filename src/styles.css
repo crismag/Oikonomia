@@ -6,14 +6,14 @@
 
 /*
  * Oikonomia design system.
- * Operational, dense-but-calm. Low-chroma slate canvas, single deep teal accent,
- * muted status hues (approval / overdue / waiting / info).
- * All colors in oklch. Never hardcode color utilities in components.
+ * Themeable: every colour, typeface, radius and shadow is a token a theme sets
+ * (see "Themes" below). Components never hardcode colour utilities; they use
+ * the semantic tokens, and `--area` for the colour of the area of work.
  */
 
 @theme inline {
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Newsreader", Georgia, serif;
+  --font-sans: var(--theme-font-sans);
+  --font-display: var(--theme-font-display);
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 3px);
@@ -68,43 +68,39 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+
+  --color-area: var(--area);
+  --color-area-soft: var(--area-soft);
+  --color-area-tint: var(--area-tint);
+  --color-area-ink: var(--area-ink);
+  --color-on-area: var(--on-area);
+
+  --shadow-card: var(--elev-card);
+  --shadow-raised: var(--elev-raised);
 }
 
+/* ===========================================================================
+ * Themes.
+ *
+ * A theme is a whole identity — palette, typefaces, radius, shadow, the light
+ * behind Home's greeting and the colour of each area of work. `data-theme` on
+ * <html> picks one; `.dark` picks its dark variant. Components use only the
+ * semantic tokens below, never a theme's own values, so every screen works in
+ * every theme.
+ *
+ * Cascade: :root is Stained glass (light) and shared tokens; .dark is Stained
+ * glass (dark) and shared dark tokens; each [data-theme] replaces the light
+ * values and .dark[data-theme] its dark ones.
+ * ======================================================================== */
+
 :root {
-  --radius: 0.5rem;
-  /* The public demonstration's bar, above everything; 0 everywhere else. Set
-     by components/oikonomia/demo-header.tsx, read by every sticky element. */
   --demo-bar: 0px;
 
-  --background: oklch(0.976 0.003 247);
-  --foreground: oklch(0.24 0.018 255);
-  --surface: oklch(1 0 0);
-  --surface-muted: oklch(0.962 0.004 250);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.018 255);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.018 255);
-
-  --primary: oklch(0.41 0.062 205);
-  --primary-foreground: oklch(0.985 0.002 250);
-  --secondary: oklch(0.956 0.005 250);
-  --secondary-foreground: oklch(0.3 0.02 255);
-  --muted: oklch(0.958 0.005 250);
-  --muted-foreground: oklch(0.52 0.016 254);
-  --disabled: oklch(0.66 0.012 254);
-  --accent: oklch(0.41 0.062 205);
-  --accent-foreground: oklch(0.985 0.002 250);
-  --accent-soft: oklch(0.945 0.021 200);
-
+  /* Shared: status hues read the same in every theme. */
   --destructive: oklch(0.52 0.15 25);
   --destructive-foreground: oklch(0.985 0.002 250);
-
-  --border: oklch(0.913 0.006 250);
-  --border-strong: oklch(0.855 0.008 250);
-  --input: oklch(0.913 0.006 250);
-  --ring: oklch(0.55 0.06 205);
-
   --status-approval: oklch(0.45 0.09 265);
   --status-approval-soft: oklch(0.951 0.02 265);
   --status-overdue: oklch(0.5 0.14 28);
@@ -116,43 +112,71 @@
   --status-done: oklch(0.46 0.07 155);
   --status-done-soft: oklch(0.955 0.024 155);
 
-  --sidebar: oklch(0.985 0.002 250);
-  --sidebar-foreground: oklch(0.3 0.018 255);
-  --sidebar-border: oklch(0.913 0.006 250);
-  --sidebar-accent: oklch(0.945 0.021 200);
-  --sidebar-accent-foreground: oklch(0.34 0.055 205);
+  /* ---- Stained glass, light ---- */
+  --theme-font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
+  --display-weight: 700;
+  --display-tracking: -0.022em;
+  --radius: 0.75rem;
+  --elev-card: 0 1px 2px rgb(28 26 51 / 5%), 0 6px 20px -12px rgb(28 26 51 / 18%);
+  --elev-raised: 0 2px 4px rgb(28 26 51 / 6%), 0 16px 36px -18px rgb(43 37 102 / 35%);
+
+  --background: #f4f5fa;
+  --foreground: #1c1a33;
+  --surface: #ffffff;
+  --surface-muted: #f0f1f8;
+  --card: #ffffff;
+  --card-foreground: #1c1a33;
+  --popover: #ffffff;
+  --popover-foreground: #1c1a33;
+  --primary: #4a3fd6;
+  --primary-foreground: #ffffff;
+  --secondary: #edebfb;
+  --secondary-foreground: #2b2566;
+  --muted: #eeeff6;
+  --muted-foreground: #5c5d75;
+  --disabled: #9a9bb0;
+  --accent: #4a3fd6;
+  --accent-foreground: #ffffff;
+  --accent-soft: #eceafd;
+  --border: #e3e4ef;
+  --border-strong: #cfd1e2;
+  --input: #dadcea;
+  --ring: #6d63e8;
+
+  --sidebar: #221d4f;
+  --sidebar-foreground: #e9e7fb;
+  --sidebar-muted: #a9a5d2;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-hover: rgb(255 255 255 / 7%);
+  --sidebar-accent: rgb(255 255 255 / 13%);
+  --sidebar-accent-foreground: #ffffff;
+  --on-area: #ffffff;
+  --brand-from: #7a6cff;
+  --brand-to: #d6457a;
+
+  --area-home: #5b4fe0;
+  --area-plan: #3e63dd;
+  --area-meet: #c9820f;
+  --area-reach: #d6457a;
+  --area-reports: #8455f0;
+  --area-goals: #0e96a6;
+  --area-life: #1e9e77;
+  --area-ministry: #c2419b;
+  --area-library: #56668a;
+  --area-lead: #0e7490;
+  --area-journal: #9a4dd8;
+  --area-org: #5f6b80;
+
+  --hero-dawn: linear-gradient(118deg, #ffe6d3 0%, #f9d3e4 48%, #e2dfff 100%);
+  --hero-day: linear-gradient(118deg, #dbe9ff 0%, #e7e1ff 52%, #fff1d4 100%);
+  --hero-dusk: linear-gradient(118deg, #ffd6bd 0%, #f1c1da 50%, #cbc5f4 100%);
+  --hero-night: linear-gradient(118deg, #2b2566 0%, #3d2f7c 55%, #1d3a6e 100%);
 }
 
 .dark {
-  --background: oklch(0.19 0.014 255);
-  --foreground: oklch(0.94 0.005 250);
-  --surface: oklch(0.235 0.016 255);
-  --surface-muted: oklch(0.215 0.015 255);
-
-  --card: oklch(0.235 0.016 255);
-  --card-foreground: oklch(0.94 0.005 250);
-  --popover: oklch(0.235 0.016 255);
-  --popover-foreground: oklch(0.94 0.005 250);
-
-  --primary: oklch(0.72 0.075 200);
-  --primary-foreground: oklch(0.19 0.014 255);
-  --secondary: oklch(0.28 0.016 255);
-  --secondary-foreground: oklch(0.94 0.005 250);
-  --muted: oklch(0.28 0.016 255);
-  --muted-foreground: oklch(0.7 0.014 254);
-  --disabled: oklch(0.54 0.012 254);
-  --accent: oklch(0.72 0.075 200);
-  --accent-foreground: oklch(0.19 0.014 255);
-  --accent-soft: oklch(0.3 0.035 205);
-
   --destructive: oklch(0.62 0.16 25);
   --destructive-foreground: oklch(0.98 0.002 250);
-
-  --border: oklch(1 0 0 / 12%);
-  --border-strong: oklch(1 0 0 / 20%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.65 0.06 205);
-
   --status-approval: oklch(0.75 0.09 265);
   --status-approval-soft: oklch(0.32 0.045 265);
   --status-overdue: oklch(0.72 0.13 30);
@@ -164,11 +188,461 @@
   --status-done: oklch(0.74 0.08 155);
   --status-done-soft: oklch(0.31 0.045 155);
 
+  /* ---- Stained glass, dark ---- */
+  --elev-card: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -14px rgb(0 0 0 / 60%);
+  --elev-raised: 0 2px 6px rgb(0 0 0 / 35%), 0 18px 40px -18px rgb(0 0 0 / 70%);
+
+  --background: #121124;
+  --foreground: #ecebf7;
+  --surface: #1b1a31;
+  --surface-muted: #222140;
+  --card: #1b1a31;
+  --card-foreground: #ecebf7;
+  --popover: #1f1e38;
+  --popover-foreground: #ecebf7;
+  --primary: #9189ff;
+  --primary-foreground: #120f2e;
+  --secondary: #2a2850;
+  --secondary-foreground: #e9e7fb;
+  --muted: #24233f;
+  --muted-foreground: #a6a5c2;
+  --disabled: #6c6b88;
+  --accent: #9189ff;
+  --accent-foreground: #120f2e;
+  --accent-soft: #2a2656;
+  --border: rgb(255 255 255 / 9%);
+  --border-strong: rgb(255 255 255 / 17%);
+  --input: rgb(255 255 255 / 13%);
+  --ring: #9189ff;
+
+  --on-area: #120f2e;
+  --sidebar: #0d0c1e;
+  --sidebar-foreground: #e4e2f6;
+  --sidebar-muted: #9895bd;
+  --sidebar-border: rgb(255 255 255 / 7%);
+  --sidebar-hover: rgb(255 255 255 / 5%);
+  --sidebar-accent: rgb(255 255 255 / 10%);
+  --sidebar-accent-foreground: #ffffff;
+
+  --area-home: #9a91ff;
+  --area-plan: #7f9eff;
+  --area-meet: #f0b443;
+  --area-reach: #f17ba3;
+  --area-reports: #b596ff;
+  --area-goals: #4fc9d6;
+  --area-life: #4fc89c;
+  --area-ministry: #e07cc4;
+  --area-library: #9ba8c4;
+  --area-lead: #52b6cf;
+  --area-journal: #c58cf1;
+  --area-org: #9ea6b6;
+
+  --hero-dawn: linear-gradient(118deg, #3a2442 0%, #2e2553 50%, #1e2751 100%);
+  --hero-day: linear-gradient(118deg, #1e2a54 0%, #2a2459 52%, #2f2a44 100%);
+  --hero-dusk: linear-gradient(118deg, #3e2439 0%, #35264f 50%, #232045 100%);
+  --hero-night: linear-gradient(118deg, #141234 0%, #201a49 55%, #102441 100%);
+}
+
+/* ---- Vineyard, light ---- */
+[data-theme="vineyard"] {
+  --theme-font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Fraunces", Georgia, serif;
+  --display-weight: 600;
+  --display-tracking: -0.012em;
+  --radius: 1rem;
+  --elev-card: 0 1px 2px rgb(38 44 30 / 5%), 0 6px 20px -12px rgb(38 44 30 / 16%);
+  --elev-raised: 0 2px 4px rgb(38 44 30 / 6%), 0 16px 36px -18px rgb(47 59 37 / 30%);
+
+  --background: #f6f4ec;
+  --foreground: #262c1e;
+  --surface: #fffdf7;
+  --surface-muted: #f1eee3;
+  --card: #fffdf7;
+  --card-foreground: #262c1e;
+  --popover: #fffdf7;
+  --popover-foreground: #262c1e;
+  --primary: #536f2c;
+  --primary-foreground: #fffdf5;
+  --secondary: #eaeedb;
+  --secondary-foreground: #2f3b25;
+  --muted: #efece0;
+  --muted-foreground: #5f6653;
+  --disabled: #a3a694;
+  --accent: #536f2c;
+  --accent-foreground: #fffdf5;
+  --accent-soft: #e8eed8;
+  --border: #e5e1d3;
+  --border-strong: #d2cdba;
+  --input: #dcd7c5;
+  --ring: #6f8e3f;
+
+  --sidebar: #2e3a24;
+  --sidebar-foreground: #eef0e4;
+  --sidebar-muted: #b3baa0;
+  --sidebar-border: rgb(255 255 255 / 9%);
+  --sidebar-hover: rgb(255 255 255 / 7%);
+  --sidebar-accent: rgb(255 255 255 / 13%);
+  --sidebar-accent-foreground: #ffffff;
+  --on-area: #ffffff;
+  --brand-from: #9dba5a;
+  --brand-to: #d9a93f;
+
+  --area-home: #536f2c;
+  --area-plan: #3f73a0;
+  --area-meet: #b67c12;
+  --area-reach: #a8456c;
+  --area-reports: #7d3f6b;
+  --area-goals: #2f8574;
+  --area-life: #5a8a2a;
+  --area-ministry: #9a5528;
+  --area-library: #6b6755;
+  --area-lead: #3a6b8a;
+  --area-journal: #7458a3;
+  --area-org: #676c59;
+
+  --hero-dawn: linear-gradient(118deg, #f6e2bd 0%, #efe5cc 50%, #dbe6c4 100%);
+  --hero-day: linear-gradient(118deg, #e2ecca 0%, #f2e8c6 52%, #f5ddc5 100%);
+  --hero-dusk: linear-gradient(118deg, #f1d0ab 0%, #e5c1cd 50%, #cdc3db 100%);
+  --hero-night: linear-gradient(118deg, #2f3b25 0%, #3e3350 55%, #23304a 100%);
+}
+
+.dark[data-theme="vineyard"] {
+  --elev-card: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -14px rgb(0 0 0 / 60%);
+  --elev-raised: 0 2px 6px rgb(0 0 0 / 35%), 0 18px 40px -18px rgb(0 0 0 / 70%);
+
+  --background: #14170e;
+  --foreground: #ecede3;
+  --surface: #1c2015;
+  --surface-muted: #23281a;
+  --card: #1c2015;
+  --card-foreground: #ecede3;
+  --popover: #20251a;
+  --popover-foreground: #ecede3;
+  --primary: #a9c56b;
+  --primary-foreground: #14170e;
+  --secondary: #2a311f;
+  --secondary-foreground: #ecede3;
+  --muted: #262b1c;
+  --muted-foreground: #aab099;
+  --disabled: #6e735f;
+  --accent: #a9c56b;
+  --accent-foreground: #14170e;
+  --accent-soft: #2b3421;
+  --border: rgb(255 255 255 / 9%);
+  --border-strong: rgb(255 255 255 / 17%);
+  --input: rgb(255 255 255 / 13%);
+  --ring: #a9c56b;
+
+  --on-area: #14170e;
+  --sidebar: #0f120a;
+  --sidebar-foreground: #e6e8dc;
+  --sidebar-muted: #9ea48e;
+  --sidebar-border: rgb(255 255 255 / 7%);
+  --sidebar-hover: rgb(255 255 255 / 5%);
+  --sidebar-accent: rgb(255 255 255 / 10%);
+  --sidebar-accent-foreground: #ffffff;
+
+  --area-home: #a9c56b;
+  --area-plan: #8db5d6;
+  --area-meet: #e6b85a;
+  --area-reach: #da8aa9;
+  --area-reports: #c38bb6;
+  --area-goals: #7cc2b0;
+  --area-life: #9dc56a;
+  --area-ministry: #d69b6f;
+  --area-library: #b4af9b;
+  --area-lead: #87b4cf;
+  --area-journal: #b99cdc;
+  --area-org: #a8ad99;
+
+  --hero-dawn: linear-gradient(118deg, #3a3020 0%, #2d3121 50%, #232d20 100%);
+  --hero-day: linear-gradient(118deg, #26301c 0%, #333020 52%, #3a2e22 100%);
+  --hero-dusk: linear-gradient(118deg, #3c2c1e 0%, #372530 50%, #2b2638 100%);
+  --hero-night: linear-gradient(118deg, #161b10 0%, #231c2c 55%, #141c2b 100%);
+}
+
+/* ---- Daybreak, light ---- */
+[data-theme="daybreak"] {
+  --theme-font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --display-weight: 800;
+  --display-tracking: -0.028em;
+  --radius: 1rem;
+  --elev-card: 0 1px 2px rgb(28 28 40 / 4%), 0 8px 24px -14px rgb(80 72 229 / 22%);
+  --elev-raised: 0 2px 4px rgb(28 28 40 / 5%), 0 18px 40px -18px rgb(80 72 229 / 35%);
+
+  --background: #fafafe;
+  --foreground: #1c1c28;
+  --surface: #ffffff;
+  --surface-muted: #f4f4fb;
+  --card: #ffffff;
+  --card-foreground: #1c1c28;
+  --popover: #ffffff;
+  --popover-foreground: #1c1c28;
+  --primary: #5048e5;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeefe;
+  --secondary-foreground: #2e2a8f;
+  --muted: #f1f1f8;
+  --muted-foreground: #5c5c72;
+  --disabled: #a1a1b5;
+  --accent: #5048e5;
+  --accent-foreground: #ffffff;
+  --accent-soft: #eeedfe;
+  --border: #e8e8f2;
+  --border-strong: #d5d5e4;
+  --input: #dedeea;
+  --ring: #7c75f0;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2a2a3c;
+  --sidebar-muted: #6b6b82;
+  --sidebar-border: #ececf4;
+  --sidebar-hover: #f4f4fb;
+  --sidebar-accent: #eeedfe;
+  --sidebar-accent-foreground: #3f38c9;
+  --on-area: #ffffff;
+  --brand-from: #5b5bf0;
+  --brand-to: #ec4899;
+
+  --area-home: #5048e5;
+  --area-plan: #2563eb;
+  --area-meet: #d97706;
+  --area-reach: #db2777;
+  --area-reports: #7c3aed;
+  --area-goals: #0d9488;
+  --area-life: #16a34a;
+  --area-ministry: #ea580c;
+  --area-library: #475569;
+  --area-lead: #0891b2;
+  --area-journal: #9333ea;
+  --area-org: #64748b;
+
+  --hero-dawn: linear-gradient(118deg, #ffe4e6 0%, #fdf2f8 45%, #e0e7ff 100%);
+  --hero-day: linear-gradient(118deg, #e0f2fe 0%, #ede9fe 52%, #fce7f3 100%);
+  --hero-dusk: linear-gradient(118deg, #ffedd5 0%, #fce7f3 50%, #e0e7ff 100%);
+  --hero-night: linear-gradient(118deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%);
+}
+
+.dark[data-theme="daybreak"] {
+  --elev-card: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px -14px rgb(0 0 0 / 60%);
+  --elev-raised: 0 2px 6px rgb(0 0 0 / 35%), 0 18px 40px -18px rgb(0 0 0 / 70%);
+
+  --background: #0f0f17;
+  --foreground: #ededf5;
+  --surface: #181824;
+  --surface-muted: #1f1f2e;
+  --card: #181824;
+  --card-foreground: #ededf5;
+  --popover: #1c1c2a;
+  --popover-foreground: #ededf5;
+  --primary: #8b85ff;
+  --primary-foreground: #0f0f17;
+  --secondary: #26263a;
+  --secondary-foreground: #ededf5;
+  --muted: #212131;
+  --muted-foreground: #a3a3b9;
+  --disabled: #6b6b80;
+  --accent: #8b85ff;
+  --accent-foreground: #0f0f17;
+  --accent-soft: #25234a;
+  --border: rgb(255 255 255 / 8%);
+  --border-strong: rgb(255 255 255 / 16%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #8b85ff;
+
+  --on-area: #0f0f17;
+  --sidebar: #13131d;
+  --sidebar-foreground: #e6e6f0;
+  --sidebar-muted: #9b9bb1;
+  --sidebar-border: rgb(255 255 255 / 7%);
+  --sidebar-hover: rgb(255 255 255 / 5%);
+  --sidebar-accent: #25234a;
+  --sidebar-accent-foreground: #ffffff;
+
+  --area-home: #8b85ff;
+  --area-plan: #60a5fa;
+  --area-meet: #fbbf24;
+  --area-reach: #f472b6;
+  --area-reports: #a78bfa;
+  --area-goals: #2dd4bf;
+  --area-life: #4ade80;
+  --area-ministry: #fb923c;
+  --area-library: #94a3b8;
+  --area-lead: #22d3ee;
+  --area-journal: #c084fc;
+  --area-org: #94a3b8;
+
+  --hero-dawn: linear-gradient(118deg, #3b1f33 0%, #2a2140 50%, #1e2248 100%);
+  --hero-day: linear-gradient(118deg, #152a44 0%, #25214a 52%, #3a1f3a 100%);
+  --hero-dusk: linear-gradient(118deg, #3b2616 0%, #3a1f36 50%, #1f2148 100%);
+  --hero-night: linear-gradient(118deg, #14122e 0%, #211d52 55%, #2d1650 100%);
+}
+
+/* ---- Quiet (the original), light ---- */
+[data-theme="quiet"] {
+  --theme-font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Newsreader", Georgia, serif;
+  --display-weight: 500;
+  --display-tracking: -0.01em;
+  --radius: 0.5rem;
+  --elev-card: none;
+  --elev-raised: 0 8px 24px -16px rgb(0 0 0 / 20%);
+
+  --background: oklch(0.976 0.003 247);
+  --foreground: oklch(0.24 0.018 255);
+  --surface: oklch(1 0 0);
+  --surface-muted: oklch(0.962 0.004 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.018 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.018 255);
+  --primary: oklch(0.41 0.062 205);
+  --primary-foreground: oklch(0.985 0.002 250);
+  --secondary: oklch(0.956 0.005 250);
+  --secondary-foreground: oklch(0.3 0.02 255);
+  --muted: oklch(0.958 0.005 250);
+  --muted-foreground: oklch(0.52 0.016 254);
+  --disabled: oklch(0.66 0.012 254);
+  --accent: oklch(0.41 0.062 205);
+  --accent-foreground: oklch(0.985 0.002 250);
+  --accent-soft: oklch(0.945 0.021 200);
+  --border: oklch(0.913 0.006 250);
+  --border-strong: oklch(0.855 0.008 250);
+  --input: oklch(0.913 0.006 250);
+  --ring: oklch(0.55 0.06 205);
+
+  --sidebar: oklch(0.985 0.002 250);
+  --sidebar-foreground: oklch(0.3 0.018 255);
+  --sidebar-muted: oklch(0.52 0.016 254);
+  --sidebar-border: oklch(0.913 0.006 250);
+  --sidebar-hover: oklch(0.958 0.005 250);
+  --sidebar-accent: oklch(0.945 0.021 200);
+  --sidebar-accent-foreground: oklch(0.34 0.055 205);
+  --on-area: #ffffff;
+  --brand-from: oklch(0.41 0.062 205);
+  --brand-to: oklch(0.41 0.062 205);
+
+  --area-home: #2f6670;
+  --area-plan: #3f6a8a;
+  --area-meet: #85692c;
+  --area-reach: #874d60;
+  --area-reports: #5d598a;
+  --area-goals: #2f6d68;
+  --area-life: #3b7a59;
+  --area-ministry: #775877;
+  --area-library: #596574;
+  --area-lead: #3d6374;
+  --area-journal: #695985;
+  --area-org: #5e6a79;
+
+  --hero-dawn: linear-gradient(118deg, #eef3f5 0%, #f6f8fa 100%);
+  --hero-day: linear-gradient(118deg, #eef3f5 0%, #f6f8fa 100%);
+  --hero-dusk: linear-gradient(118deg, #eef3f5 0%, #f6f8fa 100%);
+  --hero-night: linear-gradient(118deg, #eef3f5 0%, #f6f8fa 100%);
+}
+
+.dark[data-theme="quiet"] {
+  --elev-card: none;
+  --elev-raised: 0 8px 24px -16px rgb(0 0 0 / 60%);
+
+  --background: oklch(0.19 0.014 255);
+  --foreground: oklch(0.94 0.005 250);
+  --surface: oklch(0.235 0.016 255);
+  --surface-muted: oklch(0.215 0.015 255);
+  --card: oklch(0.235 0.016 255);
+  --card-foreground: oklch(0.94 0.005 250);
+  --popover: oklch(0.235 0.016 255);
+  --popover-foreground: oklch(0.94 0.005 250);
+  --primary: oklch(0.72 0.075 200);
+  --primary-foreground: oklch(0.19 0.014 255);
+  --secondary: oklch(0.28 0.016 255);
+  --secondary-foreground: oklch(0.94 0.005 250);
+  --muted: oklch(0.28 0.016 255);
+  --muted-foreground: oklch(0.7 0.014 254);
+  --disabled: oklch(0.54 0.012 254);
+  --accent: oklch(0.72 0.075 200);
+  --accent-foreground: oklch(0.19 0.014 255);
+  --accent-soft: oklch(0.3 0.035 205);
+  --border: oklch(1 0 0 / 12%);
+  --border-strong: oklch(1 0 0 / 20%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.65 0.06 205);
+
+  --on-area: oklch(0.19 0.014 255);
   --sidebar: oklch(0.215 0.015 255);
   --sidebar-foreground: oklch(0.9 0.006 250);
+  --sidebar-muted: oklch(0.7 0.014 254);
   --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-hover: oklch(0.28 0.016 255);
   --sidebar-accent: oklch(0.3 0.035 205);
   --sidebar-accent-foreground: oklch(0.92 0.02 200);
+
+  --area-home: #7fb6bf;
+  --area-plan: #8fb1cc;
+  --area-meet: #cdb37a;
+  --area-reach: #c797a8;
+  --area-reports: #a6a2cf;
+  --area-goals: #7fb6b1;
+  --area-life: #8cc0a3;
+  --area-ministry: #bea0be;
+  --area-library: #a3adba;
+  --area-lead: #8aabba;
+  --area-journal: #aea0c8;
+  --area-org: #a7b1bd;
+
+  --hero-dawn: linear-gradient(118deg, oklch(0.25 0.018 220) 0%, oklch(0.235 0.016 255) 100%);
+  --hero-day: linear-gradient(118deg, oklch(0.25 0.018 220) 0%, oklch(0.235 0.016 255) 100%);
+  --hero-dusk: linear-gradient(118deg, oklch(0.25 0.018 220) 0%, oklch(0.235 0.016 255) 100%);
+  --hero-night: linear-gradient(118deg, oklch(0.25 0.018 220) 0%, oklch(0.235 0.016 255) 100%);
+}
+
+/* ---------------------------------------------------------------- areas
+ * `data-area` on any element makes `--area` that area's colour inside it, with
+ * a soft tint and a readable ink derived in the same place (a derived custom
+ * property only follows `--area` if it is declared where `--area` is). */
+:root,
+[data-area] {
+  --area: var(--primary);
+  --area-soft: color-mix(in oklab, var(--area) 12%, var(--surface));
+  --area-tint: color-mix(in oklab, var(--area) 6%, var(--surface));
+  --area-ink: color-mix(in oklab, var(--area) 72%, var(--foreground));
+}
+[data-area="home"] {
+  --area: var(--area-home);
+}
+[data-area="plan"] {
+  --area: var(--area-plan);
+}
+[data-area="meet"] {
+  --area: var(--area-meet);
+}
+[data-area="reach"] {
+  --area: var(--area-reach);
+}
+[data-area="reports"] {
+  --area: var(--area-reports);
+}
+[data-area="goals"] {
+  --area: var(--area-goals);
+}
+[data-area="life"] {
+  --area: var(--area-life);
+}
+[data-area="ministry"] {
+  --area: var(--area-ministry);
+}
+[data-area="library"] {
+  --area: var(--area-library);
+}
+[data-area="lead"] {
+  --area: var(--area-lead);
+}
+[data-area="journal"] {
+  --area: var(--area-journal);
+}
+[data-area="org"] {
+  --area: var(--area-org);
 }
 
 @layer base {
@@ -187,9 +661,36 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
   }
+}
+
+/*
+ * A hero board's light: two soft pools of the area's colour and a faint dot
+ * grid, behind the page's title. Decoration only — it carries no meaning.
+ */
+@utility hero-glow {
+  background-image:
+    radial-gradient(
+      38rem 16rem at 100% 0%,
+      color-mix(in oklab, var(--area) 26%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      22rem 12rem at 72% 120%,
+      color-mix(in oklab, var(--area) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in oklab, var(--area) 18%, transparent) 1px,
+      transparent 0
+    );
+  background-size:
+    auto,
+    auto,
+    18px 18px;
 }
 
 /* Small caps meta label used across the shell and screens. */

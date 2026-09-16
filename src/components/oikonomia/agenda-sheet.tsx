@@ -43,7 +43,7 @@ export function AgendaSheet({
   return (
     <article
       data-print="sheet"
-      className="mx-auto max-w-[900px] rounded-lg border border-border bg-surface px-6 py-6"
+      className="mx-auto max-w-[900px] rounded-2xl border border-border bg-surface shadow-card px-6 py-6"
     >
       <header data-print="section">
         {/* The banner, in the binder's own words. */}

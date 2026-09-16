@@ -52,6 +52,17 @@ somebody could inherit an account that was never theirs.
 provider is configured. Where it is not, the screen says so and points you at
 your administrator, rather than accepting a request nobody will receive.
 
+## How it looks
+
+Open the account menu and choose **Appearance**. There are four themes —
+**Stained glass**, **Vineyard**, **Daybreak** and **Quiet** (the original) —
+and **Light**, **Dark** or **Match this device**. The choice is kept on this
+browser only; everyone chooses their own.
+
+In every theme each area of work has its own colour — in the sidebar, on the
+board at the top of each page and on Home — so it is easier to tell where you
+are. Colour never carries meaning on its own: the words say the same thing.
+
 ## Your account and your devices
 
 **Account & security** shows what is true, read from your actual account:

@@ -168,7 +168,7 @@ function ResourceSearchPage() {
         description="Find documents, forms, links and reference materials across your leadership workspace."
       />
 
-      <label className="flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2.5">
+      <label className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface shadow-card px-3 py-2.5">
         <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="sr-only">Search resources</span>
         <input
@@ -253,7 +253,7 @@ function ResourceSearchPage() {
               key={chip.key}
               type="button"
               onClick={chip.clear}
-              className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-accent-soft px-2 py-1 text-[12px] text-sidebar-accent-foreground transition-colors hover:bg-accent-soft/70"
+              className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-area-soft px-2 py-1 text-[12px] text-area-ink transition-colors hover:bg-area-soft/70"
             >
               {chip.label}
               <X className="size-3" aria-hidden />
@@ -276,7 +276,7 @@ function ResourceSearchPage() {
         <p className="mt-3 text-[12px] text-muted-foreground">Recent resources</p>
       )}
 
-      <div className="mt-2 overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {store.status === "loading" ? (
           <ListSkeleton rows={5} />
         ) : store.status === "error" ? (
@@ -437,7 +437,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, at)}
-      <mark className="bg-accent-soft text-inherit">{text.slice(at, at + q.length)}</mark>
+      <mark className="bg-area-soft text-inherit">{text.slice(at, at + q.length)}</mark>
       {text.slice(at + q.length)}
     </>
   );
@@ -644,7 +644,7 @@ function MobileFilters({
         <SlidersHorizontal className="size-3.5" aria-hidden />
         Filters
         {count > 0 ? (
-          <span className="rounded-full bg-accent-soft px-1.5 text-[11px] text-sidebar-accent-foreground">
+          <span className="rounded-full bg-area-soft px-1.5 text-[11px] text-area-ink">
             {count}
           </span>
         ) : null}
@@ -703,7 +703,7 @@ function MobileFilters({
                   className={cn(
                     "rounded-md border px-2 py-1 text-[12px] transition-colors",
                     state.tag === tag
-                      ? "border-primary/30 bg-accent-soft text-sidebar-accent-foreground"
+                      ? "border-primary/30 bg-area-soft text-area-ink"
                       : "border-border text-muted-foreground",
                   )}
                 >

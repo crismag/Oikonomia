@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronsUpDown, Compass, LogOut, ShieldCheck } from "lucide-react";
+import { ChevronsUpDown, Compass, LogOut, Palette, ShieldCheck } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -57,6 +57,13 @@ export function AccountMenu() {
           <Link to="/welcome" className="text-[13px]">
             <Compass className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             Setup &amp; walkthrough
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild className="py-2">
+          <Link to="/account-security" hash="appearance" className="text-[13px]">
+            <Palette className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            Appearance
           </Link>
         </DropdownMenuItem>
 
