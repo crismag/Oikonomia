@@ -805,6 +805,7 @@ try {
       const goal = await call("createGoal", "goals-api", {
         title: "Written with Demo Mode on",
         year: now.getFullYear(),
+        scope: "personal",
       });
       check(
         "Demo Mode on: church work still goes through",
