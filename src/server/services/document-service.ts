@@ -355,17 +355,19 @@ export function createDocumentService(
         return repo.noteReadable(association.entityId, viewer.person.id);
       case "leadership-report": {
         const report = context_.reports.find(association.entityId);
-        return !!report && canDiscover(report, viewer.persona, viewer.person);
+        /* A record that no longer exists has nothing to reveal, and counts as
+           reachable exactly as `discoverableThroughItsPlaces` counts it. */
+        return !report || canDiscover(report, viewer.persona, viewer.person);
       }
       case "work": {
         const work = context_.work.find(association.entityId);
         return (
-          !!work && resolveAccess(viewer.persona, viewer.person, work.policy).level !== "denied"
+          !work || resolveAccess(viewer.persona, viewer.person, work.policy).level !== "denied"
         );
       }
       case "form": {
         const definition = context_.forms.findDefinition(association.entityId);
-        if (!definition) return false;
+        if (!definition) return true;
         return definition.policy
           ? resolveAccess(viewer.persona, viewer.person, definition.policy).level !== "denied"
           : true;
@@ -374,6 +376,29 @@ export function createDocumentService(
         return true;
     }
   }
+
+  /** Whether a place to file into exists at all. Filing into nothing is refused. */
+  function placeExists(association: DocumentAssociation): boolean {
+    if (association.entityId === "") return true;
+    switch (association.entityType) {
+      case "meeting-note":
+        return repo.noteExists(association.entityId);
+      case "leadership-report":
+        return !!context_.reports.find(association.entityId);
+      case "work":
+        return !!context_.work.find(association.entityId);
+      case "form":
+        return !!context_.forms.findDefinition(association.entityId);
+      case "ministry":
+        return !!context_.organization.findMinistry(association.entityId);
+      default:
+        return true;
+    }
+  }
+
+  /** A filing may be made only into a place that exists and this viewer can see. */
+  const mayFileInto = (viewer: Viewer, association: DocumentAssociation) =>
+    placeExists(association) && placeVisible(viewer, association);
 
   /** A requested filing, in the shape `placeVisible` reads. */
   const toPlace = (input: { entityType: string; entityId?: string | undefined }) =>
@@ -579,7 +604,7 @@ export function createDocumentService(
       /* Filing into a place this viewer cannot see would both reveal that it
          exists and make the document reachable through it. */
       for (const association of parsed.associations ?? []) {
-        if (!placeVisible(viewer, toPlace(association))) {
+        if (!mayFileInto(viewer, toPlace(association))) {
           throw ApiError.notFound("That place");
         }
       }
@@ -676,7 +701,7 @@ export function createDocumentService(
     associate(viewer: Viewer, input: unknown) {
       const parsed = parse(associateDocument, input);
       const document = this.get(viewer, parsed.documentId);
-      if (!placeVisible(viewer, toPlace(parsed))) throw ApiError.notFound("That place");
+      if (!mayFileInto(viewer, toPlace(parsed))) throw ApiError.notFound("That place");
       /*
        * Filing is a change to who can reach a document — it is discoverable
        * through any place it is filed in — so it takes the same permission as

@@ -312,6 +312,11 @@ export function createDocumentRepository(db: Db) {
     },
 
     /** Whether this person may read a meeting note — the same rule the gate uses. */
+    /** Whether a meeting note exists at all, readable or not. */
+    noteExists(noteId: string): boolean {
+      return !!db.prepare("SELECT 1 FROM meeting_note WHERE id = ?").get(noteId);
+    },
+
     noteReadable(noteId: string, personId: string): boolean {
       return !!db
         .prepare(`SELECT 1 FROM meeting_note n WHERE n.id = ? AND ${noteReadableSql("n")}`)
