@@ -38,14 +38,25 @@ describe("weekDateFor", () => {
 });
 
 describe("isOnTheWeek", () => {
-  it("matches an open agenda item by the request text", () => {
-    const agenda = [{ text: "Call the venue", completed: false }];
-    expect(isOnTheWeek({ request: "Call the venue" }, agenda)).toBe(true);
+  const ask = { id: "esc-1", request: "Call the venue" };
+
+  it("recognises the agenda item that names this ask, whatever it now says", () => {
+    const agenda = [{ text: "Call the venue on Tuesday", completed: false, escalationId: "esc-1" }];
+    expect(isOnTheWeek(ask, agenda)).toBe(true);
+  });
+
+  it("does not mistake another ask's item for this one, even worded the same", () => {
+    const agenda = [{ text: "Call the venue", completed: false, escalationId: "esc-2" }];
+    expect(isOnTheWeek(ask, agenda)).toBe(false);
+  });
+
+  it("still recognises an older item by its text when it names no ask", () => {
+    expect(isOnTheWeek(ask, [{ text: "Call the venue", completed: false }])).toBe(true);
   });
 
   it("does not count an item already ticked off", () => {
-    const agenda = [{ text: "Call the venue", completed: true }];
-    expect(isOnTheWeek({ request: "Call the venue" }, agenda)).toBe(false);
+    const agenda = [{ text: "Call the venue", completed: true, escalationId: "esc-1" }];
+    expect(isOnTheWeek(ask, agenda)).toBe(false);
   });
 });
 

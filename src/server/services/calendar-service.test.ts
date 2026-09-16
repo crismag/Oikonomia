@@ -444,3 +444,44 @@ describe("duplicating", () => {
     expect(copy.recurrence).toBeUndefined();
   });
 });
+
+/**
+ * An agenda item put on the week for an ask names that ask. Only an ask made of
+ * this leader may be named, and any other is answered as if it did not exist.
+ */
+describe("an agenda item from an ask", () => {
+  it("keeps the ask it was put on the week for", () => {
+    const withAsks = createCalendarService(repo, {
+      askedOf: (viewer, id) => viewer.person.id === maria.person.id && id === "esc-maria",
+    });
+    const item = withAsks.createAgendaItem(maria, {
+      text: "Confirm the venue",
+      date: "2026-09-18",
+      escalationId: "esc-maria",
+    });
+    expect(repo.findAgendaItem(item.id)?.escalationId).toBe("esc-maria");
+  });
+
+  it("refuses an ask that was not made of this leader, as not found", () => {
+    const withAsks = createCalendarService(repo, {
+      askedOf: (viewer, id) => viewer.person.id === maria.person.id && id === "esc-maria",
+    });
+    expect(() =>
+      withAsks.createAgendaItem(joel, {
+        text: "Confirm the venue",
+        date: "2026-09-18",
+        escalationId: "esc-maria",
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+  });
+
+  it("refuses to name an ask when it cannot check whose it is", () => {
+    expect(() =>
+      service.createAgendaItem(maria, {
+        text: "Confirm the venue",
+        date: "2026-09-18",
+        escalationId: "esc-maria",
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+  });
+});

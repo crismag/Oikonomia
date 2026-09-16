@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 
@@ -12,6 +13,9 @@ import {
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "./organization-provider";
+import { useLeadershipInbox } from "./escalation-provider";
+import { PersonName } from "./person";
+import { escalationHref } from "@/domain/escalation";
 import { planningTime, type PlanningItem } from "@/domain/planning";
 import { fromISO, shortDayLabel } from "@/domain/schedule";
 import { format } from "date-fns";
@@ -25,7 +29,8 @@ import type { AgendaItem } from "@/domain/types";
  * scheduled entries. A task is a real record with a day, a ministry and words
  * somebody chose, and it deserved somewhere to be read and changed.
  *
- * What it shows is what a task **has**. There is no assignee, no priority and
+ * What it shows is what a task **has** — including the ask it was put on the
+ * week for, when there was one. There is no assignee, no priority and
  * no attachments here, because the binder's task has none of those — a
  * checklist item on the Weekly Agenda means the leader did it, and inventing
  * fields would be inventing a workflow nobody asked for.
@@ -109,6 +114,8 @@ export function TaskDetail({
             </p>
           ) : null}
 
+          {task.escalationId ? <FromAnAsk escalationId={task.escalationId} /> : null}
+
           {alsoThatDay.length > 0 ? (
             <div>
               <p className="mb-1.5 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -162,3 +169,35 @@ export function TaskDetail({
 
 /** "11 September" — how the drawer names the day it is about. */
 export const taskDayLabel = (iso: string) => format(fromISO(iso), "d MMMM");
+
+/**
+ * Where a task put on the week for an ask came from.
+ *
+ * Read from this leader's own inbox, so it only ever names an ask that was
+ * made of them and is still open. Once the ask is settled the task is simply
+ * the leader's record of what they meant to do, and says no more.
+ */
+function FromAnAsk({ escalationId }: { escalationId: string }) {
+  const inbox = useLeadershipInbox();
+  const ask = inbox.mine.find((item) => item.id === escalationId);
+  if (!ask) return null;
+  const href = escalationHref(ask.sourceType, ask.sourceId);
+
+  return (
+    <div className="rounded-md border border-border bg-surface-muted px-3 py-2 text-[13px]">
+      <p className="text-muted-foreground">
+        Put on your week for something <PersonName personId={ask.requestedById} /> asked of you
+        {ask.contextLabel ? ` · ${ask.contextLabel}` : ""}.
+      </p>
+      {href ? (
+        <Link
+          to={href.to}
+          {...(href.search ? { search: href.search } : {})}
+          className="mt-1 inline-flex font-medium text-primary underline-offset-2 hover:underline"
+        >
+          Open where it was asked
+        </Link>
+      ) : null}
+    </div>
+  );
+}

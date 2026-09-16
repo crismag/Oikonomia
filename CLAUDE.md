@@ -183,9 +183,11 @@ The goal was not more features. It was to make the loop walkable.
   that way.
   (`src/components/oikonomia/escalation-row.tsx`)
 
-Dedup for “already on the week”: `schedule.agenda.some(entry => entry.text === item.request && !entry.completed)`.
-There is **no** `relatedEscalationId` on agenda items. Do not add a schema
-column unless Cris asks; matching by request text is the current contract.
+“Already on the week” is `isOnTheWeek` (`src/domain/escalation.ts`): an agenda
+item carries `escalationId` (migration 039) and is matched on it; only items
+without one (older) fall back to matching the request text. The server accepts
+an `escalationId` only for an ask made of the viewer (`not-found` otherwise).
+The week's task panel links back to where the ask was made while it is open.
 
 ### Person (`src/routes/people.$personId.tsx`)
 
@@ -317,7 +319,6 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 | Sunday service attendance, giving, volunteer rotas | Other products. |
 | Custom workflow engine / enterprise RBAC UI | Roles are already church-defined capability bundles. |
 | Reach-Out access model | Open decision in `reach-out-service.ts` / `modules/REACH-OUT.md`. Do not guess. |
-| `relatedEscalationId` on agenda items | Would make Put on my week robust; it is also a schema change. Not required for P1. |
 
 ## Goals are scoped (migration 038)
 

@@ -240,14 +240,20 @@ export function weekDateFor(ask: { neededBy?: string | undefined }, today: strin
 /**
  * Whether an ask is already on this leader's week.
  *
- * Agenda items carry no link back to the ask, so the request text is the
- * contract. A completed item does not count: that was the last time.
+ * An agenda item names the ask it was put on the week for, so that is what is
+ * matched. Items from before that link existed carry no ask, and only those
+ * are recognised by their text — a linked item is never mistaken for another
+ * ask worded the same. A completed item does not count: that was the last time.
  */
 export function isOnTheWeek(
-  ask: { request: string },
-  agenda: readonly { text: string; completed: boolean }[],
+  ask: { id: string; request: string },
+  agenda: readonly { text: string; completed: boolean; escalationId?: string | undefined }[],
 ): boolean {
-  return agenda.some((entry) => entry.text === ask.request && !entry.completed);
+  return agenda.some(
+    (entry) =>
+      !entry.completed &&
+      (entry.escalationId ? entry.escalationId === ask.id : entry.text === ask.request),
+  );
 }
 
 /**

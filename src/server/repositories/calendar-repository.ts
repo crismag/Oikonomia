@@ -59,6 +59,7 @@ interface AgendaRow {
   due_at: string | null;
   assignee_id: string | null;
   related_entry_id: string | null;
+  escalation_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -132,6 +133,7 @@ function toAgendaItem(row: AgendaRow): AgendaItem {
     ...has(row.due_at, "dueAt"),
     ...has(row.assignee_id, "assigneeId"),
     ...has(row.related_entry_id, "relatedEntryId"),
+    ...has(row.escalation_id, "escalationId"),
     ...has(row.created_by, "createdBy"),
   } as AgendaItem;
 }
@@ -281,9 +283,11 @@ export function createCalendarRepository(db: Db) {
       db.prepare(
         `INSERT INTO agenda_item
            (id, text, date, week_of, completed, completed_at, category, ministry_id,
-            due_at, assignee_id, related_entry_id, created_by, created_at, updated_at)
+            due_at, assignee_id, related_entry_id, escalation_id, created_by, created_at,
+            updated_at)
          VALUES (@id, @text, @date, @week_of, @completed, @completed_at, @category, @ministry_id,
-            @due_at, @assignee_id, @related_entry_id, @created_by, @created_at, @updated_at)`,
+            @due_at, @assignee_id, @related_entry_id, @escalation_id, @created_by, @created_at,
+            @updated_at)`,
       ).run({
         id,
         text: values.text,
@@ -296,6 +300,7 @@ export function createCalendarRepository(db: Db) {
         due_at: values.dueAt ?? null,
         assignee_id: values.assigneeId ?? null,
         related_entry_id: values.relatedEntryId ?? null,
+        escalation_id: values.escalationId ?? null,
         created_by: values.createdBy ?? null,
         created_at: at,
         updated_at: at,
