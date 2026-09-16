@@ -62,6 +62,12 @@ export interface DriveServiceDeps {
   discover?: (viewer: Viewer, documentId: string) => RegisteredDocument | undefined;
   /** How the Workspace configuration is read. Replaced in tests. */
   workspace?: () => WorkspaceConfig | undefined;
+  /**
+   * The address a person signs in with, when their person record has none —
+   * the same fallback the calendar overlay uses, so Drive and the calendar
+   * agree on who a leader is in Google.
+   */
+  accountEmailOf?: (personId: string) => string | undefined;
 }
 
 export interface UploadInput {
@@ -94,10 +100,12 @@ export function createDriveService(deps: DriveServiceDeps) {
 
   /** The address Oikonomia acts as for this viewer, or a calm refusal. */
   function subjectFor(viewer: Viewer, settings: WorkspaceConfig): string {
-    const email = deps.organization.findPerson(viewer.person.id)?.email;
+    const email =
+      deps.organization.findPerson(viewer.person.id)?.email ??
+      deps.accountEmailOf?.(viewer.person.id);
     if (!mayActAs(settings, email)) {
       throw ApiError.forbidden(
-        `Your person record needs your church Google address (…@${settings.domain}) before Oikonomia can open Drive as you. An administrator can add it.`,
+        `Oikonomia needs your church Google address (…@${settings.domain}) on your person record before it can open Drive as you. An administrator can add it.`,
       );
     }
     return email.trim().toLowerCase();

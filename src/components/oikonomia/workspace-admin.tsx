@@ -130,6 +130,14 @@ export function WorkspaceAdmin() {
                   {errorMessage(check.error)}
                 </p>
               ) : null}
+              {check.data && check.data.every((result) => !result.ok) ? (
+                /* Every scope refused is almost never four missing scopes: it is
+                   the key, or the delegation naming a different client. */
+                <p role="alert" className="mt-3 text-[13px] text-status-overdue">
+                  Google refused everything. Check that the key belongs to the service account whose
+                  Client ID is in the domain-wide delegation, and that the church mailbox exists.
+                </p>
+              ) : null}
               {check.data ? (
                 <ul className="mt-3 space-y-1 text-[13px]">
                   {check.data.map((result) => (

@@ -45,7 +45,10 @@ async function driveService(db: import("better-sqlite3").Database) {
     work: createWorkRepository(db),
     forms: createFormsRepository(db),
   });
+  const { createAccountRepository } = await import("@/server/repositories/account-repository");
+  const accounts = createAccountRepository(db);
   return createDriveService({
+    accountEmailOf: (personId) => accounts.findByPerson(personId)?.email,
     documents,
     folders: createDriveFolderRepository(db),
     organization,
