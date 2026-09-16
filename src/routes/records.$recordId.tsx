@@ -3,6 +3,7 @@ import { Check, ChevronLeft, History, Printer, RotateCcw } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FormSheet, RecordTally } from "@/components/oikonomia/form-sheet";
+import { DetailSkeleton, ErrorState } from "@/components/oikonomia/async-state";
 import { useForms } from "@/components/oikonomia/forms-provider";
 import { Page } from "@/components/oikonomia/page";
 import { PersonName } from "@/components/oikonomia/person";
@@ -29,10 +30,28 @@ export const Route = createFileRoute("/records/$recordId")({
 function RecordPage() {
   const { recordId } = Route.useParams();
   const { mode } = Route.useSearch();
-  const { records, definitions, setResponse, completeRecord, reopenRecord } = useForms();
+  const store = useForms();
+  const { records, definitions, setResponse, completeRecord, reopenRecord } = store;
   const { person } = useViewer();
 
   const record = records.find((r) => r.id === recordId);
+  /* Absent is not missing while the forms are still loading. */
+  if (!record && store.status === "loading") {
+    return (
+      <Page>
+        <DetailSkeleton />
+      </Page>
+    );
+  }
+  if (!record && store.status === "error") {
+    return (
+      <Page>
+        <ErrorState title="This record could not be loaded" onRetry={store.retry}>
+          Your records are safe. This is a problem reaching them.
+        </ErrorState>
+      </Page>
+    );
+  }
   if (!record) throw notFound();
 
   const definition = definitions.find((d) => d.id === record.formDefinitionId);

@@ -1148,6 +1148,11 @@ export interface FormDefinition {
   updatedAt: string;
   history: FormVersionEntry[];
   policy?: AudiencePolicy;
+  /**
+   * Set when the form was deleted while records made from it existed. It is no
+   * longer offered for new records; the records it produced stay.
+   */
+  archivedAt?: string;
 }
 
 export type FormRecordStatus = "in-progress" | "completed" | "archived";

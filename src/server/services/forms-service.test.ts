@@ -21,6 +21,7 @@ import type { Database as Db } from "better-sqlite3";
 let dir: string;
 let db: Db;
 let service: ReturnType<typeof createFormsService>;
+let repo: ReturnType<typeof createFormsRepository>;
 
 const maria = viewerFor("leader");
 const joel = viewerFor("ministry-head");
@@ -34,7 +35,8 @@ const section = (id: string, title: string) => ({
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "oikonomia-forms-"));
   db = openDatabase(join(dir, "test.db"));
-  service = createFormsService(createFormsRepository(db));
+  repo = createFormsRepository(db);
+  service = createFormsService(repo);
 });
 
 afterEach(() => {
@@ -171,5 +173,43 @@ describe("a record outliving its design", () => {
 
   it("cannot be started from a form that does not exist", () => {
     expect(() => service.createRecord(joel, { definitionId: "nope" })).toThrow(ApiError);
+  });
+});
+
+/**
+ * Deleting a form's design never deletes what was filled in with it. A form
+ * nobody used is removed; a form with records is archived, and its records stay.
+ */
+describe("deleting a form", () => {
+  it("removes a form nothing was made from", () => {
+    const created = service.createDefinition(maria, { title: "Unused" });
+    expect(service.deleteDefinition(maria, created.id)).toEqual({ outcome: "deleted" });
+    expect(repo.findDefinition(created.id)).toBeUndefined();
+  });
+
+  it("archives a form that has records, and keeps every record", () => {
+    const created = service.createDefinition(maria, { title: "Weekly check" });
+    service.saveDefinition(maria, { id: created.id, sections: [section("s1", "Lights off?")] });
+    const record = service.createRecord(maria, { definitionId: created.id });
+
+    expect(service.deleteDefinition(maria, created.id)).toEqual({ outcome: "archived" });
+    expect(repo.findDefinition(created.id)?.archivedAt).toBeTruthy();
+    expect(repo.findRecord(record.id)?.sections.map((s) => s.id)).toEqual(["s1"]);
+  });
+
+  it("offers an archived form for no new records", () => {
+    const created = service.createDefinition(maria, { title: "Weekly check" });
+    service.createRecord(maria, { definitionId: created.id });
+    service.deleteDefinition(maria, created.id);
+    expect(() => service.createRecord(maria, { definitionId: created.id })).toThrow(
+      expect.objectContaining({ code: "conflict" }),
+    );
+  });
+
+  it("is refused by the database too, so a record is never deleted with its form", () => {
+    const created = service.createDefinition(maria, { title: "Weekly check" });
+    const record = service.createRecord(maria, { definitionId: created.id });
+    expect(() => repo.deleteDefinition(created.id)).toThrow();
+    expect(repo.findRecord(record.id)).toBeDefined();
   });
 });

@@ -167,5 +167,11 @@ material. Two different things live here:
   keeps it still decides who may open it. Opening it takes you there.
 - **Create a form** — built in Oikonomia, with sections and fields.
 
+A filled-in form keeps its own copy of the form as it was, so changing the
+design never rewrites a completed checklist. Deleting a form nobody has used
+removes it. Deleting one that has records **retires** it instead: the records
+are kept and still open, and no new ones can be started from it. Retired forms
+are listed separately on the Forms page.
+
 **Resource Search** looks across documents, forms, links and reference material
 in one place, sorted by relevance, recency or title.
