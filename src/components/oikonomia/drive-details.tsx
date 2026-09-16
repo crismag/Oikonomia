@@ -42,7 +42,7 @@ export function DriveFileIcon({ mimeType, className }: { mimeType: string; class
   return <Icon className={cn("size-4 shrink-0 text-area-ink", className)} aria-hidden />;
 }
 
-export function useDriveDetails(documents: ResourceSearchResult[]) {
+export function useDriveDetails(documents: Pick<ResourceSearchResult, "id" | "driveFileId">[]) {
   const { methods } = useAuth();
   const ids = documents
     .filter((document) => document.driveFileId)

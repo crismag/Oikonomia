@@ -230,6 +230,7 @@ export const SERVER_FUNCTIONS: Readonly<Record<string, ServerFunctionPolicy>> = 
   "src/lib/documents-api.ts#fetchDocumentFilters": { method: "GET", demo: "read" },
   "src/lib/documents-api.ts#fetchFiledDocuments": { method: "GET", demo: "read" },
   "src/lib/documents-api.ts#fetchDocument": { method: "GET", demo: "read" },
+  "src/lib/documents-api.ts#fetchDocumentRecord": { method: "GET", demo: "read" },
   "src/lib/documents-api.ts#registerDocument": { method: "POST", demo: "allowed" },
   "src/lib/documents-api.ts#updateDocument": { method: "POST", demo: "allowed" },
   "src/lib/documents-api.ts#fileDocument": { method: "POST", demo: "allowed" },

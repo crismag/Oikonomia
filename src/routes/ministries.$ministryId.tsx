@@ -52,6 +52,7 @@ import {
   relationshipTo,
 } from "@/domain/ministry";
 import { fromISO } from "@/domain/schedule";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
 import type { Goal, Ministry, ResourceSearchResult } from "@/domain/types";
@@ -218,16 +219,14 @@ function Overview({
           {/* A binder-native announcement is written on its own page, so the
               banner names it and hands the reader there rather than trying to
               show a block document inside a box. */}
-          {item.openRoute ? (
-            <Link
-              to={item.openRoute}
-              className="mt-1 block text-[14px] leading-relaxed hover:underline"
-            >
-              {item.title || "Untitled announcement"}
-            </Link>
-          ) : (
-            <p className="mt-1 text-[14px] leading-relaxed">{item.description ?? item.title}</p>
-          )}
+          <Link
+            {...documentHref(item.id)}
+            className="mt-1 block text-[14px] leading-relaxed hover:underline"
+          >
+            {item.openRoute
+              ? item.title || "Untitled announcement"
+              : (item.description ?? item.title)}
+          </Link>
         </div>
       ))}
 
@@ -537,8 +536,9 @@ function DocumentRow({
   /** What Drive says now, when this is a Drive document and Drive answered. */
   drive?: DriveDetails | undefined;
 }) {
-  /* Binder-native documents open here; the rest open where they live. */
-  const openable = !!document.openUrl || !!document.openRoute;
+  /* Every row opens the document's own page; one kept elsewhere also has a
+     quick way straight to wherever it lives. */
+  const external = openableUrl(document.openUrl);
   const Icon = document.external ? Cloud : NotebookPen;
   const live = driveLine(drive);
 
@@ -565,33 +565,31 @@ function DocumentRow({
           {document.updatedAt ? ` · ${format(fromISO(document.updatedAt), "d MMM")}` : ""}
         </span>
       </span>
-      {document.openUrl ? (
-        <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[12px] text-muted-foreground">
-          {document.driveFileId ? <span className="hidden sm:inline">Open in Drive</span> : null}
-          <ExternalLink className="size-3.5" aria-hidden />
-        </span>
-      ) : null}
     </>
   );
 
   return (
-    <li className={cn(openable && "row-quiet")}>
-      {document.openRoute ? (
-        <Link to={document.openRoute} className="flex items-start gap-3 px-4 py-2.5">
-          {body}
-        </Link>
-      ) : document.openUrl ? (
+    <li className="row-quiet flex items-start">
+      <Link
+        {...documentHref(document.id)}
+        className="flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-4 pr-2"
+      >
+        {body}
+      </Link>
+      {external ? (
         <a
-          href={document.openUrl}
+          href={external}
           target="_blank"
-          rel="noreferrer"
-          className="flex items-start gap-3 px-4 py-2.5"
+          rel="noopener noreferrer"
+          className="mt-2 mr-3 inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          {body}
+          <span className="hidden sm:inline">
+            {document.driveFileId ? "Open in Drive" : "Open"}
+          </span>
+          <ExternalLink className="size-3.5" aria-hidden />
+          <span className="sr-only">{document.title}, opens in a new tab</span>
         </a>
-      ) : (
-        <div className="flex items-start gap-3 px-4 py-2.5">{body}</div>
-      )}
+      ) : null}
     </li>
   );
 }

@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { PageMeta, Result } from "./api-envelope";
 import type { DocumentEntityType, RegisteredDocument } from "@/domain/registry";
 import type { ResourceSearchResult } from "@/domain/types";
+import type { DocumentRecord } from "@/domain/document-record";
 
 /**
  * The document registry's API.
@@ -101,6 +102,14 @@ export const fetchFiledDocuments = createServerFn({ method: "GET" })
 export const fetchDocument = createServerFn({ method: "GET" })
   .validator((input: { id: string }) => input)
   .handler(({ data }) => withDocuments((s, v): RegisteredDocument => s.get(v, data.id)));
+
+/**
+ * A registered document as its own page shows it: the record, the places this
+ * viewer may know it is filed in, and what this viewer may change.
+ */
+export const fetchDocumentRecord = createServerFn({ method: "GET" })
+  .validator((input: { id: string }) => input)
+  .handler(({ data }) => withDocuments((s, v): DocumentRecord => s.record(v, data.id)));
 
 export const registerDocument = createServerFn({ method: "POST" })
   .validator((input: unknown) => input)
