@@ -12,13 +12,63 @@ import { useBinderDocument } from "@/components/oikonomia/binder-document-provid
 import { CalendarError, errorMessage } from "@/lib/calendar-client";
 import { removeDocument } from "@/lib/documents-api";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
-import { fromISO } from "@/domain/schedule";
-import { format } from "date-fns";
+import { formatDayMonthShort } from "@/domain/dates";
+import {
+  RegisteredDocumentPage,
+  useDocumentRecord,
+} from "@/components/oikonomia/registered-document";
 
 export const Route = createFileRoute("/documents/$documentId")({
   head: () => ({ meta: [{ title: "Document — Oikonomia" }] }),
-  component: BinderDocumentPage,
+  component: DocumentPage,
 });
+
+/**
+ * One document, whatever kind.
+ *
+ * The record is read first because it decides which page this is: a document
+ * the binder keeps opens for writing; a registered reference — a link, a Drive
+ * file — opens as its record, with the way out to wherever it is kept. A
+ * document this viewer may not discover answers exactly as a missing one.
+ */
+function DocumentPage() {
+  const { documentId } = Route.useParams();
+  const record = useDocumentRecord(documentId);
+
+  if (record.status === "pending") {
+    return (
+      <Page>
+        <DetailSkeleton />
+      </Page>
+    );
+  }
+  if (record.status === "error") {
+    const missing = record.error instanceof CalendarError && record.error.code === "not-found";
+    return (
+      <Page>
+        {missing ? (
+          <ErrorState title="There is nothing here to open">
+            This document is not in the binder, or it is not one you can see. Documents &amp; Forms
+            lists every document you can find.
+          </ErrorState>
+        ) : (
+          <ErrorState
+            title="This document could not be opened"
+            onRetry={() => void record.refetch()}
+          >
+            Nothing is lost. This is a problem reaching the binder.
+          </ErrorState>
+        )}
+      </Page>
+    );
+  }
+
+  return record.data.document.origin === "binder" ? (
+    <BinderDocumentPage documentId={documentId} />
+  ) : (
+    <RegisteredDocumentPage record={record.data} />
+  );
+}
 
 /**
  * A document the binder itself keeps.
@@ -33,9 +83,8 @@ export const Route = createFileRoute("/documents/$documentId")({
  * read this may not have a cursor in it, and is told so plainly rather than
  * shown controls that refuse.
  */
-function BinderDocumentPage() {
+function BinderDocumentPage({ documentId }: { documentId: string }) {
   const { ministries } = useOrganization();
-  const { documentId } = Route.useParams();
   const store = useBinderDocument(documentId);
   const navigate = useNavigate();
   const confirm = useConfirm();
@@ -51,24 +100,15 @@ function BinderDocumentPage() {
     );
   }
   if (store.status === "error" || !store.document) {
-    /*
-     * Two different situations, and telling them apart matters.
-     *
-     * A **registered** document is a reference: the binder records what it is
-     * and where it lives, and the document itself stays where it is. There is
-     * nothing here to open, and there never will be. Saying "a problem
-     * reaching the binder" about one invites somebody to press Try again
-     * forever over a page that is working correctly.
-     */
+    /* A registered reference never reaches here — the record decided that
+       above — so a missing one is simply missing. */
     const missing = store.error instanceof CalendarError && store.error.code === "not-found";
 
     return (
       <Page>
         {missing ? (
           <ErrorState title="There is nothing here to open">
-            This may be a registered document — the binder records what it is and where it lives,
-            and the document itself stays where it is. Open it from Documents &amp; Forms, which
-            links to wherever it is kept.
+            This document is not in the binder, or it is not one you can see.
           </ErrorState>
         ) : (
           <ErrorState title="This document could not be opened" onRetry={store.retry}>
@@ -152,7 +192,7 @@ function BinderDocumentPage() {
           {document.kind}
           {ministry ? ` · ${ministry.name}` : ""} · started by{" "}
           <PersonName personId={document.registeredById} /> ·{" "}
-          {format(fromISO(document.updatedAt.slice(0, 10)), "d MMM")}
+          {formatDayMonthShort(document.updatedAt)}
         </p>
       </header>
 

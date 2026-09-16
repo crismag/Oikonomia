@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useOrganization } from "./organization-provider";
-import { agendaOn, formatTime, fromISO, recurrenceLabel, shortDayLabel } from "@/domain/schedule";
-import { format } from "date-fns";
+import { agendaOn, formatTime, recurrenceLabel, shortDayLabel } from "@/domain/schedule";
 import type { RecurrenceScope, ScheduleOccurrence } from "@/domain/types";
 import { EntryEditor } from "./entry-editor";
 import { useSchedule } from "./schedule-provider";
+import { formatWeekdayLong } from "@/domain/dates";
 
 /**
  * One calendar entry, inspected without leaving the calendar.
@@ -114,7 +114,7 @@ export function EntryDetail({
                 {entry.title}
               </SheetTitle>
               <SheetDescription className="text-[13px] text-muted-foreground">
-                {format(fromISO(date), "EEEE, d MMMM")} · {when}
+                {formatWeekdayLong(date)} · {when}
               </SheetDescription>
             </SheetHeader>
 

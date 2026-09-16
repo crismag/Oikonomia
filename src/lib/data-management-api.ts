@@ -62,12 +62,14 @@ async function serverParts() {
 }
 
 async function withData<T>(
-  work: (parts: Awaited<ReturnType<typeof serverParts>>) => T,
+  work: (parts: Awaited<ReturnType<typeof serverParts>>) => T | Promise<T>,
 ): Promise<Result<T>> {
   try {
     const parts = await serverParts();
     try {
-      return { data: work(parts) };
+      /* Awaited here, inside the try, so a refusal from asynchronous work is
+         answered the same way as one from synchronous work. */
+      return { data: await work(parts) };
     } catch (error) {
       if (error instanceof parts.ApiError) return { error: error.body() };
       throw error;

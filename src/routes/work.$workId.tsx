@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/calendar-client";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useViewer } from "@/domain/session";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import type { WorkStatus } from "@/domain/types";
 
 export const Route = createFileRoute("/work/$workId")({
@@ -239,21 +240,24 @@ function WorkPage() {
               <h2 className="text-[13px] font-medium text-muted-foreground">Working material</h2>
               <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
                 {artifacts.map((resource: (typeof artifacts)[number]) => (
-                  <li key={resource.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px]">{resource.title}</span>
+                  <li key={resource.id} className="row-quiet flex items-center gap-3 px-4 py-2.5">
+                    <Link {...documentHref(resource.id)} className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] hover:underline">
+                        {resource.title}
+                      </span>
                       <span className="block truncate text-[12px] text-muted-foreground">
                         {[resource.kind, resource.provider].filter(Boolean).join(" · ")}
                       </span>
-                    </span>
-                    {resource.openUrl ? (
+                    </Link>
+                    {openableUrl(resource.openUrl) ? (
                       <a
-                        href={resource.openUrl}
+                        href={openableUrl(resource.openUrl)}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="shrink-0 text-[13px] font-medium text-primary"
                       >
                         Open
+                        <span className="sr-only"> {resource.title}, opens in a new tab</span>
                       </a>
                     ) : null}
                   </li>

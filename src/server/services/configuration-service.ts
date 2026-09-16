@@ -316,15 +316,13 @@ export function createConfigurationService(repo: ConfigurationRepository) {
       .filter((role) => role.active);
 
     if (!after.some((role) => (role.capabilities ?? []).includes("administration"))) {
-      throw ApiError.conflict(
-        "At least one role has to be able to administer Oikonomia. Give another role that permission first.",
-      );
+      throw ApiError.conflict(text("refusal.configuration.lastAdministeringRole"));
     }
   };
 
   const requireEditable = (namespace: string): Namespace => {
     if (!EDITABLE_NAMESPACES.includes(namespace as Namespace)) {
-      throw ApiError.forbidden("That configuration is part of the product, not a setting.");
+      throw ApiError.forbidden(text("refusal.configuration.notASetting"));
     }
     return namespace as Namespace;
   };
@@ -400,17 +398,15 @@ export function createConfigurationService(repo: ConfigurationRepository) {
       const namespace = requireEditable(parsed.namespace);
 
       if (!ADDABLE_NAMESPACES.includes(namespace)) {
-        throw ApiError.forbidden(
-          "The values in this list are part of the product. You can rename them, and stop offering one, but a new value would be one nothing can use.",
-        );
+        throw ApiError.forbidden(text("refusal.configuration.closedList"));
       }
 
       const id = slug(parsed.label);
-      if (!id) throw ApiError.validation({ label: "Use a name with letters or numbers in it." });
+      if (!id) throw ApiError.validation({ label: text("refusal.configuration.labelEmpty") });
 
       refresh();
       if (option(namespace, id)) {
-        throw ApiError.conflict("Something with that name is already on the list.");
+        throw ApiError.conflict(text("refusal.configuration.labelTaken"));
       }
 
       /* Added options go to the end of the list, not the front. Without a
@@ -430,7 +426,7 @@ export function createConfigurationService(repo: ConfigurationRepository) {
        */
       if (namespace === "reports.visibility" && !parsed.accessStrategy) {
         throw ApiError.validation({
-          accessStrategy: "Say how this audience is enforced.",
+          accessStrategy: text("refusal.configuration.accessStrategyMissing"),
         });
       }
 
@@ -440,13 +436,17 @@ export function createConfigurationService(repo: ConfigurationRepository) {
        * questions the whole module turns on.
        */
       if (namespace === "reports.statuses" && !parsed.behaviors) {
-        throw ApiError.validation({ behaviors: "Say what this stage does." });
+        throw ApiError.validation({
+          behaviors: text("refusal.configuration.stageBehaviorsMissing"),
+        });
       }
 
       /* Same refusal, same reason: an audience that named no strategy would be
          a guess about who may read a prayer request. */
       if (namespace === "lifegroup.entryVisibility" && !parsed.entryStrategy) {
-        throw ApiError.validation({ entryStrategy: "Say how this audience is enforced." });
+        throw ApiError.validation({
+          entryStrategy: text("refusal.configuration.accessStrategyMissing"),
+        });
       }
 
       const value: Record<string, unknown> = {

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { useResourceSearch } from "./resource-search-provider";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import type { BinderSection } from "@/domain/types";
 
 /**
@@ -60,8 +61,10 @@ export function SectionDocuments({
               <li key={resource.id} className="row-quiet">
                 <span className="flex items-center gap-3 px-4 py-2.5">
                   <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px]">{resource.title}</span>
+                  <Link {...documentHref(resource.id)} className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] hover:underline">
+                      {resource.title}
+                    </span>
                     <span className="block truncate text-[12px] text-muted-foreground">
                       {resource.associations
                         .map((a) => a.label)
@@ -69,23 +72,17 @@ export function SectionDocuments({
                         .join(" · ") ||
                         [resource.kind, resource.provider].filter(Boolean).join(" · ")}
                     </span>
-                  </span>
-                  {resource.openRoute ? (
-                    <Link
-                      to={resource.openRoute}
-                      className="shrink-0 text-[13px] font-medium text-primary"
-                    >
-                      Open
-                    </Link>
-                  ) : resource.openUrl ? (
+                  </Link>
+                  {openableUrl(resource.openUrl) ? (
                     <a
-                      href={resource.openUrl}
+                      href={openableUrl(resource.openUrl)}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-primary"
                     >
                       Open
                       <ExternalLink className="size-3" aria-hidden />
+                      <span className="sr-only">{resource.title}, opens in a new tab</span>
                     </a>
                   ) : null}
                 </span>

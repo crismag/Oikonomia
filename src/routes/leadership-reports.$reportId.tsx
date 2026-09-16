@@ -40,6 +40,7 @@ import {
 } from "@/domain/leadership-report";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { cn } from "@/lib/utils";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
 import { fetchConfidentialReads } from "@/lib/reports-api";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
@@ -66,9 +67,8 @@ import {
 } from "@/domain/leadership-report";
 import { categoryLabelOf, triggersAttention } from "@/domain/categories";
 import { emptyBlock, sanitizeInline } from "@/domain/meeting";
-import { fromISO, toISO, weekOf } from "@/domain/schedule";
+import { toISO, weekOf } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import type {
   DiscussionPolicy,
   LeadershipReport,
@@ -77,6 +77,7 @@ import type {
   ReportType,
   ReportVisibility,
 } from "@/domain/types";
+import { formatDate, formatDateTime, formatDayMonth } from "@/domain/dates";
 
 type Tab = "report" | "discussion" | "documents" | "activity";
 
@@ -384,7 +385,8 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
              */}
             {sourcePath ? (
               <Link
-                to={sourcePath}
+                to={sourcePath.to}
+                {...(sourcePath.search ? { search: sourcePath.search } : {})}
                 className="inline-flex items-center gap-1 rounded transition-colors hover:text-foreground"
               >
                 <ExternalLink className="size-3.5" aria-hidden />
@@ -467,10 +469,8 @@ function Header({ report, can }: { report: LeadershipReport; can: ReportCapabili
       {!statusBehavior(report.status).editable ? (
         <p className="mt-3 text-[12px] text-muted-foreground">
           {config.label("reports.statuses", report.status)}
-          {report.publishedAt
-            ? ` ${format(fromISO(report.publishedAt.slice(0, 10)), "d MMMM")}`
-            : ""}
-          . The report content is the submitted record; discussion continues below.
+          {report.publishedAt ? ` ${formatDayMonth(report.publishedAt)}` : ""}. The report content
+          is the submitted record; discussion continues below.
           {/* Said to the author, who is the one who would look for Delete. */}
           {report.authorId === person.id
             ? can.archive
@@ -567,15 +567,25 @@ function ReportBody({ report }: { report: LeadershipReport }) {
             {[document.kind, document.provider].filter(Boolean).join(" · ")}
           </p>
         ) : null}
-        {document?.openUrl ? (
-          <a
-            href={document.openUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[13px] transition-colors hover:bg-muted"
-          >
-            Open the document
-          </a>
+        {document ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {openableUrl(document.openUrl) ? (
+              <a
+                href={openableUrl(document.openUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[13px] transition-colors hover:bg-muted"
+              >
+                Open the document
+              </a>
+            ) : null}
+            <Link
+              {...documentHref(document.id)}
+              className="text-[13px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Its record in the binder
+            </Link>
+          </div>
         ) : null}
         <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
           The content of this report is kept in a document. The binder holds the report itself — who
@@ -706,8 +716,7 @@ function OpenedBy({ report }: { report: LeadershipReport }) {
         <ul className="mt-1 space-y-0.5 text-muted-foreground">
           {rows.slice(0, 20).map((row, index) => (
             <li key={`${row.actorId}-${row.at}-${index}`}>
-              <PersonName personId={row.actorId} /> ·{" "}
-              {format(new Date(row.at), "d MMM yyyy, HH:mm")}
+              <PersonName personId={row.actorId} /> · {formatDateTime(row.at)}
             </li>
           ))}
         </ul>
@@ -815,34 +824,34 @@ function Documents({ report }: { report: LeadershipReport }) {
   return (
     <ul className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
       {rows.map(({ document, role }) => {
-        const openable = !!document.openUrl;
-        const body = (
-          <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14px]">{document.title}</span>
-              <span className="block truncate text-[12px] text-muted-foreground">
-                {[role, document.kind, document.provider].filter(Boolean).join(" · ")}
-              </span>
-            </span>
-          </>
-        );
+        const url = openableUrl(document.openUrl);
         return (
           <li
             key={document.id}
-            className={cn("border-b border-border last:border-b-0", openable && "row-quiet")}
+            className="row-quiet flex items-start border-b border-border last:border-b-0"
           >
-            {openable ? (
+            <Link
+              {...documentHref(document.id)}
+              className="flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-4 pr-2"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px]">{document.title}</span>
+                <span className="block truncate text-[12px] text-muted-foreground">
+                  {[role, document.kind, document.provider].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+            </Link>
+            {url ? (
               <a
-                href={document.openUrl}
+                href={url}
                 target="_blank"
-                rel="noreferrer"
-                className="flex items-start gap-3 px-4 py-2.5"
+                rel="noopener noreferrer"
+                className="mt-2.5 mr-4 shrink-0 text-[13px] text-primary"
               >
-                {body}
+                Open
+                <span className="sr-only"> {document.title}, opens in a new tab</span>
               </a>
-            ) : (
-              <div className="flex items-start gap-3 px-4 py-2.5">{body}</div>
-            )}
+            ) : null}
           </li>
         );
       })}
@@ -1360,9 +1369,7 @@ function PrintSheet({ report }: { report: LeadershipReport }) {
           {report.reportingPeriod ? (
             <p className="text-[13px]">Period: {report.reportingPeriod}</p>
           ) : null}
-          <p className="text-[13px]">
-            Date: {format(fromISO(report.updatedAt.slice(0, 10)), "d MMMM yyyy")}
-          </p>
+          <p className="text-[13px]">Date: {formatDate(report.updatedAt)}</p>
         </header>
 
         <div data-print="section" className="mt-4">

@@ -6,6 +6,7 @@ import { ClipboardList, ExternalLink, FileWarning, FolderOpen, Plus } from "luci
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
 import { useForms } from "@/components/oikonomia/forms-provider";
 import { useRegistry } from "@/components/oikonomia/documents-provider";
+import { documentHref, openableUrl } from "@/domain/document-record";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { RegisterDocument } from "@/components/oikonomia/register-document";
 import { Section } from "@/components/oikonomia/section";
@@ -133,14 +134,18 @@ function DocumentsPage() {
                 const details = drive.get(resource.id);
                 const live = driveLine(details);
                 return (
-                  <li key={resource.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <li key={resource.id} className="row-quiet flex items-center gap-3 px-4 py-2.5">
                     {details?.available ? (
                       <DriveFileIcon mimeType={details.file.mimeType} />
                     ) : (
                       <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                     )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px]">{resource.title}</span>
+                    {/* The title opens the document's own page: what it is, where
+                        it is filed, and — for those who may — its details. */}
+                    <Link {...documentHref(resource.id)} className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] hover:underline">
+                        {resource.title}
+                      </span>
                       <span className="block truncate text-[12px] text-muted-foreground">
                         {[resource.kind, resource.provider].filter(Boolean).join(" · ")}
                       </span>
@@ -149,27 +154,21 @@ function DocumentsPage() {
                           In Drive: {live}
                         </span>
                       ) : null}
-                    </span>
+                    </Link>
                     {/* Opening leaves the binder, and whoever keeps the document
                         decides whether it opens — so the row says where it goes
                         rather than implying the binder holds it. */}
-                    {resource.openUrl ? (
+                    {openableUrl(resource.openUrl) ? (
                       <a
-                        href={resource.openUrl}
+                        href={openableUrl(resource.openUrl)}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="inline-flex shrink-0 items-center gap-1 text-[13px] text-primary transition-colors hover:text-primary/80"
                       >
                         {resource.driveFileId ? "Open in Drive" : "Open"}
                         <ExternalLink className="size-3.5" aria-hidden />
+                        <span className="sr-only">{resource.title}, opens in a new tab</span>
                       </a>
-                    ) : resource.openRoute ? (
-                      <Link
-                        to={resource.openRoute}
-                        className="shrink-0 text-[13px] text-primary transition-colors hover:text-primary/80"
-                      >
-                        Open
-                      </Link>
                     ) : null}
                   </li>
                 );

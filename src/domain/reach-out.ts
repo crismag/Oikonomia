@@ -1,7 +1,5 @@
-import { format } from "date-fns";
-
-import { fromISO } from "./schedule";
 import type { Comment, ReachOutReport } from "./types";
+import { formatDate, formatDayMonthShort } from "./dates";
 
 /**
  * Reach-Out logic.
@@ -120,6 +118,6 @@ export function commentsInOrder(report: ReachOutReport): Comment[] {
 export const displayTitle = (report: ReachOutReport): string =>
   report.title.trim() || "Untitled report";
 
-export const reportDateLabel = (iso: string) => format(fromISO(iso), "d MMMM yyyy");
+export const reportDateLabel = (iso: string) => formatDate(iso);
 
-export const shortDateLabel = (iso: string) => format(fromISO(iso), "d MMM");
+export const shortDateLabel = (iso: string) => formatDayMonthShort(iso);

@@ -39,8 +39,9 @@ import {
   toISO,
   weekdayNames,
 } from "@/domain/schedule";
-import { format, isSameMonth } from "date-fns";
+import { isSameMonth } from "date-fns";
 import type { ScheduleOccurrence } from "@/domain/types";
+import { formatDayMonth, formatWeekday, formatWeekdayLong } from "@/domain/dates";
 
 type Filter = "all" | "mine" | "ministry" | "lifegroup" | "church";
 
@@ -365,7 +366,7 @@ function DayCell({
       <button
         type="button"
         onClick={onAdd}
-        aria-label={`Add an event on ${format(fromISO(iso), "d MMMM")}`}
+        aria-label={`Add an event on ${formatDayMonth(iso)}`}
         className="min-h-6 flex-1 rounded transition-colors hover:bg-muted/60"
       />
     </div>
@@ -434,7 +435,7 @@ function MonthAgenda({
             >
               <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
                 <h2 className="min-w-0 truncate text-[13px] font-medium">
-                  {format(fromISO(day.iso), "EEEE d MMMM")}
+                  {formatWeekdayLong(day.iso)}
                   {day.iso === today ? (
                     <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground">
                       Today
@@ -444,7 +445,7 @@ function MonthAgenda({
                 <button
                   type="button"
                   onClick={() => onAdd(day.iso)}
-                  aria-label={`Add an event on ${format(fromISO(day.iso), "d MMMM")}`}
+                  aria-label={`Add an event on ${formatDayMonth(day.iso)}`}
                   className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Plus className="size-4" aria-hidden />
@@ -536,9 +537,9 @@ function DayPanel({
   return (
     <aside className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
       <header className="border-b border-border px-4 py-2.5">
-        <h2 className="text-[14px] font-medium">{format(fromISO(iso), "EEEE")}</h2>
+        <h2 className="text-[14px] font-medium">{formatWeekday(iso)}</h2>
         <p className="text-[12px] text-muted-foreground">
-          {format(fromISO(iso), "d MMMM")} ·{" "}
+          {formatDayMonth(iso)} ·{" "}
           {occurrences.length === 0
             ? "nothing scheduled"
             : `${occurrences.length} ${occurrences.length === 1 ? "item" : "items"}`}
@@ -600,7 +601,7 @@ function DayPanel({
           className="mt-3 inline-flex items-center gap-1 text-[13px] text-primary transition-colors hover:text-primary/80"
         >
           <Plus className="size-3.5" aria-hidden />
-          Add to {format(fromISO(iso), "d MMMM")}
+          Add to {formatDayMonth(iso)}
         </button>
       </div>
     </aside>

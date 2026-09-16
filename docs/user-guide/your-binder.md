@@ -124,6 +124,13 @@ tasks given to them to tick, and the request control — rather than an editor
 that would refuse their changes. An action somebody asked of you from a note
 shows there as **Asked of you**.
 
+**Write a report from this meeting**, on the note or the reading page, starts
+a Leadership Report as your Draft, titled after the meeting and linked back
+to it. Nothing is copied from the note, and the report is private to you
+until you choose its audience. The report's **Meeting** link opens the note
+only for people who may already read it; reports from the meeting that you
+may read are listed at the bottom of the note.
+
 Formatting is deliberately small — bold, italic, underline, links, headings,
 lists, quotes, checklists. Notes are documents to read, not pages to design.
 
@@ -229,6 +236,10 @@ A ministry's own page lists its goals first, then leaders' personal goals that
 relate to it, under each leader's name. Home and My Progress ask you for an
 update on the goals you carry.
 
+A goal carries a version. If someone else completed a goal, put it on hold or
+carried it forward after your page loaded, your action is refused with a
+sentence saying so and the page shows the goal as it now stands.
+
 ## Documents & Forms and Resource Search
 
 **Documents & Forms** keeps the ministry's reusable forms, guides and reference
@@ -236,11 +247,21 @@ material. Two different things live here:
 
 - **Register a document** — the binder records what it is and where it lives.
   The document itself stays where it is; nothing is copied in, and whoever
-  keeps it still decides who may open it. Opening it takes you there. Where
+  keeps it still decides who may open it. **Open** takes you there. Where
   Google Drive is connected, a Drive document also shows its owner and when it
   last changed, and uploading or choosing Drive files happens from a
   ministry's **New → Add from Drive**.
 - **Create a form** — built in Oikonomia, with sections and fields.
+
+Choosing a registered document's name — on a ministry's **Documents** view,
+here, or in Resource Search — opens its page in the binder: what it is, where
+it lives, the ministries and records it is filed under (only those you may
+see), who registered it and when, and **Open**. People who work in the
+ministry it is filed in (or whoever registered it, when it is filed in no
+ministry) also see **Edit details** — title, kind, web address, description —
+and **Unfile from** each place. Both change the binder's record only: unfiling
+asks first, and never deletes the document in Google Drive or wherever it is
+kept.
 
 A filled-in form keeps its own copy of the form as it was, so changing the
 design never rewrites a completed checklist. Deleting a form nobody has used

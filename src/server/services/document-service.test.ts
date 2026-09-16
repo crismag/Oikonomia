@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiError } from "../api/response";
 import { registryContext } from "@/test/registry-context";
-import { seedOrganization } from "@/test/seeds";
+import { seedOrganization, seedReports } from "@/test/seeds";
 import { openDatabase } from "../db/connection";
 import { createBinderContentRepository } from "../repositories/binder-content-repository";
 import { createDocumentRepository } from "../repositories/document-repository";
@@ -37,6 +37,9 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "oikonomia-registry-"));
   db = openDatabase(join(dir, "test.db"));
   seedOrganization(db);
+  /* A real report for documents to be filed against: filing into a place that
+     does not exist, or that the viewer cannot see, is refused. */
+  seedReports(db);
   repo = createDocumentRepository(db);
   notes = createMeetingRepository(db);
   service = createDocumentService(repo, createBinderContentRepository(db), registryContext(db));
@@ -100,6 +103,70 @@ describe("registering a resource", () => {
 /**
  * §3 of the registry contract, and the gap it was written to close.
  */
+describe("filing a document somewhere", () => {
+  it("is refused into a place the viewer cannot see, as if it were not there", () => {
+    const theirs = notes.insertNote({
+      title: "Joel's own",
+      noteType: "personal",
+      date: "2026-09-01",
+      status: "draft",
+      authorId: joel.person.id,
+    } as NoteValues);
+    expect(() =>
+      service.register(
+        maria,
+        doc({ associations: [{ entityType: "meeting-note", entityId: theirs.id }] }),
+      ),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+
+    const mine = service.register(maria, doc());
+    expect(() =>
+      service.associate(maria, {
+        documentId: mine.id,
+        entityType: "meeting-note",
+        entityId: theirs.id,
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+  });
+
+  it("needs permission to change the document, because filing widens who can reach it", () => {
+    const joels = service.register(
+      joel,
+      doc({ associations: [{ entityType: "ministry", entityId: "" }] }),
+    );
+    expect(() =>
+      service.associate(maria, {
+        documentId: joels.id,
+        entityType: "ministry",
+        entityId: "min-music",
+      }),
+    ).toThrow(expect.objectContaining({ code: "forbidden" }));
+  });
+
+  it("names in search results only the places the viewer may know about", () => {
+    const note = notes.insertNote({
+      title: "A private title",
+      noteType: "personal",
+      date: "2026-09-01",
+      status: "draft",
+      authorId: maria.person.id,
+    } as NoteValues);
+    const registered = service.register(
+      maria,
+      doc({
+        associations: [
+          { entityType: "ministry", entityId: "min-music" },
+          { entityType: "meeting-note", entityId: note.id },
+        ],
+      }),
+    );
+    const forJoel = service.search(joel, {}).resources.find((r) => r.id === registered.id);
+    expect(forJoel, "reachable through the ministry").toBeDefined();
+    expect(JSON.stringify(forJoel!.associations)).not.toContain("A private title");
+    expect(forJoel!.associations.map((a) => a.section)).not.toContain("meeting-notes");
+  });
+});
+
 describe("a document and its association are different concepts", () => {
   it("takes part in several places without being duplicated", () => {
     const registered = service.register(
@@ -107,7 +174,7 @@ describe("a document and its association are different concepts", () => {
       doc({
         associations: [
           { entityType: "ministry", entityId: "min-music" },
-          { entityType: "leadership-report", entityId: "lr-1", relationship: "supporting" },
+          { entityType: "leadership-report", entityId: "lr-a-private", relationship: "supporting" },
         ],
       }),
     );
@@ -143,7 +210,11 @@ describe("a document and its association are different concepts", () => {
       maria,
       doc({
         associations: [
-          { entityType: "leadership-report", entityId: "lr-1", relationship: "report-content" },
+          {
+            entityType: "leadership-report",
+            entityId: "lr-a-private",
+            relationship: "report-content",
+          },
         ],
       }),
     );
@@ -342,7 +413,10 @@ describe("discoverability", () => {
     } as NoteValues);
 
     for (const note of [mine, theirs, minutes]) {
-      const registered = service.register(maria, {
+      /* Filed by somebody who can see the note: nobody may file into a note
+         hidden from them. */
+      const filer = note.authorId === joel.person.id && note.noteType === "personal" ? joel : maria;
+      const registered = service.register(filer, {
         ...doc({ title: `For ${note.id}` }),
         associations: [{ entityType: "meeting-note", entityId: note.id }],
       });
@@ -353,5 +427,238 @@ describe("discoverability", () => {
         expect(byRegistry, `${note.id} for ${viewer.person.id}`).toBe(byDomain);
       }
     }
+  });
+});
+
+/**
+ * A registered document's own page: what it shows, and who may change it.
+ *
+ * The page offers Edit and Unfile from `record()`; these tests hold the server
+ * to the same answer, so a control is never shown that the server refuses.
+ */
+describe("a registered document's record", () => {
+  const privateNote = (authorId: string) =>
+    notes.insertNote({
+      title: "Private reflections",
+      noteType: "personal",
+      date: "2026-09-01",
+      status: "draft",
+      authorId,
+    } as NoteValues);
+
+  it("names where it is filed and says who may change it", () => {
+    const registered = service.register(
+      maria,
+      doc({ associations: [{ entityType: "ministry", entityId: "min-music" }] }),
+    );
+
+    const mine = service.record(maria, registered.id);
+    expect(mine.places.map((p) => p.entityId)).toEqual(["min-music"]);
+    expect(mine.places[0]!.label).toBeTruthy();
+    expect(mine.mayEdit).toBe(true);
+    expect(mine.places[0]!.mayUnfile).toBe(true);
+
+    const theirs = service.record(joel, registered.id);
+    expect(theirs.mayEdit).toBe(false);
+    expect(theirs.places[0]!.mayUnfile).toBe(false);
+  });
+
+  /* Findable through the ministry does not make the private note's title
+     something Joel may read on the document's page. */
+  it("does not name a place the viewer may not know about", () => {
+    const note = privateNote(maria.person.id);
+    const registered = service.register(
+      maria,
+      doc({
+        associations: [
+          { entityType: "ministry", entityId: "min-music" },
+          { entityType: "meeting-note", entityId: note.id },
+        ],
+      }),
+    );
+
+    expect(service.record(maria, registered.id).places).toHaveLength(2);
+    const seen = service.record(joel, registered.id).places;
+    expect(seen.map((p) => p.entityType)).toEqual(["ministry"]);
+    expect(JSON.stringify(seen)).not.toContain("Private reflections");
+  });
+
+  it("is not found for a viewer who may not discover the document", () => {
+    const note = privateNote(maria.person.id);
+    const registered = service.register(
+      maria,
+      doc({ associations: [{ entityType: "meeting-note", entityId: note.id }] }),
+    );
+    expect(() => service.record(joel, registered.id)).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+  });
+
+  it("reads the Drive file off a Drive address", () => {
+    const registered = service.register(
+      maria,
+      doc({ url: "https://drive.google.com/file/d/abc123DEF456/view" }),
+    );
+    expect(service.record(maria, registered.id).driveFileId).toBe("abc123DEF456");
+  });
+});
+
+describe("editing a registered document's details", () => {
+  const filedInMusic = () =>
+    service.register(
+      maria,
+      doc({ associations: [{ entityType: "ministry", entityId: "min-music" }] }),
+    );
+
+  it("lets someone who works in its ministry change the title, kind and description", () => {
+    const registered = filedInMusic();
+    const saved = service.update(maria, registered.id, {
+      title: "October planning sheet",
+      kind: "Plan",
+      description: "The one we use on Tuesdays",
+    });
+    expect(saved).toMatchObject({
+      title: "October planning sheet",
+      kind: "Plan",
+      description: "The one we use on Tuesdays",
+    });
+  });
+
+  it("refuses someone who can find it but does not work in its ministry", () => {
+    const registered = filedInMusic();
+    expect(() => service.update(joel, registered.id, { title: "Joel's title" })).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+    expect(service.get(maria, registered.id).title).toBe("September planning sheet");
+  });
+
+  /* Being shared with a ministry is not membership. */
+  it("refuses someone the ministry is only shared with, even the registrant", () => {
+    const registered = service.register(
+      joel,
+      doc({ associations: [{ entityType: "ministry", entityId: "min-transport" }] }),
+    );
+    expect(() => service.update(maria, registered.id, { title: "Maria's title" })).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+  });
+
+  it("leaves an unfiled document to whoever registered it", () => {
+    const registered = service.register(maria, doc());
+    expect(service.update(maria, registered.id, { title: "Mine" }).title).toBe("Mine");
+    expect(() => service.update(joel, registered.id, { title: "Joel's" })).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+  });
+
+  it.each([
+    "javascript:alert(document.cookie)",
+    "data:text/html,<script>alert(1)</script>",
+    "ftp://example.org/file",
+    "not an address",
+  ])("refuses to point it at %s", (url) => {
+    const registered = filedInMusic();
+    expect(() => service.update(maria, registered.id, { url })).toThrow(
+      expect.objectContaining({ code: "validation" }),
+    );
+    expect(service.get(maria, registered.id).url).toBe(doc().url);
+  });
+
+  it("reads where it lives off a new address, and forgets the old Drive file", () => {
+    const registered = filedInMusic();
+    db.prepare("UPDATE document SET drive_file_id = 'abc', drive_mime_type = 'x' WHERE id = ?").run(
+      registered.id,
+    );
+
+    const moved = service.update(maria, registered.id, { url: "https://example.org/plan" });
+    expect(moved.origin).toBe("link");
+    expect(moved.driveFileId).toBeUndefined();
+    expect(moved.driveMimeType).toBeUndefined();
+  });
+
+  it("keeps the Drive file when the address is not changed", () => {
+    const registered = filedInMusic();
+    db.prepare("UPDATE document SET drive_file_id = 'abc' WHERE id = ?").run(registered.id);
+
+    const saved = service.update(maria, registered.id, { url: doc().url, title: "Renamed" });
+    expect(saved.driveFileId).toBe("abc");
+    expect(saved.origin).toBe("drive");
+  });
+
+  it("refuses an address for a document the binder keeps", () => {
+    const created = service.createBinder(maria, { ministryId: "min-music", kind: "Plan" });
+    expect(() =>
+      service.update(maria, created.id, { url: "https://example.org/elsewhere" }),
+    ).toThrow(expect.objectContaining({ code: "validation" }));
+  });
+});
+
+describe("unfiling a registered document", () => {
+  it("refuses someone who can find it but may not change it", () => {
+    const registered = service.register(
+      maria,
+      doc({ associations: [{ entityType: "ministry", entityId: "min-music" }] }),
+    );
+    const filing = service.get(maria, registered.id).associations[0]!;
+
+    expect(() => service.removeAssociation(joel, filing.id)).toThrow(
+      expect.objectContaining({ code: "forbidden" }),
+    );
+    expect(service.get(maria, registered.id).associations).toHaveLength(1);
+  });
+
+  it("keeps the document when its last filing is removed", () => {
+    const registered = service.register(
+      maria,
+      doc({ associations: [{ entityType: "ministry", entityId: "min-music" }] }),
+    );
+    const filing = service.get(maria, registered.id).associations[0]!;
+    service.removeAssociation(maria, filing.id);
+
+    const after = service.get(maria, registered.id);
+    expect(after.associations).toHaveLength(0);
+    expect(after.url).toBe(doc().url);
+  });
+
+  it("answers not-found for a filing in a place the viewer may not know about", () => {
+    const note = notes.insertNote({
+      title: "Private",
+      noteType: "personal",
+      date: "2026-09-01",
+      status: "draft",
+      authorId: maria.person.id,
+    } as NoteValues);
+    /* Unfiled but for the note, and registered by Joel: he may change it, and
+       still may not learn the note exists. */
+    const registered = service.register(
+      joel,
+      doc({ associations: [{ entityType: "ministry", entityId: "" }] }),
+    );
+    /* Filed straight through the repository: the arrangement under test, not
+       how it came about (filing someone else's document now needs their
+       permission). */
+    repo.associate({
+      documentId: registered.id,
+      entityType: "meeting-note",
+      entityId: note.id,
+      relationship: "filed-in",
+      createdById: maria.person.id,
+    });
+    const hidden = service
+      .get(maria, registered.id)
+      .associations.find((a) => a.entityType === "meeting-note")!;
+
+    expect(() => service.removeAssociation(joel, hidden.id)).toThrow(
+      expect.objectContaining({ code: "not-found" }),
+    );
+  });
+
+  it("does not unfile a document the binder keeps from its ministry", () => {
+    const created = service.createBinder(maria, { ministryId: "min-music", kind: "Plan" });
+    const filing = service.get(maria, created.id).associations[0]!;
+    expect(service.record(maria, created.id).places[0]!.mayUnfile).toBe(false);
+    expect(() => service.removeAssociation(maria, filing.id)).toThrow(
+      expect.objectContaining({ code: "validation" }),
+    );
   });
 });

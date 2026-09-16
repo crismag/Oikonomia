@@ -85,8 +85,10 @@ export const joinGathering = createServerFn({ method: "POST" })
   .handler(({ data }) => withLifegroup((s, v) => s.joinGathering(v, data)));
 
 export const updateGathering = createServerFn({ method: "POST" })
-  .validator((input: { id: string; patch: unknown }) => input)
-  .handler(({ data }) => withLifegroup((s, v) => s.updateGathering(v, data.id, data.patch)));
+  .validator((input: { id: string; patch: unknown; expectedVersion?: number }) => input)
+  .handler(({ data }) =>
+    withLifegroup((s, v) => s.updateGathering(v, data.id, data.patch, data.expectedVersion)),
+  );
 
 /** Take a gathering off the schedule. It stays in the book, marked cancelled. */
 export const cancelGathering = createServerFn({ method: "POST" })

@@ -32,5 +32,6 @@ Adding several rows in a row keeps stepping a week further on, so a month can be
 ### Worth knowing
 
 - Adding a row does not make it yours. Until someone takes it, anyone may fill in its date, time and place.
+- If someone else changed the row after your page loaded, your change is not saved. The row says **This gathering was changed somewhere else while you were working.** and shows what is stored now; make your change again.
 - On a phone the rows are stacked and are not edited in place. **Open** the gathering and use **Edit details**. While nobody has claimed it, you can save its date, time and place without leading it.
 - If the same evening was added twice, open the extra row and choose **Cancel gathering**. See [Cancel or restore a gathering](topic:lifegroup.cancel). Use **Add me** to join a gathering that already exists rather than adding another row.

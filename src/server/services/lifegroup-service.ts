@@ -84,12 +84,12 @@ export function createLifegroupService(
   function requireRecorder(viewer: Viewer, id: string): Gathering {
     const gathering = requireGathering(id);
     if (!canEdit(viewer, { kind: "gathering", gathering })) {
-      throw ApiError.forbidden("Only a leader assigned to this gathering can record it.");
+      throw ApiError.forbidden(text("refusal.lifegroup.recordNotAssigned"));
     }
     /* A cancelled gathering did not happen; there is nothing to record until
        it is put back on the schedule. */
     if (gathering.status === "cancelled") {
-      throw ApiError.conflict("This gathering was cancelled. Restore it before recording it.");
+      throw ApiError.conflict(text("refusal.lifegroup.recordCancelled"));
     }
     return gathering;
   }
@@ -123,9 +123,9 @@ export function createLifegroupService(
     if (!namesItsReaders(visibility ?? DEFAULT_VISIBILITY)) return {};
     const readers = namedReaders(viewerIds, authorId);
     if (readers.length === 0) {
-      throw ApiError.validation({ viewerIds: "Name at least one person who may read this." });
+      throw ApiError.validation({ viewerIds: text("refusal.lifegroup.readersMissing") });
     }
-    requireKnownPeople(readers, "viewerIds", "Somebody named here is not in People.");
+    requireKnownPeople(readers, "viewerIds", text("refusal.lifegroup.readerUnknown"));
     return { viewerIds: readers };
   }
 
@@ -140,15 +140,26 @@ export function createLifegroupService(
     isAssignedLeader: leadsGathering(gathering, viewer.person.id),
   });
 
-  function saveStage(viewer: Viewer, gathering: Gathering, status: Gathering["status"]) {
-    const { id, ...rest } = gathering;
-    const saved = repo.saveGathering(id, {
-      ...rest,
-      status,
-      updatedBy: viewer.person.id,
-    } as GatheringValues);
+  /**
+   * Write the row, refusing a stale version when the caller stated one.
+   *
+   * Several leaders maintain one gathering. Without this, a leader who opened
+   * the editor before somebody else settled the venue would put the old venue
+   * back on save, and neither would know.
+   */
+  function commit(id: string, values: GatheringValues, expectedVersion?: number): Gathering {
+    const { version: _version, ...rest } = values as GatheringValues & { version?: number };
+    const saved = repo.saveGathering(id, rest as GatheringValues, expectedVersion);
+    if (saved === "stale") {
+      throw ApiError.conflict(text("refusal.lifegroup.staleVersion"));
+    }
     if (!saved) throw ApiError.notFound("That gathering");
     return published(saved);
+  }
+
+  function saveStage(viewer: Viewer, gathering: Gathering, status: Gathering["status"]) {
+    const { id, ...rest } = gathering;
+    return commit(id, { ...rest, status, updatedBy: viewer.person.id } as GatheringValues);
   }
 
   function readableEntries(viewer: Viewer, gathering: Gathering, entries: LifegroupEntry[]) {
@@ -248,22 +259,22 @@ export function createLifegroupService(
       if (!canJoinGathering(viewer, gathering)) {
         throw ApiError.conflict(
           gathering.status === "completed"
-            ? "This gathering has been written up. Who led it is part of the record."
-            : "This gathering was cancelled.",
+            ? text("refusal.lifegroup.leadersWrittenUp")
+            : text("refusal.lifegroup.cancelled"),
         );
       }
 
       const already = gathering.assignedLeaderIds.includes(me);
       if (action === "leave" && !already) {
-        throw ApiError.conflict("You are not on this gathering.");
+        throw ApiError.conflict(text("refusal.lifegroup.notOnGathering"));
       }
       if (action !== "leave" && already) {
-        throw ApiError.conflict("You are already on this gathering.");
+        throw ApiError.conflict(text("refusal.lifegroup.alreadyOnGathering"));
       }
       if (action === "claim" && gathering.assignedLeaderIds.length > 0) {
         /* Claiming takes a gathering nobody is leading; joining stands beside
            leaders who already are. Doing the wrong one is worth saying. */
-        throw ApiError.conflict("Someone is already leading this. You can add yourself instead.");
+        throw ApiError.conflict(text("refusal.lifegroup.alreadyLed"));
       }
 
       const assignedLeaderIds =
@@ -278,15 +289,13 @@ export function createLifegroupService(
           : undefined;
 
       const { id: _id, ...rest } = gathering;
-      const saved = repo.saveGathering(gatheringId, {
+      return commit(gatheringId, {
         ...rest,
         assignedLeaderIds,
         primaryLeaderId,
         status: statusForLeaders(gathering.status, assignedLeaderIds),
         updatedBy: me,
       } as GatheringValues);
-      if (!saved) throw ApiError.notFound("That gathering");
-      return published(saved);
     },
 
     /**
@@ -294,11 +303,20 @@ export function createLifegroupService(
      *
      * A different right from recording what happened: campus oversight may move
      * a gathering without being able to mark its attendance.
+     *
+     * The caller states the version it loaded. A stale one is refused; an
+     * omitted one is the old last-writer behaviour, kept for callers with no
+     * version to offer and never used by the schedule or the editor.
      */
-    updateGathering(viewer: Viewer, id: string, input: unknown): Gathering {
+    updateGathering(
+      viewer: Viewer,
+      id: string,
+      input: unknown,
+      expectedVersion?: number,
+    ): Gathering {
       const gathering = requireGathering(id);
       if (!canAmendGathering(viewer, gathering)) {
-        throw ApiError.forbidden("This gathering is not yours to change.");
+        throw ApiError.forbidden(text("refusal.lifegroup.notYoursToChange"));
       }
 
       const patch = parse(updateGathering, input);
@@ -314,7 +332,7 @@ export function createLifegroupService(
         const live = gathering.status !== "completed" && gathering.status !== "cancelled";
         const scheduling = ["planned", "assigned", "confirmed"].includes(patch.status);
         if (!live || !scheduling) {
-          throw ApiError.conflict("That change of stage has its own action on the gathering.");
+          throw ApiError.conflict(text("refusal.lifegroup.stageHasOwnAction"));
         }
       }
 
@@ -327,22 +345,23 @@ export function createLifegroupService(
         const before = [...gathering.assignedLeaderIds].sort().join();
         const after = [...patch.assignedLeaderIds].sort().join();
         if (before !== after) {
-          throw ApiError.forbidden(
-            "Who else leads this is a campus responsibility. You can add or remove yourself.",
-          );
+          throw ApiError.forbidden(text("refusal.lifegroup.coLeadersCampus"));
         }
       }
 
       const { id: _id, ...rest } = gathering;
       const merged = { ...rest, ...patch } as GatheringValues;
-      const saved = repo.saveGathering(id, {
-        ...merged,
-        /* The stage follows from who is on it, unless it has moved past that. */
-        status: patch.status ?? statusForLeaders(gathering.status, merged.assignedLeaderIds ?? []),
-        updatedBy: viewer.person.id,
-      } as GatheringValues);
-      if (!saved) throw ApiError.notFound("That gathering");
-      return published(saved);
+      return commit(
+        id,
+        {
+          ...merged,
+          /* The stage follows from who is on it, unless it has moved past that. */
+          status:
+            patch.status ?? statusForLeaders(gathering.status, merged.assignedLeaderIds ?? []),
+          updatedBy: viewer.person.id,
+        } as GatheringValues,
+        expectedVersion,
+      );
     },
 
     /**
@@ -355,15 +374,13 @@ export function createLifegroupService(
     cancelGathering(viewer: Viewer, id: string): Gathering {
       const gathering = requireGathering(id);
       if (gathering.status === "cancelled") {
-        throw ApiError.conflict("This gathering is already cancelled.");
+        throw ApiError.conflict(text("refusal.lifegroup.alreadyCancelled"));
       }
       if (gathering.status === "completed") {
-        throw ApiError.conflict(
-          "This gathering has been written up. Reopen the report before cancelling it.",
-        );
+        throw ApiError.conflict(text("refusal.lifegroup.cancelWrittenUp"));
       }
       if (!canCancelGathering(viewer, gathering)) {
-        throw ApiError.forbidden("This gathering is not yours to cancel.");
+        throw ApiError.forbidden(text("refusal.lifegroup.notYoursToCancel"));
       }
       return saveStage(viewer, gathering, "cancelled");
     },
@@ -372,10 +389,10 @@ export function createLifegroupService(
     restoreGathering(viewer: Viewer, id: string): Gathering {
       const gathering = requireGathering(id);
       if (gathering.status !== "cancelled") {
-        throw ApiError.conflict("This gathering is not cancelled.");
+        throw ApiError.conflict(text("refusal.lifegroup.notCancelled"));
       }
       if (!canCancelGathering(viewer, gathering)) {
-        throw ApiError.forbidden("This gathering is not yours to restore.");
+        throw ApiError.forbidden(text("refusal.lifegroup.notYoursToRestore"));
       }
       return saveStage(viewer, gathering, statusForLeaders("planned", gathering.assignedLeaderIds));
     },
@@ -385,11 +402,11 @@ export function createLifegroupService(
     markAttendance(viewer: Viewer, input: unknown) {
       const values = parse(markAttendance, input);
       if (!values.personId && !values.name) {
-        throw ApiError.validation({ name: "Say who came." });
+        throw ApiError.validation({ name: text("refusal.lifegroup.attendeeNameMissing") });
       }
       requireRecorder(viewer, values.gatheringId);
       if (values.personId) {
-        requireKnownPeople([values.personId], "personId", "That person is not in People.");
+        requireKnownPeople([values.personId], "personId", text("refusal.lifegroup.personUnknown"));
       }
       return repo.markAttendance(values);
     },

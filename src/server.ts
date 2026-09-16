@@ -1,5 +1,7 @@
 import "./lib/error-capture";
 
+import { randomBytes } from "node:crypto";
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { withSecurityHeaders } from "./server/http/security-headers";
@@ -9,7 +11,10 @@ import { assertDeploymentProfile, currentInstallation } from "./server/installat
 let reportedMisconfiguration = false;
 
 type ServerEntry = {
-  fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
+  fetch: (
+    request: Request,
+    options: { context: { nonce: string } },
+  ) => Promise<Response> | Response;
 };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
@@ -50,7 +55,12 @@ function isH3SwallowedErrorBody(body: string): boolean {
 }
 
 export default {
-  async fetch(request: Request, env: unknown, ctx: unknown) {
+  async fetch(request: Request) {
+    /* Fresh and unguessable per response. It is what lets the browser run the
+       scripts this response streams while refusing any inline script or event
+       handler that arrived inside stored content (security-headers.ts). */
+    const nonce = randomBytes(18).toString("base64");
+
     /* Applied here because this is the one place every response passes
        through — the error pages below included. A policy that covers the
        application but not its failure modes is a policy with a gap exactly
@@ -73,13 +83,14 @@ export default {
           status: 503,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
+        nonce,
       );
     }
 
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
+      const response = await handler.fetch(request, { context: { nonce } });
+      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response), nonce);
     } catch (error) {
       console.error(error);
       return withSecurityHeaders(
@@ -87,6 +98,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
+        nonce,
       );
     }
   },

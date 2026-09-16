@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { config } from "@/config";
+import { intlClockOptions } from "@/domain/dates";
 import type { DemoIdentityOption } from "@/lib/demo-api";
 
 /**
@@ -187,7 +188,9 @@ function Part({ title, children }: { title: string; children: ReactNode }) {
 
 /** "Sunday 13 September, 12:00 PM EDT" on the church's clock. */
 function at(iso: string, timeZone: string): string {
+  const clock = intlClockOptions();
   return new Intl.DateTimeFormat(undefined, {
+    ...clock,
     timeZone,
     weekday: "long",
     day: "numeric",

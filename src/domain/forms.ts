@@ -1,6 +1,4 @@
-import { format } from "date-fns";
-
-import { fromISO, toISO } from "./schedule";
+import { toISO } from "./schedule";
 import type {
   FormDefinition,
   FormField,
@@ -11,6 +9,7 @@ import type {
   FormSection,
   ReportableItem,
 } from "./types";
+import { formatDate } from "./dates";
 
 /**
  * Forms logic.
@@ -267,7 +266,7 @@ export function formatValue(field: FormField, response?: FormResponse): string |
   }
   if (response.value === undefined || response.value === "") return undefined;
   if (field.type === "date" && typeof response.value === "string") {
-    return format(fromISO(response.value), "d MMMM yyyy");
+    return formatDate(response.value);
   }
   return String(response.value);
 }

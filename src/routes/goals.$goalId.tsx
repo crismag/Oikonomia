@@ -24,11 +24,11 @@ import { cn } from "@/lib/utils";
 import { resolveAccess } from "@/domain/access";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { formatTarget, updatesFor } from "@/domain/goals";
-import { formatTime, fromISO } from "@/domain/schedule";
+import { formatTime } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
 import { canEdit } from "@/domain/authorize";
-import { format } from "date-fns";
 import type { Goal } from "@/domain/types";
+import { formatDate, formatDayMonthShort, formatMonthShort } from "@/domain/dates";
 
 export const Route = createFileRoute("/goals/$goalId")({
   /* Generic title: a goal may be leadership-confidential and head() cannot
@@ -231,7 +231,7 @@ function GoalDetail() {
             <RailBlock label="Context">
               <ul className="space-y-1 text-[13px] text-muted-foreground">
                 {campus ? <li>{campus.name}</li> : null}
-                <li>Set {format(fromISO(goal.createdAt), "d MMMM yyyy")}</li>
+                <li>Set {formatDate(goal.createdAt)}</li>
                 {origin ? (
                   <li>
                     <Link
@@ -251,12 +251,12 @@ function GoalDetail() {
                 <GoalActions
                   goal={goal}
                   busy={store.saving}
-                  onComplete={(note) => void attempt(() => complete(goal.id, note))}
-                  onHold={(reason) => void attempt(() => hold(goal.id, reason))}
-                  onResume={() => void attempt(() => resume(goal.id))}
+                  onComplete={(note) => void attempt(() => complete(goal, note))}
+                  onHold={(reason) => void attempt(() => hold(goal, reason))}
+                  onResume={() => void attempt(() => resume(goal))}
                   onCarry={() =>
                     void attempt(async () => {
-                      await carryForward(goal.id, goal.year + 1);
+                      await carryForward(goal, goal.year + 1);
                       /* Only once it exists in the new year. */
                       void navigate({ to: "/goals", search: { year: goal.year + 1 } });
                     })
@@ -382,11 +382,9 @@ function GoalDetail() {
 }
 
 function formatUpdateDate(value: string): string {
-  const parts = value.split("-");
-  if (parts.length === 2) {
-    return format(new Date(Number(parts[0]), Number(parts[1]) - 1, 1), "MMM");
-  }
-  return format(fromISO(value), "d MMM");
+  /* `yyyy-MM` reads as its month. */
+  if (value.split("-").length === 2) return formatMonthShort(value);
+  return formatDayMonthShort(value);
 }
 
 function AddUpdate({ onAdd }: { onAdd: (text: string) => Promise<void> }) {

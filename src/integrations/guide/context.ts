@@ -81,6 +81,7 @@ export const routeGuides: RouteGuide[] = [
       "meeting-notes.personal-vs-minutes",
       "meeting-notes.find",
       "meeting-notes.record.walkthrough",
+      "meeting-notes.write-report",
     ],
   },
   {
@@ -201,7 +202,13 @@ export const routeGuides: RouteGuide[] = [
     pattern: "/documents/$",
     module: "documents",
     page: "document",
-    topics: ["documents.document-page", "documents.register", "ministries.find-documents"],
+    topics: [
+      "documents.registered-document",
+      "documents.edit-unfile",
+      "documents.document-page",
+      "documents.register",
+      "ministries.find-documents",
+    ],
     entityType: "document",
   },
   {

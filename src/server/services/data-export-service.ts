@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { ApiError } from "../api/response";
 import { localStorageProvider, sha256 } from "../data/storage";
 import {
@@ -74,16 +75,16 @@ export function createDataExportService(
    */
   function requireScope(viewer: Viewer, scope: Scope): void {
     if (!isScopeType(scope.type)) {
-      throw ApiError.validation({ scope: "That is not something Oikonomia can export." });
+      throw ApiError.validation({ scope: text("refusal.export.unknownScope") });
     }
 
     const capability = capabilityForScope(scope.type);
     if (capability && !viewer.persona.capabilities.includes(capability)) {
-      throw ApiError.forbidden("That is wider than you may export.");
+      throw ApiError.forbidden(text("refusal.export.tooWide"));
     }
 
     if (scope.type === "ministry") {
-      if (!scope.id) throw ApiError.validation({ scope: "Say which ministry." });
+      if (!scope.id) throw ApiError.validation({ scope: text("refusal.export.ministryMissing") });
       const ministry = repos.organization.findMinistry(scope.id);
       if (!ministry) throw ApiError.notFound("That ministry");
 
@@ -98,20 +99,20 @@ export function createDataExportService(
         viewer.persona.capabilities.includes("cross-ministry-oversight");
 
       if (!leads && !serves && !oversight) {
-        throw ApiError.forbidden("That ministry is not yours to export.");
+        throw ApiError.forbidden(text("refusal.export.ministryNotYours"));
       }
       return;
     }
 
     if (scope.type === "group") {
-      if (!scope.id) throw ApiError.validation({ scope: "Say which group." });
+      if (!scope.id) throw ApiError.validation({ scope: text("refusal.export.groupMissing") });
       const group = repos.organization.findGroup(scope.id);
       if (!group) throw ApiError.notFound("That group");
 
       const belongs = group.memberIds.includes(viewer.person.id);
       const oversight = viewer.persona.capabilities.includes("cross-ministry-oversight");
       if (!belongs && !oversight) {
-        throw ApiError.forbidden("That group is not yours to export.");
+        throw ApiError.forbidden(text("refusal.export.groupNotYours"));
       }
     }
   }
@@ -384,7 +385,7 @@ export function createDataExportService(
           jobId: job.id,
           result: "error",
         });
-        throw ApiError.conflict("That export is damaged. Run it again.");
+        throw ApiError.conflict(text("refusal.export.damaged"));
       }
 
       jobs.audit({

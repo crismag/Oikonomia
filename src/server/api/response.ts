@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import type { ApiErrorBody, ErrorCode, PageMeta } from "@/lib/api-envelope";
 
 /**
@@ -66,7 +67,7 @@ export class ApiError extends Error {
     };
   }
 
-  static validation(fields: Record<string, string>, message = "Some details need fixing.") {
+  static validation(fields: Record<string, string>, message = text("refusal.common.validation")) {
     return new ApiError("validation", message, fields);
   }
 
@@ -81,10 +82,10 @@ export class ApiError extends Error {
    * refused an action on it.
    */
   static notFound(what = "That record") {
-    return new ApiError("not-found", `${what} could not be found.`);
+    return new ApiError("not-found", text("refusal.common.notFound", { what }));
   }
 
-  static forbidden(message = "You do not have permission to do that.") {
+  static forbidden(message = text("refusal.common.forbidden")) {
     return new ApiError("forbidden", message);
   }
 
@@ -100,7 +101,7 @@ export class ApiError extends Error {
    * responds by sending the person to sign in rather than by showing them an
    * error about permissions they might well have.
    */
-  static unauthenticated(message = "Nobody is signed in.") {
+  static unauthenticated(message = text("refusal.common.unauthenticated")) {
     return new ApiError("unauthenticated", message);
   }
 
@@ -111,7 +112,7 @@ export class ApiError extends Error {
    * who could do this elsewhere cannot do it here, and "you do not have
    * permission" would send them looking for a permission that does not exist.
    */
-  static disabledByInstallation(message = "This action is disabled in this installation.") {
+  static disabledByInstallation(message = text("refusal.installation.disabled")) {
     return new ApiError("disabled-by-installation", message);
   }
 }
@@ -157,6 +158,6 @@ export async function toResponse(handler: () => Promise<Response> | Response): P
   } catch (error) {
     if (error instanceof ApiError) return fail(error);
     console.error(error);
-    return fail(new ApiError("internal", "Something went wrong saving that. Please try again."));
+    return fail(new ApiError("internal", text("refusal.common.internal")));
   }
 }

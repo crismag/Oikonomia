@@ -1,3 +1,4 @@
+import { text } from "@/config/messages";
 import { createServerFn } from "@tanstack/react-start";
 
 import { withWorkspace } from "./workspace-api";
@@ -100,12 +101,12 @@ export const uploadDriveFile = createServerFn({ method: "POST" })
         ApiError,
       }): Promise<{ document: RegisteredDocument; file: DriveFile }> => {
         if (!(data instanceof FormData)) {
-          throw ApiError.validation({ file: "Choose a file to upload." });
+          throw ApiError.validation({ file: text("refusal.drive.fileMissing") });
         }
         const file = data.get("file");
         const ministryId = data.get("ministryId");
         if (!(file instanceof Blob) || typeof ministryId !== "string" || !ministryId) {
-          throw ApiError.validation({ file: "Choose a file to upload." });
+          throw ApiError.validation({ file: text("refusal.drive.fileMissing") });
         }
         return (await driveService(db)).upload(viewer, {
           ministryId,

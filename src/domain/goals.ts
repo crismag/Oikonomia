@@ -1,8 +1,8 @@
-import { differenceInCalendarDays, format, parse } from "date-fns";
-
+import { differenceInCalendarDays, parse } from "date-fns";
 import { fromISO, toISO } from "./schedule";
 import { config } from "@/config";
 import type { GoalScope, Goal, GoalStatus, GoalTarget, GoalUpdate, ReportableItem } from "./types";
+import { formatDate, formatDayMonthShort, formatMonth, formatMonthYear } from "./dates";
 
 /**
  * Goal logic.
@@ -20,18 +20,18 @@ export const goalStatusLabel = config.labels("goals.statuses") as Record<GoalSta
 export function formatTarget(target?: GoalTarget): string | undefined {
   if (!target) return undefined;
   if (target.precision === "month") {
-    return format(parse(target.value, "yyyy-MM", new Date()), "MMMM yyyy");
+    return formatMonthYear(target.value);
   }
-  return format(fromISO(target.value), "d MMMM yyyy");
+  return formatDate(target.value);
 }
 
 /** Short form for dense rows: "June", "18 Jun". */
 export function formatTargetShort(target?: GoalTarget): string | undefined {
   if (!target) return undefined;
   if (target.precision === "month") {
-    return format(parse(target.value, "yyyy-MM", new Date()), "MMMM");
+    return formatMonth(target.value);
   }
-  return format(fromISO(target.value), "d MMM");
+  return formatDayMonthShort(target.value);
 }
 
 /** The last day a month-precision target can still be met. */

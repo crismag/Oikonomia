@@ -100,6 +100,25 @@ try {
   check("sends X-Content-Type-Options", login.headers.get("x-content-type-options") === "nosniff");
   check("sends a Content-Security-Policy", Boolean(login.headers.get("content-security-policy")));
   check("cannot be framed", login.headers.get("x-frame-options") === "DENY");
+  /* Inline script runs by this response's nonce only — so every script the
+     page streams must carry it, or the page never starts in a browser. */
+  {
+    const policy = login.headers.get("content-security-policy") ?? "";
+    const scriptSrc = policy.split(";").find((d) => d.trim().startsWith("script-src")) ?? "";
+    const nonce = /'nonce-([^']+)'/.exec(scriptSrc)?.[1];
+    check(
+      "script-src has a nonce and no 'unsafe-inline'",
+      Boolean(nonce) && !scriptSrc.includes("'unsafe-inline'"),
+      scriptSrc,
+    );
+    const scripts = (await login.clone().text()).match(/<script\b[^>]*>/g) ?? [];
+    const missing = scripts.filter((tag) => !tag.includes(`nonce="${nonce}"`));
+    check(
+      "every script on the page carries that nonce",
+      scripts.length > 0 && missing.length === 0,
+      missing.join(" "),
+    );
+  }
   /* A church's own installation stays findable: the demonstration's header is not here. */
   check(
     "an ordinary installation does not ask not to be indexed",

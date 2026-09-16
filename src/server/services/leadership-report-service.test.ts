@@ -8,6 +8,8 @@ import { openDatabase } from "../db/connection";
 import { seedReports } from "@/test/seeds";
 import { createLeadershipReportRepository } from "../repositories/leadership-report-repository";
 import { createLeadershipReportService } from "./leadership-report-service";
+import { createMeetingRepository } from "../repositories/meeting-repository";
+import { createMeetingService } from "./meeting-service";
 import { canDiscover } from "@/domain/leadership-report";
 import { leadershipReports } from "@/test/fixtures";
 import { viewerFor } from "@/test/viewer";
@@ -702,5 +704,76 @@ describe("a report its author marked confidential", () => {
     const report = confidentialFor(joel.person.id);
     expect(() => audited.update(joel, report.id, { confidential: false })).toThrow(ApiError);
     expect(audited.update(maria, report.id, { confidential: false }).confidential).toBeUndefined();
+  });
+});
+
+/**
+ * Writing a report from a meeting.
+ *
+ * The meeting is context: it names the source and opens it. A report may only
+ * claim a meeting its author may read, and a note they may not read is refused
+ * as missing — a personal note's existence is itself private.
+ */
+describe("a report written from a meeting note", () => {
+  let fromMeetings: ReturnType<typeof createLeadershipReportService>;
+  let meetings: ReturnType<typeof createMeetingService>;
+
+  beforeEach(() => {
+    const meetingRepo = createMeetingRepository(db);
+    meetings = createMeetingService(meetingRepo);
+    fromMeetings = createLeadershipReportService(repo, undefined, undefined, {
+      findMeetingNote: (id) => meetingRepo.findNote(id),
+    });
+  });
+
+  const meeting = (author: typeof maria, noteType: string) =>
+    meetings.createNote(author, { title: "Leaders Meeting", noteType, date: "2026-09-08" });
+
+  it("starts as the author's private draft, pointing back at the meeting", () => {
+    const note = meeting(maria, "minutes");
+    const report = fromMeetings.create(maria, {
+      reportType: "Meeting report",
+      title: note.title,
+      contextType: "meeting-note",
+      contextId: note.id,
+    });
+
+    expect(report.authorId).toBe(maria.person.id);
+    expect(report.status).toBe("draft");
+    expect(report.visibility).toBe("private");
+    expect(report.contextType).toBe("meeting-note");
+    expect(report.contextId).toBe(note.id);
+    expect(report.title).toBe("Leaders Meeting");
+  });
+
+  it("is refused as missing for somebody else's personal note", () => {
+    const note = meeting(maria, "personal");
+    expect(() =>
+      fromMeetings.create(joel, {
+        reportType: "Meeting report",
+        contextType: "meeting-note",
+        contextId: note.id,
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }) as ApiError);
+    expect(repo.allUnguarded().some((r) => r.contextId === note.id)).toBe(false);
+  });
+
+  it("is refused for a note that does not exist, or with no way to look one up", () => {
+    expect(() =>
+      fromMeetings.create(maria, {
+        reportType: "Meeting report",
+        contextType: "meeting-note",
+        contextId: "mn-nowhere",
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }) as ApiError);
+
+    const note = meeting(maria, "minutes");
+    expect(() =>
+      service.create(maria, {
+        reportType: "Meeting report",
+        contextType: "meeting-note",
+        contextId: note.id,
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }) as ApiError);
   });
 });

@@ -54,6 +54,16 @@ describe("the directives that limit what a successful injection can do", () => {
     expect(policy).toContain("frame-src 'none'");
   });
 
+  it("never allows inline script by keyword, only by this response's nonce", () => {
+    expect(policy).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+    expect(contentSecurityPolicy(true, "abc123+/=")).toContain(
+      "script-src 'self' 'nonce-abc123+/='",
+    );
+    expect(
+      securityHeaders({ https: true, development: false, nonce: "n1" })["Content-Security-Policy"],
+    ).toContain("'nonce-n1'");
+  });
+
   it("cannot be framed, so it cannot be clickjacked", () => {
     expect(policy).toContain("frame-ancestors 'none'");
   });

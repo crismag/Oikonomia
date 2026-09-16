@@ -22,6 +22,7 @@ import {
 } from "@/components/oikonomia/demo-awareness";
 import { DemoInformation } from "@/components/oikonomia/demo-information";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
+import { intlClockOptions } from "@/domain/dates";
 import { countdown } from "@/domain/refresh-schedule";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
 import { enterDemoAs, fetchDemoEntry } from "@/lib/demo-api";
@@ -295,7 +296,9 @@ function DemoBar() {
 
 /** "Refreshes at 12:00 PM EDT", on the church's own clock. */
 function refreshedAt(at: string, timeZone: string): string {
+  const clock = intlClockOptions();
   const time = new Intl.DateTimeFormat(undefined, {
+    ...clock,
     timeZone,
     hour: "numeric",
     minute: "2-digit",

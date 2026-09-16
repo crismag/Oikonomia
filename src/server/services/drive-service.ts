@@ -93,7 +93,7 @@ export function createDriveService(deps: DriveServiceDeps) {
   function config(): WorkspaceConfig {
     const found = readConfig();
     if (!found) {
-      throw ApiError.forbidden("Google Drive is not connected on this installation.");
+      throw ApiError.forbidden(text("refusal.drive.notConnected"));
     }
     return found;
   }
@@ -105,7 +105,7 @@ export function createDriveService(deps: DriveServiceDeps) {
       deps.accountEmailOf?.(viewer.person.id);
     if (!mayActAs(settings, email)) {
       throw ApiError.forbidden(
-        `Oikonomia needs your church Google address (…@${settings.domain}) on your person record before it can open Drive as you. An administrator can add it.`,
+        text("refusal.drive.googleAddressMissing", { domain: settings.domain }),
       );
     }
     return email.trim().toLowerCase();
@@ -113,7 +113,7 @@ export function createDriveService(deps: DriveServiceDeps) {
 
   function ministry(ministryId: string): Ministry {
     const found = deps.organization.findMinistry(ministryId);
-    if (!found) throw ApiError.validation({ ministryId: "That ministry does not exist." });
+    if (!found) throw ApiError.validation({ ministryId: text("refusal.ministry.unknown") });
     return found;
   }
 
@@ -142,9 +142,7 @@ export function createDriveService(deps: DriveServiceDeps) {
     if (existing) return existing;
     const root = settings.driveRoot;
     if (!root) {
-      throw ApiError.forbidden(
-        "Ministry folders are not set up on this installation. You can still choose a file from My Drive.",
-      );
+      throw ApiError.forbidden(text("refusal.drive.ministryFoldersMissing"));
     }
 
     const pending = creating.get(target.id);
@@ -223,7 +221,8 @@ export function createDriveService(deps: DriveServiceDeps) {
       if (query.source === "shared")
         return drive.listFiles(settings, subject, { in: "shared", ...common });
 
-      if (!query.ministryId) throw ApiError.validation({ ministryId: "Which ministry's folder?" });
+      if (!query.ministryId)
+        throw ApiError.validation({ ministryId: text("refusal.drive.ministryMissing") });
       ministry(query.ministryId);
       if (!settings.driveRoot) return { files: [], folderUnavailable: "no-root" };
       const folderId = deps.folders.folderFor(query.ministryId);
@@ -257,7 +256,7 @@ export function createDriveService(deps: DriveServiceDeps) {
         throw ApiError.validation({ file: uploadTooLarge }, uploadTooLarge);
       }
       const name = input.name.trim().slice(0, 200);
-      if (!name) throw ApiError.validation({ file: "Choose a file to upload." });
+      if (!name) throw ApiError.validation({ file: text("refusal.drive.fileMissing") });
 
       const target = contributorOf(viewer, input.ministryId);
       const settings = config();

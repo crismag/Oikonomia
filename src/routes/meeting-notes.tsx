@@ -14,6 +14,7 @@ import {
 import { useMeetings } from "@/components/oikonomia/meeting-provider";
 import { EscalationControl } from "@/components/oikonomia/escalation-control";
 import { AskedOfYou } from "@/components/oikonomia/put-on-week";
+import { ReportsFromMeeting, WriteReportFromMeeting } from "@/components/oikonomia/meeting-report";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { Pagination } from "@/components/oikonomia/pagination";
 import { PersonName } from "@/components/oikonomia/person";
@@ -39,13 +40,17 @@ import {
   unresolvedFrom,
 } from "@/domain/meeting";
 import { PAGE_SIZE, windowFromMeta } from "@/domain/pagination";
-import { fromISO } from "@/domain/schedule";
 import { mayChangeNote, mayCompleteTask, readOnlyReason } from "@/domain/meeting-access";
 import { meetingTaskWeek } from "@/domain/planning";
 import { useViewer } from "@/domain/session";
-import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { MeetingNote, MeetingNoteType, MeetingTask } from "@/domain/types";
+import {
+  formatDate,
+  formatDayMonthShort,
+  formatWeekdayFull,
+  formatWeekdayShort,
+} from "@/domain/dates";
 
 /**
  * The URL of the notebook.
@@ -356,7 +361,7 @@ function MeetingList({
                       className="flex w-full items-start gap-4 px-4 py-3 text-left"
                     >
                       <span className="w-16 shrink-0 pt-0.5 text-[12px] tabular-nums text-muted-foreground">
-                        {format(fromISO(note.date), "d MMM")}
+                        {formatDayMonthShort(note.date)}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[15px]">
@@ -642,7 +647,7 @@ function TaskWeek({ task, viewerId }: { task: MeetingTask; viewerId: string }) {
             search={{ date: week.date }}
             className="underline-offset-2 hover:text-foreground hover:underline"
           >
-            On your week · {format(fromISO(week.date), "EEE d MMM")}
+            On your week · {formatWeekdayShort(week.date)}
           </Link>
         </p>
       );
@@ -650,7 +655,7 @@ function TaskWeek({ task, viewerId }: { task: MeetingTask; viewerId: string }) {
       return (
         <p className={quiet}>
           On <PersonName personId={week.assigneeId} />
-          &apos;s week · {format(fromISO(week.date), "EEE d MMM")}
+          &apos;s week · {formatWeekdayShort(week.date)}
         </p>
       );
   }
@@ -713,7 +718,7 @@ function Editor({ note }: { note: MeetingNote }) {
           <ArrowLeft className="size-3.5" aria-hidden />
           Meeting Notes
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {/*
            * This used to say "saved as you type" whatever was happening. Now
            * it says what is actually true, because the claim is checkable:
@@ -721,6 +726,7 @@ function Editor({ note }: { note: MeetingNote }) {
            * state of that write (§20).
            */}
           <SaveIndicator />
+          <WriteReportFromMeeting note={note} />
           <Link
             to="/meeting-notes"
             search={{ note: note.id, print: true }}
@@ -802,7 +808,7 @@ function Editor({ note }: { note: MeetingNote }) {
         >
           <p className="text-[13px]">
             {unresolved.length} unresolved {unresolved.length === 1 ? "item" : "items"} from{" "}
-            {format(fromISO(previous.date), "d MMM")}
+            {formatDayMonthShort(previous.date)}
           </p>
           <button
             type="button"
@@ -917,6 +923,7 @@ function Editor({ note }: { note: MeetingNote }) {
        * something that needs a leader outside the room, it is asked for here.
        */}
       <div className="mt-4 space-y-3">
+        <ReportsFromMeeting noteId={note.id} />
         <AskedOfYou sourceType="meeting-note" sourceId={note.id} />
         <EscalationControl
           sourceType="meeting-note"
@@ -957,14 +964,17 @@ function NoteReader({ note }: { note: MeetingNote }) {
           <ArrowLeft className="size-3.5" aria-hidden />
           Meeting Notes
         </Link>
-        <Link
-          to="/meeting-notes"
-          search={{ note: note.id, print: true }}
-          className={buttonVariants({ variant: "secondary" })}
-        >
-          <Printer className="size-3.5" aria-hidden />
-          Print
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <WriteReportFromMeeting note={note} />
+          <Link
+            to="/meeting-notes"
+            search={{ note: note.id, print: true }}
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            <Printer className="size-3.5" aria-hidden />
+            Print
+          </Link>
+        </div>
       </div>
 
       <header className="mb-3">
@@ -976,7 +986,7 @@ function NoteReader({ note }: { note: MeetingNote }) {
           {note.title || "Untitled meeting"}
         </h1>
         <p className="mt-1 text-[13px] text-muted-foreground">
-          {format(fromISO(note.date), "EEEE d MMMM yyyy")}
+          {formatWeekdayFull(note.date)}
           {note.time ? ` · ${note.time}` : ""}
           {note.type ? ` · ${meetingTypeLabel[note.type]}` : ""}
           {related ? ` · ${related}` : ""}
@@ -1041,7 +1051,7 @@ function NoteReader({ note }: { note: MeetingNote }) {
                   </span>
                   <span className="shrink-0 text-[12px] text-muted-foreground">
                     {task.assigneeId ? <PersonName personId={task.assigneeId} /> : "Unassigned"}
-                    {task.dueDate ? ` · due ${format(fromISO(task.dueDate), "d MMM")}` : ""}
+                    {task.dueDate ? ` · due ${formatDayMonthShort(task.dueDate)}` : ""}
                   </span>
                   {/* Only the link to their own week: what a task still lacks
                       is for whoever keeps the note to fill in. */}
@@ -1056,6 +1066,7 @@ function NoteReader({ note }: { note: MeetingNote }) {
       </section>
 
       <div className="mt-4 space-y-3">
+        <ReportsFromMeeting noteId={note.id} />
         <AskedOfYou sourceType="meeting-note" sourceId={note.id} />
         <EscalationControl
           sourceType="meeting-note"
@@ -1158,7 +1169,7 @@ function PrintView({ note }: { note: MeetingNote }) {
             {note.title || "Untitled meeting"}
           </h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            {format(fromISO(note.date), "d MMMM yyyy")}
+            {formatDate(note.date)}
             {note.time ? ` · ${note.time}` : ""}
             {note.location ? ` · ${note.location}` : ""}
             {note.type ? ` · ${meetingTypeLabel[note.type]}` : ""}
@@ -1232,7 +1243,7 @@ function PrintView({ note }: { note: MeetingNote }) {
                   {task.dueDate ? (
                     <span className="text-muted-foreground">
                       {" · due "}
-                      {format(fromISO(task.dueDate), "d MMM")}
+                      {formatDayMonthShort(task.dueDate)}
                     </span>
                   ) : null}
                 </li>

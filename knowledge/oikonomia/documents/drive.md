@@ -46,7 +46,7 @@ Each ministry has one folder in the church's Drive, made the first time someone 
 
 ### On document lists
 
-A ministry's **Documents** view and **Reference documents** in Documents & Forms show, for Drive documents, who owns the file and when it last changed, and **Open in Drive**.
+A ministry's **Documents** view and **Reference documents** in Documents & Forms show, for Drive documents, who owns the file and when it last changed, and **Open in Drive**. The document's name opens [its page in the binder](topic:documents.registered-document), which shows the same.
 
 ### Worth knowing
 

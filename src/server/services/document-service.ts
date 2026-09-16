@@ -18,6 +18,7 @@ import {
   originLabel,
   sectionForEntity,
   type BinderContent,
+  type DocumentAssociation,
   type DocumentEntityType,
   type RegisteredDocument,
 } from "@/domain/registry";
@@ -30,6 +31,12 @@ import type { WorkRepository } from "../repositories/work-repository";
 import type { FormsRepository } from "../repositories/forms-repository";
 import { resolveAccess } from "@/domain/access";
 import { canContribute, canManage, relationshipTo } from "@/domain/ministry";
+import {
+  mayChangeDocument,
+  mayUnfile,
+  type DocumentPlace,
+  type DocumentRecord,
+} from "@/domain/document-record";
 import { emptyBlock } from "@/domain/meeting";
 import { canDiscover } from "@/domain/leadership-report";
 import type { BinderContentRepository } from "../repositories/binder-content-repository";
@@ -197,13 +204,20 @@ export function createDocumentService(
   }
 
   function project(
+    viewer: Viewer,
     document: RegisteredDocument,
     persisted: Map<string, { label: string; secondaryLabel?: string }>,
   ): ResourceSearchResult {
+    /* A result names only the places this viewer may know about — the same
+       rule as the document page, so search is not the way round it. */
+    const visible = {
+      ...document,
+      associations: document.associations.filter((a) => placeVisible(viewer, a)),
+    };
     return {
       id: document.id,
       title: document.title,
-      associations: associationsOf(document, persisted),
+      associations: associationsOf(visible, persisted),
       tags: document.tags,
       kind: document.kind,
       provider: originLabel[document.origin],
@@ -322,10 +336,76 @@ export function createDocumentService(
    * nowhere is its registrant's to change.
    */
   function mayWrite(viewer: Viewer, document: RegisteredDocument): boolean {
-    const ministry = ministryOf(document);
-    if (ministry) return canContribute(relationshipTo(ministry, viewer.person.id));
-    return document.registeredById === viewer.person.id;
+    /* Stated in the domain so the document page offers exactly this. */
+    return mayChangeDocument(document, ministryOf(document), viewer.person.id);
   }
+
+  /**
+   * Whether this viewer may know about one of a document's places.
+   *
+   * A document is discoverable through any one of its places; that does not
+   * make every other place it is filed in discoverable. A private note's
+   * title must not appear on a document page because the document is also
+   * filed in a ministry.
+   */
+  function placeVisible(viewer: Viewer, association: DocumentAssociation): boolean {
+    if (association.entityId === "") return true;
+    switch (association.entityType) {
+      case "meeting-note":
+        return repo.noteReadable(association.entityId, viewer.person.id);
+      case "leadership-report": {
+        const report = context_.reports.find(association.entityId);
+        /* A record that no longer exists has nothing to reveal, and counts as
+           reachable exactly as `discoverableThroughItsPlaces` counts it. */
+        return !report || canDiscover(report, viewer.persona, viewer.person);
+      }
+      case "work": {
+        const work = context_.work.find(association.entityId);
+        return (
+          !work || resolveAccess(viewer.persona, viewer.person, work.policy).level !== "denied"
+        );
+      }
+      case "form": {
+        const definition = context_.forms.findDefinition(association.entityId);
+        if (!definition) return true;
+        return definition.policy
+          ? resolveAccess(viewer.persona, viewer.person, definition.policy).level !== "denied"
+          : true;
+      }
+      default:
+        return true;
+    }
+  }
+
+  /** Whether a place to file into exists at all. Filing into nothing is refused. */
+  function placeExists(association: DocumentAssociation): boolean {
+    if (association.entityId === "") return true;
+    switch (association.entityType) {
+      case "meeting-note":
+        return repo.noteExists(association.entityId);
+      case "leadership-report":
+        return !!context_.reports.find(association.entityId);
+      case "work":
+        return !!context_.work.find(association.entityId);
+      case "form":
+        return !!context_.forms.findDefinition(association.entityId);
+      case "ministry":
+        return !!context_.organization.findMinistry(association.entityId);
+      default:
+        return true;
+    }
+  }
+
+  /** A filing may be made only into a place that exists and this viewer can see. */
+  const mayFileInto = (viewer: Viewer, association: DocumentAssociation) =>
+    placeExists(association) && placeVisible(viewer, association);
+
+  /** A requested filing, in the shape `placeVisible` reads. */
+  const toPlace = (input: { entityType: string; entityId?: string | undefined }) =>
+    ({
+      entityType: input.entityType as DocumentEntityType,
+      entityId: input.entityId ?? "",
+    }) as DocumentAssociation;
 
   function requireWrite(viewer: Viewer, document: RegisteredDocument): void {
     if (!mayWrite(viewer, document)) {
@@ -354,7 +434,7 @@ export function createDocumentService(
         ...(query.since ? { since: query.since } : {}),
       })
       .filter((document) => discoverableThroughItsPlaces(viewer, document))
-      .map((document) => project(document, persisted));
+      .map((document) => project(viewer, document, persisted));
 
     /*
      * Section and related-record are navigation, not privacy — the privacy
@@ -497,7 +577,7 @@ export function createDocumentService(
       return repo
         .all({ readableBy: viewer.person.id, entityType, entityId })
         .filter((document) => discoverableThroughItsPlaces(viewer, document))
-        .map((document) => project(document, persisted));
+        .map((document) => project(viewer, document, persisted));
     },
 
     /** One record, withheld exactly as the list withholds it. */
@@ -521,6 +601,13 @@ export function createDocumentService(
      */
     register(viewer: Viewer, input: unknown): RegisteredDocument {
       const parsed = parse(registerDocument, input);
+      /* Filing into a place this viewer cannot see would both reveal that it
+         exists and make the document reachable through it. */
+      for (const association of parsed.associations ?? []) {
+        if (!mayFileInto(viewer, toPlace(association))) {
+          throw ApiError.notFound("That place");
+        }
+      }
       const document = repo.insert({
         title: parsed.title,
         kind: parsed.kind ?? "Document",
@@ -550,11 +637,59 @@ export function createDocumentService(
      * editing a title here has never changed a word of a Google document.
      */
     update(viewer: Viewer, id: string, input: unknown): RegisteredDocument {
-      requireWrite(viewer, this.get(viewer, id));
+      const current = this.get(viewer, id);
+      requireWrite(viewer, current);
       const patch = parse(updateDocument, input);
-      const saved = repo.update(id, patch);
+
+      /*
+       * A new address is a document that lives somewhere else. Where it lives
+       * is read off the address again, and a Drive file recorded for the old
+       * one is forgotten. A binder-native document has no address to change:
+       * the binder is where it lives.
+       */
+      const moving = patch.url !== undefined && patch.url !== current.url;
+      if (moving && current.origin === "binder") {
+        throw ApiError.validation({
+          url: text("refusal.document.addressOfBinderDocument"),
+        });
+      }
+      const saved = repo.update(
+        id,
+        patch,
+        ...(moving && patch.url ? [{ origin: originForUrl(patch.url) }] : []),
+      );
       if (!saved) throw ApiError.notFound("That document");
       return saved;
+    },
+
+    /**
+     * One registered document as its own page shows it.
+     *
+     * Its places are named only where this viewer may know about them, and
+     * each says whether this viewer may unfile it — so the page offers what
+     * the server allows and nothing else.
+     */
+    record(viewer: Viewer, id: string): DocumentRecord {
+      const document = this.get(viewer, id);
+      const persisted = context();
+      const mayEdit = mayWrite(viewer, document);
+      const places: DocumentPlace[] = document.associations
+        .filter((association) => placeVisible(viewer, association))
+        .map((association) => {
+          const resolved = labelFor(association.entityType, association.entityId, persisted);
+          return {
+            id: association.id,
+            entityType: association.entityType,
+            entityId: association.entityId,
+            relationship: association.relationship,
+            section: sectionForEntity[association.entityType],
+            ...(resolved.label ? { label: resolved.label } : {}),
+            ...(resolved.secondaryLabel ? { secondaryLabel: resolved.secondaryLabel } : {}),
+            mayUnfile: mayUnfile(document, association, mayEdit),
+          };
+        });
+      const driveFileId = driveIdOf(document);
+      return { document, places, mayEdit, ...(driveFileId ? { driveFileId } : {}) };
     },
 
     /**
@@ -565,7 +700,14 @@ export function createDocumentService(
      */
     associate(viewer: Viewer, input: unknown) {
       const parsed = parse(associateDocument, input);
-      this.get(viewer, parsed.documentId);
+      const document = this.get(viewer, parsed.documentId);
+      if (!mayFileInto(viewer, toPlace(parsed))) throw ApiError.notFound("That place");
+      /*
+       * Filing is a change to who can reach a document — it is discoverable
+       * through any place it is filed in — so it takes the same permission as
+       * unfiling, not merely being able to find it.
+       */
+      requireWrite(viewer, document);
 
       const association = repo.associate({
         documentId: parsed.documentId,
@@ -574,15 +716,29 @@ export function createDocumentService(
         relationship: parsed.relationship ?? "filed-in",
         createdById: viewer.person.id,
       });
-      if (!association) throw ApiError.validation({ entityType: "That is not a binder record." });
+      if (!association)
+        throw ApiError.validation({ entityType: text("refusal.document.notABinderRecord") });
       return association;
     },
 
-    /** Unfile it from one place. The resource, and its other places, remain. */
+    /**
+     * Unfile it from one place. The resource, and its other places, remain.
+     *
+     * The same people who may change the record may unfile it — not everyone
+     * who can find it. A place this viewer may not know about answers as if
+     * the filing were not there.
+     */
     removeAssociation(viewer: Viewer, id: string): void {
       const association = repo.findAssociation(id);
       if (!association) throw ApiError.notFound("That filing");
-      this.get(viewer, association.documentId);
+      const document = this.get(viewer, association.documentId);
+      if (!placeVisible(viewer, association)) throw ApiError.notFound("That filing");
+      requireWrite(viewer, document);
+      if (!mayUnfile(document, association, true)) {
+        throw ApiError.validation({
+          id: text("refusal.document.unfileBinderDocument"),
+        });
+      }
       repo.removeAssociation(id);
     },
 
@@ -602,7 +758,7 @@ export function createDocumentService(
     createBinder(viewer: Viewer, input: unknown): RegisteredDocument {
       const parsed = parse(createBinderDocument, input);
       const ministry = context_.organization.findMinistry(parsed.ministryId);
-      if (!ministry) throw ApiError.validation({ ministryId: "That ministry does not exist." });
+      if (!ministry) throw ApiError.validation({ ministryId: text("refusal.ministry.unknown") });
 
       const relationship = relationshipTo(ministry, viewer.person.id);
       if (!canContribute(relationship)) {
@@ -677,9 +833,7 @@ export function createDocumentService(
         parsed.expectedVersion ?? current.version,
       );
       if (saved === "stale") {
-        throw ApiError.conflict(
-          "Someone else in this ministry changed this while you were writing. Reopen it to see what they wrote.",
-        );
+        throw ApiError.conflict(text("refusal.document.staleVersion"));
       }
       if (!saved) throw ApiError.notFound("That document");
       return saved;
@@ -706,9 +860,7 @@ export function createDocumentService(
 
       if (document.registeredById !== viewer.person.id && !leads) {
         throw ApiError.forbidden(
-          ministry
-            ? "Removing a document is for whoever added it or whoever leads this ministry."
-            : "Only whoever registered this document can remove it.",
+          ministry ? text("refusal.document.removeMinistry") : text("refusal.document.removeOwner"),
         );
       }
       repo.delete(id);
