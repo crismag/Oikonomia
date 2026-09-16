@@ -49,6 +49,11 @@ The month, filterable by **All / Mine / Ministry / LifeGroup / Church**, so the
 church's shared shape and your own commitments can be seen separately or
 together.
 
+Pick a day to see its events and its tasks — your agenda items and any dated
+tasks a meeting gave you. Open an event to see it in full; open a task to reach
+it where it lives: an agenda item on the week, a meeting task in its note when
+you may read that note.
+
 ## Meeting Notes
 
 > _What was said and decided, written down while it is fresh._
@@ -65,8 +70,9 @@ one, reorder them, add your own — meetings differ, and a template you cannot
 edit is a form.
 
 While writing you can mark a line as a **decision** or a **follow-up**, and
-turn one into a **task** with an assignee and a due date. That task reaches the
-assignee's week. This is the main way work travels from a meeting to a person,
+turn one into a **task**. It starts as yours; give it a due date and it reaches
+the assignee's week — each task says whether it is on a week yet, and what it
+still needs if not. Nothing picks a date for you. This is the main way work travels from a meeting to a person,
 and it is explicit: nothing becomes somebody's task because a meeting happened.
 
 Formatting is deliberately small — bold, italic, underline, links, headings,

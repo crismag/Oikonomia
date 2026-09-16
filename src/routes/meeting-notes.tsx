@@ -38,10 +38,11 @@ import {
 } from "@/domain/meeting";
 import { PAGE_SIZE, windowFromMeta } from "@/domain/pagination";
 import { fromISO } from "@/domain/schedule";
+import { meetingTaskWeek } from "@/domain/planning";
 import { useViewer } from "@/domain/session";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { MeetingNote, MeetingNoteType } from "@/domain/types";
+import type { MeetingNote, MeetingNoteType, MeetingTask } from "@/domain/types";
 
 /**
  * The URL of the notebook.
@@ -602,6 +603,47 @@ function TagEditor({ note }: { note: MeetingNote }) {
   );
 }
 
+/**
+ * Whether a task has reached somebody's week, and if not, what it still needs.
+ *
+ * Said under each task because the week is the outcome a leader is after, and
+ * the two fields that decide it do not say so on their own.
+ */
+function TaskWeek({ task, viewerId }: { task: MeetingTask; viewerId: string }) {
+  const week = meetingTaskWeek(task, viewerId);
+  const quiet = "basis-full pl-7 text-[12px] text-muted-foreground";
+
+  switch (week.state) {
+    case "done":
+      return null;
+    case "needs-assignee":
+      return <p className={quiet}>Assign someone and add a due date to put it on a week.</p>;
+    case "needs-date":
+      return <p className={quiet}>Add a due date to put it on a week.</p>;
+    case "on-your-week":
+      return (
+        <p className={quiet}>
+          <Link
+            to="/weekly-agenda"
+            /* The day, not `open=`: opening a meeting task on the week comes
+               straight back to this note. */
+            search={{ date: week.date }}
+            className="underline-offset-2 hover:text-foreground hover:underline"
+          >
+            On your week · {format(fromISO(week.date), "EEE d MMM")}
+          </Link>
+        </p>
+      );
+    case "on-their-week":
+      return (
+        <p className={quiet}>
+          On <PersonName personId={week.assigneeId} />
+          &apos;s week · {format(fromISO(week.date), "EEE d MMM")}
+        </p>
+      );
+  }
+}
+
 /* ---------------------------------------------------------------- editor */
 
 function Editor({ note }: { note: MeetingNote }) {
@@ -619,13 +661,29 @@ function Editor({ note }: { note: MeetingNote }) {
   const unresolved = previous ? unresolvedFrom(previous, store.tasks) : [];
   const alreadyCarried = note.blocks.some((b) => blockText(b) === "Previous actions");
 
+  /* The line a task was just made from. When that task arrives, its date is
+     the next thing to fill in — the date is what puts it on a week. */
+  const [dateNext, setDateNext] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dateNext) return;
+    const created = myTasks.find((task) => task.blockId === dateNext);
+    if (!created) return;
+    setDateNext(null);
+    document.getElementById(`task-due-${created.id}`)?.focus();
+  }, [dateNext, myTasks]);
+
   function command(cmd: BlockCommand) {
     if (!focused) return;
     if (cmd.kind === "set-type") store.setBlockType(note.id, focused.id, cmd.type);
     if (cmd.kind === "delete") store.removeBlock(note.id, focused.id);
     if (cmd.kind === "make-task") {
       const title = blockText(focused);
-      if (title) store.createTask({ meetingId: note.id, title, blockId: focused.id });
+      if (!title) return;
+      /* Whoever turns a line into a task usually means to carry it, so it starts
+         as theirs — reassignable in one click. The due date is left empty: a
+         deadline nobody set is a deadline the app invented. */
+      store.createTask({ meetingId: note.id, title, blockId: focused.id, assigneeId: person.id });
+      setDateNext(focused.id);
     }
   }
 
@@ -815,6 +873,7 @@ function Editor({ note }: { note: MeetingNote }) {
                   ))}
                 </select>
                 <input
+                  id={`task-due-${task.id}`}
                   type="date"
                   value={task.dueDate ?? ""}
                   onChange={(e) =>
@@ -823,13 +882,15 @@ function Editor({ note }: { note: MeetingNote }) {
                   aria-label={`Due date for ${task.title}`}
                   className="shrink-0 rounded-md border border-border bg-surface px-1.5 py-1 text-[12px] outline-none focus:border-ring"
                 />
+                <TaskWeek task={task} viewerId={person.id} />
               </li>
             ))}
           </ul>
         ) : (
           <p className="mt-2 text-[13px] text-muted-foreground">
             Select a line and choose <span className="text-foreground">Create task</span> to track
-            something that came out of this meeting.
+            something that came out of this meeting. Give it a due date and it goes on that
+            person&apos;s Weekly Agenda.
           </p>
         )}
       </section>

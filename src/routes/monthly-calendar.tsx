@@ -10,6 +10,8 @@ import { Page, PageHeader } from "@/components/oikonomia/page";
 import { ViewError } from "@/components/oikonomia/workspace";
 import { CalendarState, useCalendarPeriod } from "@/components/oikonomia/calendar-period";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
+import { useMeetings, useMyMeetingTasks } from "@/components/oikonomia/meeting-provider";
+import { planningHref, tasksForDay, type PlanningItem } from "@/domain/planning";
 import {
   Sheet,
   SheetContent,
@@ -20,7 +22,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import {
-  agendaOn,
   dayNumber,
   formatTime,
   fromISO,
@@ -32,7 +33,7 @@ import {
   weekdayNames,
 } from "@/domain/schedule";
 import { format, isSameMonth } from "date-fns";
-import type { AgendaItem, ScheduleOccurrence } from "@/domain/types";
+import type { ScheduleOccurrence } from "@/domain/types";
 
 type Filter = "all" | "mine" | "ministry" | "lifegroup" | "church";
 
@@ -378,14 +379,16 @@ function MonthAgenda({
 }) {
   const { ministries } = useOrganization();
   const store = useSchedule();
+  const myTasks = useMyMeetingTasks();
   const month = fromISO(anchor);
+  const ministryName = (id: string | undefined) => ministries.find((m) => m.id === id)?.name;
 
   const days = monthGridDays(anchor)
     .filter((iso) => isSameMonth(fromISO(iso), month))
     .map((iso) => ({
       iso,
       occurrences: occurrencesOn(store.entries, iso).filter(keep),
-      tasks: agendaOn(store.agenda, iso),
+      tasks: tasksForDay(iso, store.agenda, ministryName, myTasks.tasks),
     }))
     .filter((day) => day.occurrences.length > 0 || day.tasks.length > 0);
 
@@ -495,8 +498,14 @@ function DayPanel({
 }) {
   const { ministries } = useOrganization();
   const store = useSchedule();
+  const myTasks = useMyMeetingTasks();
   const occurrences = occurrencesOn(store.entries, iso).filter(keep);
-  const tasks = agendaOn(store.agenda, iso);
+  const tasks = tasksForDay(
+    iso,
+    store.agenda,
+    (id) => ministries.find((m) => m.id === id)?.name,
+    myTasks.tasks,
+  );
 
   return (
     <aside className="min-w-0 overflow-hidden rounded-lg border border-border bg-surface">
@@ -570,28 +579,47 @@ function DayPanel({
   );
 }
 
-function PanelTask({ item }: { item: AgendaItem }) {
+/**
+ * A task on the day, from the agenda or from a meeting.
+ *
+ * The box completes it where it lives — the agenda item, or the meeting's own
+ * task. The words open it there: an agenda item on the week, a meeting task in
+ * its note when this leader may read the note. The month stays about events;
+ * it does not become a second week.
+ */
+function PanelTask({ item }: { item: PlanningItem }) {
   const store = useSchedule();
+  const { updateTask } = useMeetings();
+  const href = planningHref(item);
+
+  const toggle = () => {
+    if (item.source.type === "agenda-item") void store.toggleAgenda(item.source.id);
+    if (item.source.type === "meeting-task") {
+      void updateTask(item.source.id, { status: item.completed ? "open" : "done" });
+    }
+  };
+
   return (
-    <li>
-      {/* The label is the target: a 14px box alone is neither hittable nor
-          obviously connected to the text beside it. */}
-      <label className="flex min-h-6 cursor-pointer items-start gap-2 py-0.5">
-        <input
-          type="checkbox"
-          checked={item.completed}
-          onChange={() => store.toggleAgenda(item.id)}
-          className="mt-1 size-3.5 shrink-0 accent-[var(--color-primary)]"
-        />
-        <span
-          className={cn(
-            "text-[12px] leading-relaxed",
-            item.completed && "text-muted-foreground line-through",
-          )}
-        >
-          {item.text}
+    <li className="flex min-h-6 items-start gap-2 py-0.5">
+      <input
+        type="checkbox"
+        checked={item.completed}
+        onChange={toggle}
+        aria-label={item.completed ? `Mark "${item.title}" not done` : `Mark "${item.title}" done`}
+        className="mt-1 size-3.5 shrink-0 cursor-pointer accent-[var(--color-primary)]"
+      />
+      <Link
+        to={href.to}
+        {...(href.search ? { search: href.search } : {})}
+        className="min-w-0 text-[12px] leading-relaxed underline-offset-2 hover:underline"
+      >
+        <span className={cn("block", item.completed && "text-muted-foreground line-through")}>
+          {item.title}
         </span>
-      </label>
+        {item.source.type === "meeting-task" && item.contextLabel ? (
+          <span className="block text-[11px] text-muted-foreground">{item.contextLabel}</span>
+        ) : null}
+      </Link>
     </li>
   );
 }
