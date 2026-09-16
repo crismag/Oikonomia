@@ -159,3 +159,63 @@ refuses any reference that resolves outside its root.
 Artifact references use `randomBytes`, not `Math.random()`: two exports
 requested in the same millisecond must not be able to collide, and a guessable
 reference is one somebody can ask for.
+
+## Encrypted backups
+
+Off unless `OIKONOMIA_BACKUP_KEY` is set. With it, every backup file — in the
+artifact directory and in `OIKONOMIA_BACKUP_DIR` — is encrypted with
+AES-256-GCM and ends in `.db.enc`. Without it, a backup is the SQLite file
+itself, exactly as it has always been.
+
+The key is 32 random bytes, written as 64 hex characters or as base64:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+A key that is set but is not 32 bytes does **not** fall back to plain backups:
+every backup fails, and the Continuity panel says why, until it is corrected.
+Quietly writing unencrypted copies would leave somebody believing theirs are
+encrypted.
+
+### The file
+
+A 36-byte header — `OIKOBAK`, a format version, the 12-byte IV and the 16-byte
+authentication tag — then the ciphertext of the database. The header is
+authenticated along with the body, so an altered file is refused, not opened.
+The job records `format` as `sqlite+aes-256-gcm` or `sqlite`, and its checksum
+is of the stored (encrypted) file, so a copy can be checked without the key.
+
+Encryption is recognised from the file, not from today's setting. Verifying a
+backup decrypts it beside the installation with the server's key; a missing or
+wrong key fails the verification with that reason. A wrong key and a damaged
+file look the same to GCM, and the message says so rather than guessing.
+
+### Key custody
+
+- **Without the key, an encrypted backup cannot be restored.** Not by
+  Oikonomia, not by anybody. Losing the key loses every backup taken with it.
+- **Keep the key away from the backups.** A key stored beside the files it
+  protects protects nothing. Keep it in the installation's private settings
+  file and, separately, somewhere the people responsible for the church's
+  records can reach if this server is gone — a password manager or a sealed
+  paper copy, not the backup volume.
+- **The key never leaves the server's settings.** The panel says whether
+  backups are encrypted, never the key; the process taking the copy receives
+  it over a private channel, not in its arguments or environment.
+- **Restoring** uses `scripts/ops/decrypt-backup.mjs`, which reads the key
+  from the environment — see Restoring in [deployment.md](deployment.md#restoring).
+
+### Rotating the key
+
+Set the new key and restart. New backups use it; existing backups stay
+encrypted with the key they were taken with, and nothing re-encrypts them.
+
+So **keep the old key for as long as any backup taken with it is kept** —
+until retention has removed the last of them. Record which key was in use from
+when, because a backup's file does not name its key. Verifying an old backup
+under the new key fails with the wrong-key reason; that is expected, not
+damage.
+
+Turning encryption off (unsetting the key) works the same way: new backups are
+plain, and the old key is still needed for the encrypted ones.

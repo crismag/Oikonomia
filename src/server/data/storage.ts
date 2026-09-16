@@ -69,6 +69,37 @@ export interface StorageProvider {
   list(): StoredArtifact[];
 }
 
+/**
+ * A fresh artifact reference for a suggested name.
+ *
+ * The caller's name is a hint, not a path: anything but a safe filename is
+ * replaced rather than sanitised, because half-cleaning a path is how
+ * traversal survives. The distinguishing part is cryptographically random
+ * rather than `Math.random()`: two exports requested in the same millisecond
+ * must not be able to collide, and a reference that is guessable is a
+ * reference somebody can ask the store for.
+ */
+export function newReference(name: string): string {
+  const safe = name.replace(/[^A-Za-z0-9._-]/g, "-");
+  return `${Date.now()}-${randomBytes(9).toString("hex").slice(0, 12)}-${safe}`;
+}
+
+/**
+ * Where a reference would live under `root`, without touching the disk.
+ *
+ * A backup computes its destinations' paths on the server and leaves every
+ * system call on them to the process taking the copy — so a destination that
+ * has stopped answering keeps only that process waiting.
+ */
+export function artifactPath(root: string, reference: string): string {
+  const full = resolve(join(root, reference));
+  const base = resolve(root);
+  if (full === base || !full.startsWith(base + "/")) {
+    throw new Error("That artifact reference points outside the artifact store.");
+  }
+  return full;
+}
+
 export const sha256 = (content: Buffer | string): string =>
   createHash("sha256").update(content).digest("hex");
 
@@ -118,15 +149,7 @@ export class LocalStorage implements StorageProvider {
   }
 
   put(name: string, content: Buffer | string): StoredArtifact {
-    /* The caller's name is a hint, not a path: anything but a safe filename is
-       replaced rather than sanitised, because half-cleaning a path is how
-       traversal survives. */
-    const safe = name.replace(/[^A-Za-z0-9._-]/g, "-");
-    /* The distinguishing part is cryptographically random rather than
-       `Math.random()`: two exports requested in the same millisecond must not
-       be able to collide, and a reference that is guessable is a reference
-       somebody can ask the store for. */
-    const reference = `${Date.now()}-${randomBytes(9).toString("hex").slice(0, 12)}-${safe}`;
+    const reference = newReference(name);
     const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf8");
 
     writeFileSync(this.pathFor(reference), buffer);
@@ -234,10 +257,23 @@ export function secondaryStorageProvider(): DirectoryStorage | undefined {
   /* The operator's assertion, not ours. Anything but an explicit "true" is
      treated as "a second copy, still on this machine" — the safe reading, and
      the one that keeps the dashboard warning. */
-  const offsite = process.env["OIKONOMIA_BACKUP_OFFSITE"]?.trim().toLowerCase() === "true";
-
-  secondary = new DirectoryStorage(root, offsite);
+  secondary = new DirectoryStorage(root, offsiteDeclared());
   return secondary;
+}
+
+/**
+ * The second destination's directory, read without touching it.
+ *
+ * `secondaryStorageProvider()` creates the directory, which is a system call
+ * on the destination itself. A backup takes the path from here instead.
+ */
+export function secondaryDirectory(): string | undefined {
+  return process.env["OIKONOMIA_BACKUP_DIR"]?.trim() || undefined;
+}
+
+/** The operator's `OIKONOMIA_BACKUP_OFFSITE` assertion — only the word `true` counts. */
+export function offsiteDeclared(): boolean {
+  return process.env["OIKONOMIA_BACKUP_OFFSITE"]?.trim().toLowerCase() === "true";
 }
 
 /** For tests, and for a process that changed its own environment. */

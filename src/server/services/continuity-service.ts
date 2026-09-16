@@ -1,14 +1,28 @@
 import { text } from "@/config/messages";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, rmSync } from "node:fs";
 
 import Database from "better-sqlite3";
 
 import { ApiError } from "../api/response";
 import { databasePath } from "../db/connection";
+import { runBackupCopy, type BackupCopyRequest, type BackupCopyResult } from "../data/backup-copy";
 import {
+  ENCRYPTED_EXTENSION,
+  backupKey,
+  decryptBackupFile,
+  isEncryptedBackup,
+  nodeDeps,
+  sha256File,
+} from "../data/backup-crypto";
+import {
+  artifactPath,
+  artifactRoot,
   hasOffsiteProvider,
   localStorageProvider,
+  newReference,
+  offsiteDeclared,
   onSeparateDevice,
+  secondaryDirectory,
   secondaryStorageProvider,
   sha256,
 } from "../data/storage";
@@ -58,7 +72,39 @@ import type { Viewer } from "@/domain/viewer";
 const SCHEMA_VERSION = 31;
 const APPLICATION_VERSION = "0.1.0";
 
-export function createContinuityService(db: Db, jobs: DataJobRepository) {
+/** Ten minutes: far beyond a church database on a working disk. */
+const DEFAULT_BACKUP_TIMEOUT_SECONDS = 600;
+
+/**
+ * How long a backup may take before it is stopped.
+ *
+ * Anything but a positive whole number of seconds falls back to the default,
+ * because a typo here must not become "wait forever" — that is the failure the
+ * limit exists for.
+ */
+export function backupTimeoutMs(): number {
+  const raw = process.env["OIKONOMIA_BACKUP_TIMEOUT_SECONDS"]?.trim();
+  const seconds = raw && /^\d+$/.test(raw) ? Number(raw) : 0;
+  return (seconds > 0 ? seconds : DEFAULT_BACKUP_TIMEOUT_SECONDS) * 1000;
+}
+
+/** What a backup returns: its job, and whether the second copy failed. */
+export type BackupOutcome = DataJob & { copyFailed?: string };
+
+export interface ContinuityOptions {
+  /** Overrides `OIKONOMIA_BACKUP_TIMEOUT_SECONDS`. */
+  timeoutMs?: number;
+  /** Overrides the file the connection has open. */
+  databaseFile?: string;
+  /** Who takes the copy. The child process, unless a test says otherwise. */
+  copy?: (request: BackupCopyRequest) => Promise<BackupCopyResult>;
+}
+
+export function createContinuityService(
+  db: Db,
+  jobs: DataJobRepository,
+  options: ContinuityOptions = {},
+) {
   const requireAdministration = (viewer: Viewer): void => {
     if (!viewer.persona.capabilities.includes("administration")) {
       throw ApiError.forbidden(text("refusal.continuity.admin"));
@@ -73,14 +119,19 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
      * administrator with a login, and recording it as one would make the audit
      * trail lie about who did what.
      */
-    runBackup(viewer: Viewer | null): DataJob {
+    async runBackup(viewer: Viewer | null): Promise<BackupOutcome> {
       if (viewer) requireAdministration(viewer);
+
+      const key = backupKey();
 
       const job = jobs.open({
         operation: "backup",
         ...(viewer ? { requestedBy: viewer.person.id } : {}),
         executionActor: viewer ? "user" : "system",
         scope: { type: "site" },
+        /* Recorded per backup, so a restore knows which files need the key
+           even after the installation's setting has changed. */
+        format: key.state === "on" ? "sqlite+aes-256-gcm" : "sqlite",
         destination: "local",
       });
 
@@ -94,63 +145,78 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
       try {
         jobs.update(job.id, { status: "running", startedAt: new Date().toISOString() });
 
+        /* A key that is set but unusable stops the backup rather than letting
+           it be written in the clear: the operator asked for encryption. */
+        if (key.state === "invalid") throw new Error(key.problem);
+
         /*
-         * SQLite's own online backup, into a scratch file inside the artifact
-         * store, then read back and stored through the provider.
+         * SQLite's own online backup (`VACUUM INTO`), taken by a child process
+         * with its own read-only connection, then stored — and copied to the
+         * second destination — by that same process.
          *
          * Copying the database file directly would capture it mid-transaction,
          * and a torn backup is one nobody discovers is useless until they need
-         * it. `better-sqlite3` does this properly and synchronously enough for
-         * a church-sized database; the scratch file is removed either way,
-         * because leaving it would be a second unmanaged copy of every
-         * confidential record in the church.
+         * it. The child exists so that a destination which stops answering
+         * keeps only the child waiting (`backup-copy.ts`); this process only
+         * computes paths and records what happened.
+         *
+         * The second copy comes after the local one rather than instead of it:
+         * if it fails — an unmounted volume, a full disk, a network share that
+         * has gone away — the backup that already succeeded is still a backup,
+         * and the job records that the copy did not happen. A failure to
+         * duplicate is not a failure to back up, and treating it as one would
+         * mean a bad mount loses the only copy too.
          */
-        const storage = localStorageProvider();
-        const scratch = storage.scratchPath("backup.db");
+        const root = artifactRoot();
+        const extension = key.state === "on" ? ENCRYPTED_EXTENSION : ".db";
+        const reference = newReference(
+          `oikonomia-backup-${new Date().toISOString().slice(0, 19)}${extension}`,
+        );
+        const secondRoot = secondaryDirectory();
+        const database = options.databaseFile ?? db.name;
 
-        let bytes: Buffer;
-        try {
-          backupTo(db, scratch);
-          bytes = readFileSync(scratch);
-        } finally {
-          rmSync(scratch, { force: true });
+        const result = await (options.copy ?? runBackupCopy)({
+          database,
+          scratch: artifactPath(root, newReference("scratch-backup.db")),
+          artifactRoot: root,
+          localPath: artifactPath(root, reference),
+          ...(secondRoot
+            ? { secondary: { root: secondRoot, path: artifactPath(secondRoot, reference) } }
+            : {}),
+          ...(key.state === "on" ? { key: key.key } : {}),
+          timeoutMs: options.timeoutMs ?? backupTimeoutMs(),
+        });
+
+        if (result.status !== "stored") {
+          if (result.status === "timed-out") console.error(result.reason);
+          const failed = jobs.update(job.id, {
+            status: "failed",
+            completedAt: new Date().toISOString(),
+            errorCode: result.status === "timed-out" ? "backup_timed_out" : "backup_failed",
+            errorSummary: result.reason,
+          })!;
+          jobs.audit({
+            actorType: viewer ? "user" : "system",
+            ...(viewer ? { actorId: viewer.person.id } : {}),
+            action: "backup.failed",
+            jobId: job.id,
+            result: "error",
+            metadata: { reason: result.reason },
+          });
+          return failed;
         }
 
-        const name = `oikonomia-backup-${new Date().toISOString().slice(0, 19)}.db`;
-        const stored = storage.put(name, bytes);
-
-        /*
-         * And again, to the destination meant to survive this machine.
-         *
-         * After the local copy rather than instead of it: if the second write
-         * fails — an unmounted volume, a full disk, a network share that has
-         * gone away — the backup that already succeeded is still a backup, and
-         * the job records that the copy did not happen rather than throwing
-         * the whole thing away. A failure to duplicate is not a failure to
-         * back up, and treating it as one would mean a bad mount loses the
-         * only copy too.
-         */
-        const second = secondaryStorageProvider();
-        let copiedTo: string | undefined;
-        let copyError: string | undefined;
-
-        if (second) {
-          try {
-            second.put(name, bytes);
-            copiedTo = second.id;
-          } catch (error) {
-            copyError = error instanceof Error ? error.message : "Unknown failure";
-            console.error("Backup copy to the secondary destination failed:", error);
-          }
+        if (result.copyFailed) {
+          console.error("Backup copy to the secondary destination failed:", result.copyFailed);
         }
 
         const completed = jobs.update(job.id, {
           status: "completed",
           progress: 100,
           completedAt: new Date().toISOString(),
-          artifactRef: stored.reference,
-          artifactBytes: stored.bytes,
-          checksum: stored.checksum,
+          artifactRef: reference,
+          artifactBytes: result.bytes,
+          checksum: result.checksum,
           schemaVersion: SCHEMA_VERSION,
           applicationVersion: APPLICATION_VERSION,
         })!;
@@ -161,14 +227,17 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
           action: "backup.completed",
           jobId: job.id,
           metadata: {
-            offsite: hasOffsiteProvider(),
-            bytes: stored.bytes,
-            ...(copiedTo ? { copiedTo } : {}),
-            ...(copyError ? { copyFailed: copyError } : {}),
+            /* Read from the configuration, not the provider: building the
+               provider touches the destination from this process. */
+            offsite: Boolean(secondRoot) && offsiteDeclared(),
+            bytes: result.bytes,
+            encrypted: key.state === "on",
+            ...(secondRoot && !result.copyFailed ? { copiedTo: "directory" } : {}),
+            ...(result.copyFailed ? { copyFailed: result.copyFailed } : {}),
           },
         });
 
-        return completed;
+        return result.copyFailed ? { ...completed, copyFailed: result.copyFailed } : completed;
       } catch (error) {
         const failed = jobs.update(job.id, {
           status: "failed",
@@ -231,9 +300,9 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
 
         /* Integrity first: a backup whose checksum has drifted is not a
            recovery point, and calling it one is the failure this check exists
-           to prevent. */
-        const content = storage.get(backup.artifactRef);
-        if (backup.checksum && sha256(content) !== backup.checksum) {
+           to prevent. The checksum is of the stored file, encrypted or not. */
+        const stored = storage.pathOf(backup.artifactRef);
+        if (backup.checksum && sha256File(nodeDeps, stored) !== backup.checksum) {
           throw new Error("The backup's checksum does not match. It has been damaged.");
         }
 
@@ -245,7 +314,21 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
         let version = 0;
 
         try {
-          writeFileSync(scratch, content);
+          /* An encrypted backup is recognised by its own header, not by today's
+             setting: the key may have been added or removed since it was
+             taken, and the file is what has to be opened. */
+          if (isEncryptedBackup(nodeDeps, stored)) {
+            const key = backupKey();
+            if (key.state === "off") {
+              throw new Error(
+                "This backup is encrypted, and this server has no OIKONOMIA_BACKUP_KEY to open it with.",
+              );
+            }
+            if (key.state === "invalid") throw new Error(key.problem);
+            decryptBackupFile(nodeDeps, stored, scratch, key.key);
+          } else {
+            copyFileSync(stored, scratch);
+          }
           const copy = new Database(scratch, { readonly: true });
           try {
             const integrity = copy.pragma("integrity_check", { simple: true });
@@ -441,6 +524,8 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
         ...(lastRestore ? { lastVerifiedRestore: lastRestore } : {}),
         failedJobs: jobs.failed(),
         offsiteMissing: !hasOffsiteProvider(),
+        /* Whether, never the key itself. */
+        encryption: backupKey().state,
         ...(secondary
           ? {
               secondaryCopy: {
@@ -518,18 +603,6 @@ export function createContinuityService(db: Db, jobs: DataJobRepository) {
       return saved;
     },
   };
-}
-
-/**
- * Take SQLite's own consistent copy.
- *
- * `better-sqlite3`'s `backup` is asynchronous; `VACUUM INTO` is the
- * synchronous equivalent and produces the same thing — a consistent copy taken
- * while the database is in use, rather than a file read out from under a
- * writer.
- */
-function backupTo(db: Db, path: string): void {
-  db.prepare("VACUUM INTO ?").run(path);
 }
 
 export type ContinuityService = ReturnType<typeof createContinuityService>;

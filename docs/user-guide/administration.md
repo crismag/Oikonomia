@@ -169,6 +169,11 @@ The panel states its own limits before you ask:
 copy as a database of its own and checks it can be read — beside the running
 installation, never over it.
 
+**Encryption** says whether backup files are encrypted. It is on only when
+whoever runs the server has set a backup key; the panel never shows the key.
+Encrypted backups can be restored only with that key, so make sure somebody
+responsible for the church's records knows where a copy of it is kept.
+
 Three things to arrange with whoever runs the server:
 
 1. **A second destination** (`OIKONOMIA_BACKUP_DIR`) so a backup survives this

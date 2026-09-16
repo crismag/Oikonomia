@@ -251,6 +251,12 @@ export interface ContinuityStatus {
   /** True when every backup this installation has is on the machine it runs on. */
   offsiteMissing: boolean;
   /**
+   * Whether backup files are encrypted: no key, a usable key, or a key that
+   * is set but cannot be used (every backup fails until it is corrected).
+   * Optional so a status built before encryption existed still reads.
+   */
+  encryption?: "off" | "on" | "invalid";
+  /**
    * The second destination, when one is configured.
    *
    * Three states are genuinely different and are reported as three, because
@@ -284,6 +290,12 @@ export function continuityConcerns(status: ContinuityStatus): string[] {
 
   if (!status.lastSuccessfulBackup) {
     concerns.push("No backup has ever completed. Nothing here could be recovered.");
+  }
+  /* Before anything else about backups: until this is fixed, none will run. */
+  if (status.encryption === "invalid") {
+    concerns.push(
+      "OIKONOMIA_BACKUP_KEY is set but is not a usable key, so every backup will fail until it is corrected.",
+    );
   }
   if (status.offsiteMissing) {
     concerns.push(
