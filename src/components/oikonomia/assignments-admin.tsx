@@ -66,7 +66,7 @@ export function AssignmentsAdmin() {
     );
 
   return (
-    <Section title="Awaiting confirmation" meta={`${waiting.length}`}>
+    <Section id="assignments" title="Awaiting confirmation" meta={`${waiting.length}`}>
       <p className="border-b border-border px-4 py-2 text-[12px] leading-relaxed text-muted-foreground">
         What people have said about where they serve, and corrections they have asked for. None of
         it is in effect: confirming a ministry opens that ministry&apos;s information, and

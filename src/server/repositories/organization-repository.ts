@@ -623,6 +623,25 @@ export function createOrganizationRepository(db: Db) {
     },
 
     /** Everything anybody is waiting on a decision about. */
+    /**
+     * The counts the first-church checklist is computed from.
+     *
+     * Counts, never rows: the checklist says whether something exists, and an
+     * account list has no business travelling to a browser to answer that.
+     */
+    setupCounts(viewerId: string): { othersWithAccounts: number; confirmedAssignments: number } {
+      const accounts = db
+        .prepare("SELECT COUNT(*) AS n FROM account WHERE person_id <> ?")
+        .get(viewerId) as { n: number };
+      const confirmed = db
+        .prepare(
+          `SELECT (SELECT COUNT(*) FROM ministry_member WHERE status = 'confirmed') +
+                  (SELECT COUNT(*) FROM responsibility_group_member WHERE status = 'confirmed') AS n`,
+        )
+        .get() as { n: number };
+      return { othersWithAccounts: accounts.n, confirmedAssignments: confirmed.n };
+    },
+
     assignmentsAwaitingDecision(): (Assignment & { personId: string })[] {
       const ministries = db
         .prepare(

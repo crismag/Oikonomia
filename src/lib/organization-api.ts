@@ -337,3 +337,8 @@ export const fetchAssignmentsAwaitingDecision = createServerFn({ method: "GET" }
   .handler(() =>
     withOrganization((service, viewer) => service.assignmentsAwaitingDecision(viewer)),
   );
+
+/** How far the church's setup has got, for an administrator's Home. */
+export const fetchChurchSetup = createServerFn({ method: "GET" })
+  .validator(() => ({}))
+  .handler(() => withOrganization((service, viewer) => service.setupProgress(viewer)));

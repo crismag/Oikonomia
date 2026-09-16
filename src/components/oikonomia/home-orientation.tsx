@@ -49,6 +49,10 @@ export function HomeOrientation() {
             page.
           </p>
           <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
+            <span className="text-foreground">Oikonomia</span> is the New Testament word for
+            stewardship — looking after a household that has been entrusted to you.
+          </p>
+          <p className="mt-2 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
             <span className="text-foreground">My Binder</span>, in the sidebar, is your own work. If
             you lead others, <span className="text-foreground">Leadership</span> is where you see
             how they are doing.

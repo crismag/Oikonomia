@@ -2,12 +2,15 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function Section({
+  id,
   title,
   meta,
   action,
   className,
   children,
 }: {
+  /** An anchor, so another page can link to this section. */
+  id?: string | undefined;
   title: string;
   meta?: string | undefined;
   action?: ReactNode;
@@ -16,7 +19,11 @@ export function Section({
 }) {
   return (
     <section
-      className={cn("overflow-hidden rounded-lg border border-border bg-surface", className)}
+      {...(id ? { id } : {})}
+      className={cn(
+        "scroll-mt-4 overflow-hidden rounded-lg border border-border bg-surface",
+        className,
+      )}
     >
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-2.5">
         <div className="flex min-w-0 items-baseline gap-2.5">
