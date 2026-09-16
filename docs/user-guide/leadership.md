@@ -51,16 +51,15 @@ omniscience.
 
 ## Reports to you
 
-> _Work reports published to you and by you. This is not Leadership Reports —
-> those are the confidential accounts you write in your binder._
+> _Reports that reached you from other leaders, and a way back to your own._
 
-Filter by **All**, **New** and **Read**.
-
-Above the reports, **this year's goals** are reached one person or ministry at
-a time: each person who reports to you, with the goals they own; each ministry
-you lead or serve in, with the goals that belong to the ministry itself; and
-shared goals. Every row opens that goal. A leader's goals are their own, so
-they are never merged into one list of everybody's progress.
+- **Your reports** — your latest Leadership Reports, with a link to all of them.
+- **Shared with you** — Leadership Reports other leaders wrote that reached you:
+  addressed to you by name, to a group you belong to, or to leadership you are
+  part of. Newest first, filterable by **All**, **New** and **Read**, and the
+  full list is under Leadership Reports → Shared With Me.
+- **Goals** — this year's goals, one person, ministry or group at a time.
+- **Work reports** — listed when there are any.
 
 Read state is tracked, so you can tell what you have already seen. **Read state
 is not acknowledgement** — marking that you have read something is not the same

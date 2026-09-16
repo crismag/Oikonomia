@@ -135,6 +135,12 @@ scripts runnable without tsx.
 They are different records. A rename was the safe move. Do not unify them
 without an explicit product decision.
 
+`/reports` (Reports to you) nevertheless **shows** Leadership Reports: the
+viewer's own as a shortcut and those that reached them from others
+(`reportsToYou` over `useReports().visible`), because a church that writes
+only Leadership Reports saw an empty page. It links to the records; nothing is
+copied or merged. Work reports are listed below when any exist.
+
 **Reach-Out** is a third thing: shared pastoral outreach notes
 (`/reach-out`, `/reach-out/$reportId`). `authorId` is provenance, not
 ownership. **Sharing rules are an open product decision** — the service does
