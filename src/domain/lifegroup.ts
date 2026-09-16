@@ -52,6 +52,19 @@ export function gatheringLabel(venues: Venue[], gathering: Gathering): string {
   return `${venueName(venues, gathering)} · ${format(fromISO(gathering.date), "d MMM")}`;
 }
 
+/**
+ * What to call a gathering when the date is already shown beside it.
+ *
+ * The venue is the gathering's name — a home or a room, not a group. When
+ * there is no venue yet, the title has to say what is still needed rather
+ * than reading as a place called "Venue not set".
+ */
+export function gatheringHeadline(venues: Venue[], gathering: Gathering): string {
+  const name = venueFor(venues, gathering)?.name ?? gathering.venueName?.trim();
+  if (name) return name;
+  return gathering.assignedLeaderIds.length > 0 ? "Set the venue" : "Unclaimed gathering";
+}
+
 /** Gatherings that have met at a venue. A venue is reused, never owned. */
 export function gatheringsAtVenue(gatherings: Gathering[], venueId: string): Gathering[] {
   return byDateDescending(gatherings.filter((g) => g.venueId === venueId));

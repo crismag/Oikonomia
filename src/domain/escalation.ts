@@ -195,6 +195,38 @@ export type EscalationSourceType =
   | "ministry"
   | "work";
 
+/**
+ * Where to continue an ask — the record it came from, never a copy of it.
+ *
+ * Meeting notes are addressed by search (`?note=`), not by a path segment, so
+ * this returns a structured href rather than a string a Link would have to
+ * parse. A missing type returns nothing: inventing a page would be a dead end.
+ */
+export function escalationHref(
+  sourceType: EscalationSourceType,
+  sourceId: string,
+): { to: string; search?: Record<string, string> } | null {
+  switch (sourceType) {
+    case "leadership-report":
+      return { to: `/leadership-reports/${sourceId}` };
+    case "reach-out-report":
+      return { to: `/reach-out/${sourceId}` };
+    case "meeting-note":
+      return { to: "/meeting-notes", search: { note: sourceId } };
+    case "gathering":
+    case "lifegroup-entry":
+      return { to: `/lifegroups/${sourceId}` };
+    case "goal":
+      return { to: `/goals/${sourceId}` };
+    case "ministry":
+      return { to: `/ministries/${sourceId}` };
+    case "work":
+      return { to: `/work/${sourceId}` };
+    default:
+      return null;
+  }
+}
+
 export interface Escalation {
   id: string;
   type: EscalationType;

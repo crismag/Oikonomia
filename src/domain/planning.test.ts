@@ -4,6 +4,7 @@ import {
   filterPlanning,
   groupPlanning,
   planningForDays,
+  planningHref,
   sortPlanning,
   type PlanningItem,
 } from "./planning";
@@ -53,13 +54,26 @@ describe("one set of records, several views", () => {
    * Without this a view can show you something and not be able to open it,
    * which is how a planning surface turns into a pile of anonymous copies.
    */
-  it("keeps every item's source record", () => {
-    const items = planningForDays(week, [entry()], [task()], ministryName);
-    const scheduled = items.find((i) => i.title === "Ministry meeting")!;
-    const todo = items.find((i) => i.title === "Check Victuals attendance")!;
-
-    expect(scheduled.source).toMatchObject({ type: "schedule-entry", id: "ev-1" });
-    expect(todo.source).toMatchObject({ type: "agenda-item", id: "ag-1" });
+  it("keeps a meeting task's note as the related record", () => {
+    const items = planningForDays(week, [], [], ministryName, [
+      {
+        task: {
+          id: "t-1",
+          meetingId: "note-9",
+          title: "Book the hall",
+          dueDate: "2026-09-10",
+          status: "open",
+          createdAt: "2026-09-09T12:00:00",
+        },
+        contextLabel: "Elders",
+        readable: true,
+      },
+    ]);
+    expect(items[0]?.source).toMatchObject({
+      type: "meeting-task",
+      id: "t-1",
+      relatedId: "note-9",
+    });
   });
 
   /** A recurring entry's occurrence has to say which day it is. */
@@ -213,5 +227,42 @@ describe("shaping the same items", () => {
   it("groups days in the order they happen", () => {
     const groups = groupPlanning(items, "day", (iso) => iso);
     expect(groups.map((g) => g.key)).toEqual(["2026-09-07", "2026-09-08"]);
+  });
+});
+
+describe("opening a projected item", () => {
+  const scheduled: PlanningItem = {
+    id: "occ-1",
+    kind: "event",
+    title: "Ministry meeting",
+    date: "2026-09-10",
+    allDay: false,
+    startTime: "19:30",
+    recurring: false,
+    source: { type: "schedule-entry", id: "ev-1" },
+    may: { edit: true, complete: false, reschedule: true },
+  };
+
+  it("opens scheduled work on the week, on that day, naming the item", () => {
+    expect(planningHref(scheduled)).toEqual({
+      to: "/weekly-agenda",
+      search: { date: "2026-09-10", open: "occ-1" },
+    });
+  });
+
+  it("opens a meeting task in the note that created it", () => {
+    const task: PlanningItem = {
+      ...scheduled,
+      id: "meeting-task-t1",
+      kind: "task",
+      title: "Book the hall",
+      allDay: true,
+      source: { type: "meeting-task", id: "t1", relatedId: "note-9" },
+      may: { edit: false, complete: true, reschedule: false },
+    };
+    expect(planningHref(task)).toEqual({
+      to: "/meeting-notes",
+      search: { note: "note-9" },
+    });
   });
 });

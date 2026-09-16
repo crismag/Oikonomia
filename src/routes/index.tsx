@@ -5,6 +5,7 @@ import { CalendarClock, Plus } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { ErrorState, ListSkeleton } from "@/components/oikonomia/async-state";
+import { HomeOrientation } from "@/components/oikonomia/home-orientation";
 import { Page } from "@/components/oikonomia/page";
 import { PersonName } from "@/components/oikonomia/person";
 import { StatusDot } from "@/components/oikonomia/semantic-status";
@@ -13,17 +14,21 @@ import { useLifegroup } from "@/components/oikonomia/lifegroup-provider";
 import { useReports } from "@/components/oikonomia/report-provider";
 import { useSchedule } from "@/components/oikonomia/schedule-provider";
 import { useMyMeetingTasks } from "@/components/oikonomia/meeting-provider";
-import { useWorkList } from "@/components/oikonomia/work-provider";
 import { useLeadershipInbox } from "@/components/oikonomia/escalation-provider";
-import { escalationLabel } from "@/domain/escalation";
+import { escalationHref, escalationLabel } from "@/domain/escalation";
 import { fetchDashboard, type Dashboard } from "@/lib/dashboard-api";
 import { unwrap, withTimeout } from "@/lib/calendar-client";
 import { cn } from "@/lib/utils";
 import { dueLabel, needsAttention, statusLabel } from "@/domain/obligations";
-import { planningForDays, planningTime } from "@/domain/planning";
-import { gatheringStatusLabel, myAction, myActionLabel } from "@/domain/lifegroup";
+import {
+  gatheringHeadline,
+  gatheringStatusLabel,
+  myAction,
+  myActionLabel,
+} from "@/domain/lifegroup";
 import { canJoinGathering } from "@/domain/authorize";
 import { isCurrent, isFiled, reportStatusLabel } from "@/domain/leadership-report";
+import { planningForDays, planningHref, planningTime } from "@/domain/planning";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { fromISO, toISO, weekDays, weekOf } from "@/domain/schedule";
 import { useViewer } from "@/domain/session";
@@ -141,6 +146,12 @@ function HomePage() {
    */
   const askedOfMe = inbox.mine.slice(0, 3);
 
+  const myMinistries = ministries.filter(
+    (m) => m.leadId === person.id || m.teamIds.includes(person.id),
+  );
+
+  const next = attention[0];
+
   return (
     <Page width="workspace">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -159,18 +170,43 @@ function HomePage() {
                     : `${attention.length} things need you`}
                 </span>
               </>
+            ) : askedOfMe.length > 0 ? (
+              <>
+                {" · "}
+                <span className="text-foreground">
+                  {askedOfMe.length === 1
+                    ? "one thing has been asked of you"
+                    : `${askedOfMe.length} things have been asked of you`}
+                </span>
+              </>
             ) : (
               " · nothing is waiting on you"
             )}
           </p>
         </div>
 
-        {/* One way to start something, wherever the leader is. */}
-        <Link to="/weekly-agenda" className={buttonVariants({ variant: "primary" })}>
-          <Plus className="size-3.5" aria-hidden />
-          Add to the week
-        </Link>
+        {/*
+         * When something needs you, the one press continues it. Adding to the
+         * week is always available — it is not the thing the page is for when
+         * something is already overdue.
+         */}
+        <div className="flex flex-wrap items-center gap-2">
+          {next ? (
+            <Link to={next.destination} className={buttonVariants({ variant: "primary" })}>
+              {next.nextAction ?? "Continue"}
+            </Link>
+          ) : null}
+          <Link
+            to="/weekly-agenda"
+            className={buttonVariants({ variant: next ? "secondary" : "primary" })}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Add to the week
+          </Link>
+        </div>
       </header>
+
+      <HomeOrientation />
 
       {dashboard.isError ? (
         <ErrorState title="Your binder could not be read" onRetry={() => void dashboard.refetch()}>
@@ -197,6 +233,7 @@ function HomePage() {
                     title={item.title}
                     context={item.module}
                     mark={<StatusDot status={item.status} size="sm" />}
+                    {...(item.nextAction ? { action: item.nextAction } : {})}
                     meta={
                       item.blockedReason ??
                       dueLabel(item.dueAt, today, item.status) ??
@@ -212,6 +249,40 @@ function HomePage() {
             )}
           </WorkspaceCard>
 
+          {/* --------------------------------------- asked of you */}
+
+          {askedOfMe.length > 0 ? (
+            <WorkspaceCard
+              title="Asked of you"
+              count={askedOfMe.length}
+              action={{ label: "Leadership Inbox", to: "/inbox" }}
+              className="lg:col-span-2"
+            >
+              <ul className="grid gap-x-6 sm:grid-cols-2">
+                {askedOfMe.map((item) => {
+                  const href = escalationHref(item.sourceType, item.sourceId);
+                  return (
+                    <ObjectRow
+                      key={item.id}
+                      to={href?.to ?? "/inbox"}
+                      {...(href?.search ? { search: href.search } : {})}
+                      title={item.request}
+                      context={item.contextLabel || "Leadership Inbox"}
+                      action={
+                        item.type === "approval"
+                          ? "Decide"
+                          : item.type === "action"
+                            ? "Act"
+                            : "Consider"
+                      }
+                      meta={escalationLabel[item.type]}
+                    />
+                  );
+                })}
+              </ul>
+            </WorkspaceCard>
+          ) : null}
+
           {/* ------------------------------------------- 2. this week */}
 
           <WorkspaceCard
@@ -222,29 +293,48 @@ function HomePage() {
               <ListSkeleton rows={3} />
             ) : week.length > 0 ? (
               <ul>
-                {week.map((item) => (
-                  <ObjectRow
-                    key={item.id}
-                    to="/weekly-agenda"
-                    title={item.title}
-                    context={[item.contextLabel, item.location].filter(Boolean).join(" · ")}
-                    meta={
-                      <>
-                        {format(fromISO(item.date), "EEE")}
-                        {planningTime(item) ? ` · ${planningTime(item)}` : ""}
-                      </>
-                    }
-                  />
-                ))}
+                {week.map((item) => {
+                  const href = planningHref(item);
+                  return (
+                    <ObjectRow
+                      key={item.id}
+                      to={href.to}
+                      {...(href.search ? { search: href.search } : {})}
+                      title={item.title}
+                      context={[item.contextLabel, item.location].filter(Boolean).join(" · ")}
+                      meta={
+                        <>
+                          {format(fromISO(item.date), "EEE")}
+                          {planningTime(item) ? ` · ${planningTime(item)}` : ""}
+                        </>
+                      }
+                    />
+                  );
+                })}
               </ul>
             ) : (
-              <CardEmpty>Nothing left on the week.</CardEmpty>
+              <CardEmpty
+                action={
+                  <Link
+                    to="/weekly-agenda"
+                    className="text-[13px] font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    Plan the week
+                  </Link>
+                }
+              >
+                Nothing left on the week. Add what you intend to do.
+              </CardEmpty>
             )}
           </WorkspaceCard>
 
           {/* --------------------------------------------- 3. my work */}
 
-          <WorkspaceCard title="What you are carrying" count={mine.length}>
+          <WorkspaceCard
+            title="What you are carrying"
+            count={mine.length}
+            action={{ label: "My Progress", to: "/my-progress" }}
+          >
             {dashboard.isLoading ? (
               <ListSkeleton rows={3} />
             ) : mine.length > 0 ? (
@@ -258,6 +348,7 @@ function HomePage() {
                        section it belongs to is the context, not a type tag. */
                     context={item.module}
                     mark={<StatusDot status={item.status} size="sm" />}
+                    {...(item.nextAction ? { action: item.nextAction } : {})}
                     meta={dueLabel(item.dueAt, today, item.status) ?? statusLabel[item.status]}
                   />
                 ))}
@@ -280,45 +371,47 @@ function HomePage() {
                     person.id,
                     canJoinGathering(viewer, gathering),
                   );
-                  const venue = venues.find((v) => v.id === gathering.venueId);
                   return (
                     <ObjectRow
                       key={gathering.id}
                       to={`/lifegroups/${gathering.id}`}
                       search={{}}
-                      title={venue?.name ?? "Venue not set"}
+                      title={gatheringHeadline(venues, gathering)}
                       context={`${format(fromISO(gathering.date), "EEE d MMM")}${gathering.startTime ? ` · ${gathering.startTime}` : ""}`}
-                      meta={
-                        action === "leave"
-                          ? "You are leading"
-                          : action === "claim"
-                            ? myActionLabel.claim
-                            : gatheringStatusLabel[gathering.status]
-                      }
+                      {...(action === "claim" ? { action: myActionLabel.claim } : {})}
+                      {...(action === "leave"
+                        ? { meta: "You are leading" }
+                        : action === "claim"
+                          ? {}
+                          : { meta: gatheringStatusLabel[gathering.status] })}
                     />
                   );
                 })}
               </ul>
             ) : (
-              <CardEmpty>Nothing scheduled yet.</CardEmpty>
+              <CardEmpty
+                action={
+                  <Link
+                    to="/lifegroups"
+                    className="text-[13px] font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    Open the schedule
+                  </Link>
+                }
+              >
+                Nothing scheduled yet. Claim a gathering, or add one.
+              </CardEmpty>
             )}
           </WorkspaceCard>
 
           {/* --------------------------------------------- 5. reports */}
 
           <WorkspaceCard
-            title="Reports"
+            title="Your reports"
             action={{ label: "Leadership Reports", to: "/leadership-reports" }}
           >
-            {/*
-             * Two different situations, never one ambiguous count: what I owe
-             * somebody, and what somebody is waiting for me to read.
-             */}
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Yours
-            </p>
             {myReports.length > 0 ? (
-              <ul className="mb-3">
+              <ul>
                 {myReports.map((report) => (
                   <ObjectRow
                     key={report.id}
@@ -330,27 +423,19 @@ function HomePage() {
                 ))}
               </ul>
             ) : (
-              <CardEmpty>Nothing of yours is open.</CardEmpty>
+              <CardEmpty
+                action={
+                  <Link
+                    to="/leadership-reports"
+                    className="text-[13px] font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    Write a report
+                  </Link>
+                }
+              >
+                Nothing of yours is open.
+              </CardEmpty>
             )}
-
-            {askedOfMe.length > 0 ? (
-              <>
-                <p className="mb-1 mt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Asked of you
-                </p>
-                <ul>
-                  {askedOfMe.map((item) => (
-                    <ObjectRow
-                      key={item.id}
-                      to="/inbox"
-                      title={item.request}
-                      context={item.contextLabel || "Leadership Inbox"}
-                      meta={escalationLabel[item.type]}
-                    />
-                  ))}
-                </ul>
-              </>
-            ) : null}
           </WorkspaceCard>
 
           {/* ----------------------------------------- 6. shared work */}
@@ -358,12 +443,11 @@ function HomePage() {
           <WorkspaceCard
             title="Shared with others"
             action={{ label: "Ministry", to: "/ministries" }}
+            className="lg:col-span-2"
           >
-            <ul>
-              {ministries
-                .filter((m) => m.leadId === person.id || m.teamIds.includes(person.id))
-                .slice(0, 4)
-                .map((ministry) => (
+            {myMinistries.length > 0 ? (
+              <ul className="grid gap-x-6 sm:grid-cols-2">
+                {myMinistries.slice(0, 6).map((ministry) => (
                   <ObjectRow
                     key={ministry.id}
                     to={`/ministries/${ministry.id}`}
@@ -372,17 +456,34 @@ function HomePage() {
                     context={ministry.leadId === person.id ? "You lead this" : "You serve here"}
                   />
                 ))}
-            </ul>
-            <p className={cn("mt-2 text-[12px] text-muted-foreground")}>
-              The LifeGroup schedule is shared too — anyone can add a row or claim a gathering.
-            </p>
+              </ul>
+            ) : (
+              <CardEmpty
+                action={
+                  <Link
+                    to="/lifegroups"
+                    className="text-[13px] font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    LifeGroup schedule
+                  </Link>
+                }
+              >
+                No ministry is recorded against you yet. The LifeGroup schedule is still shared —
+                anyone can add a row or claim a gathering.
+              </CardEmpty>
+            )}
+            {myMinistries.length > 0 ? (
+              <p className={cn("mt-2 text-[12px] text-muted-foreground")}>
+                The LifeGroup schedule is shared too — anyone can add a row or claim a gathering.
+              </p>
+            ) : null}
           </WorkspaceCard>
         </div>
       )}
 
       <p className="mt-6 flex items-center gap-1.5 text-[12px] text-muted-foreground">
         <CalendarClock className="size-3.5" aria-hidden />
-        Home shows a little of each area. The work itself lives in the section it belongs to.
+        Open anything here to continue it. Home does not keep a second copy.
       </p>
     </Page>
   );

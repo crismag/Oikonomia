@@ -82,6 +82,7 @@ export function ObjectRow({
   title,
   context,
   meta,
+  action,
   mark,
   muted,
 }: {
@@ -92,6 +93,14 @@ export function ObjectRow({
   context?: string;
   /** The right-hand word: a due date, a state, a count. */
   meta?: ReactNode;
+  /**
+   * The next step, when the row is a dispatch rather than a preview.
+   *
+   * Shown in the product's action colour so a scan of Home answers "what
+   * would I press?" without opening anything. Never a second control: the
+   * whole row still is the target.
+   */
+  action?: string;
   /** A small status mark. Never the only carrier of meaning. */
   mark?: ReactNode;
   muted?: boolean;
@@ -107,8 +116,15 @@ export function ObjectRow({
           <span className="mt-0.5 block truncate text-[12px] text-muted-foreground">{context}</span>
         ) : null}
       </span>
-      {meta ? (
-        <span className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground">{meta}</span>
+      {action || meta ? (
+        <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+          {action ? (
+            <span className="whitespace-nowrap text-[12px] font-medium text-primary">{action}</span>
+          ) : null}
+          {meta ? (
+            <span className="whitespace-nowrap text-[12px] text-muted-foreground">{meta}</span>
+          ) : null}
+        </span>
       ) : null}
     </>
   );

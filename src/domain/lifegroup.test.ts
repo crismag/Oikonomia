@@ -11,6 +11,7 @@ import {
   canReadEntry,
   composeReport,
   gatheringsAtVenue,
+  gatheringHeadline,
   leadsGathering,
   otherScheduled,
   outstanding,
@@ -127,6 +128,24 @@ describe("a venue is a place, not a group", () => {
   it("falls back to the snapshot when the venue record is gone", () => {
     const orphan = gathering({ venueId: "deleted", venueName: "Manse Residence" });
     expect(venueName(venues, orphan)).toBe("Manse Residence");
+  });
+
+  it("names a gathering by what still needs doing when there is no venue", () => {
+    const led: Gathering = {
+      id: "g-led",
+      date: "2026-09-10",
+      assignedLeaderIds: ["p-maria"],
+      status: "open",
+    };
+    const unclaimed: Gathering = {
+      id: "g-open",
+      date: "2026-09-10",
+      assignedLeaderIds: [],
+      status: "open",
+    };
+    expect(gatheringHeadline(venues, led)).toBe("Set the venue");
+    expect(gatheringHeadline(venues, unclaimed)).toBe("Unclaimed gathering");
+    expect(gatheringHeadline(venues, gatherings[0]!)).toBe("Baronia Residence");
   });
 
   /** Acceptance §9.4 — a venue hosts many gatherings and stays a venue. */

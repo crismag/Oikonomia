@@ -63,13 +63,14 @@ export function SidebarContent({
             {collapsed && index > 0 && all[index - 1]?.context !== group.context ? (
               <div className="mx-auto mb-3 h-px w-6 bg-border-strong" />
             ) : null}
-            {!collapsed ? (
+            {!collapsed &&
+            group.heading !== (group.context === "binder" ? "My Binder" : "Leadership") ? (
               <p className="px-2 pb-1.5 text-[11px] font-medium text-muted-foreground">
                 {group.heading}
               </p>
-            ) : (
+            ) : collapsed ? (
               <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border" />
-            )}
+            ) : null}
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
                 const active = item.to ? pathname === item.to : false;

@@ -26,6 +26,10 @@ Something reaches Actions only because its author said it needed a response.
 Nothing arrives there because a report was published, a note was written, or a
 task was finished elsewhere.
 
+An action you take on can be **put on your week** from the same row. That files
+the ask onto your Weekly Agenda on the day it is needed (or today), so the work
+has somewhere to live besides a status.
+
 ## Team Overview
 
 > _How the leadership team's work and reporting are going, and where attention
@@ -45,10 +49,10 @@ open confidential reports.
 capability is readership: seniority is not a key, and administration is not
 omniscience.
 
-## Reports
+## Reports to you
 
-> _Reports published to you and by you. A report is information: it is here to
-> read, and it asks nothing of you unless its author said so._
+> _Work reports published to you and by you. This is not Leadership Reports —
+> those are the confidential accounts you write in your binder._
 
 Filter by **All**, **New** and **Read**.
 

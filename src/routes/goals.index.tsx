@@ -238,7 +238,14 @@ function GoalsIndex() {
               ))}
             </ol>
           ) : (
-            <EmptyState icon={Target} title="No goals match those filters">
+            <EmptyState
+              icon={Target}
+              title={
+                query || status || ministryId || starredOnly
+                  ? "No goals match those filters"
+                  : "No goals set for this year yet"
+              }
+            >
               Set what the ministry wants to improve this year, and annotate it as you go.
             </EmptyState>
           )}
