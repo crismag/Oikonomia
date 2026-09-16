@@ -257,14 +257,11 @@ already exist.
 
 - **Invitations that actually arrive** in production (SMTP). Demo correctly
   switches mail off. A church must have it configured and tested.
-- **First-church setup beyond `/setup`.** First admin exists. A guided
-  “campus → ministries → invite three leaders” is still a gap. Empty Home
-  still shows the leadership *cycle* obligations (Reach-Out report, monthly
-  leadership report, lay out the month) even with no church data — that is
-  existing dashboard behaviour (`dashboard-service.ts`), not a regression.
-  Decide whether a brand-new admin should see the cycle or a “set up the
-  church first” path. If cycle items on an empty church read as fake work,
-  fix when an obligation has no underlying record yet — do not hide the card.
+- **First-church setup** is done: an administrator's Home shows **Set up your
+  church** (`church-setup-card.tsx`, `src/domain/church-setup.ts`), computed
+  from `fetchChurchSetup` (administrator-only counts). The leadership cycle
+  still shows beside it by design — the card says the rest of Home is about
+  the administrator alone until the church is entered.
 
 Rate limiting is **not** remaining work. It is how the server protects itself.
 
@@ -298,17 +295,14 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 
 ### P2 — usability
 
-- Reach-Out's page description and the Home legend (My Binder / Leadership)
-  now explain themselves in one sentence each. "Oikonomia" itself is still
-  unexplained; same rule if you touch it — a sentence, not a tour.
+- Reach-Out's page description and the Home legend (Oikonomia / My Binder /
+  Leadership) now explain themselves in one sentence each.
 - Greetings use the full name on both Home and Welcome.
 - Goals empty state on ministry vs `/goals` — already close; keep wording
   consistent if you touch either.
-- Mobile: drawer exists; toolbars overflow on some workspaces (meeting
-  editor). Fix when you are on that screen, not as a sweep.
-- “What you are carrying” on a brand-new admin still shows 3 cycle items.
-  If that reads as fake work, the fix is in
-  `src/server/services/dashboard-service.ts`.
+- Mobile: checked at 390px (Home, week, month, meeting editor, reports,
+  inbox, administration) — no horizontal overflow; the meeting toolbar wraps.
+  Fix a new one when you are on that screen, not as a sweep.
 
 ### P3 — do not build yet (product decisions required)
 
@@ -368,11 +362,14 @@ leave the guide describing “More” or a Goals-less My Work.
 
 ## Suggested first tasks for the next session
 
-1. The P0 first-church question needs Cris's decision before code: should a
-   brand-new admin with no church data see the leadership cycle on Home, or a
-   "set up the church first" path?
-2. Do not loosen rate limits, and do not open a PR for glossary, notifications,
-   or merging report types unless Cris asks.
+1. Remaining P0 is operational: SMTP delivery for invitations on a real
+   installation. Nothing in the app to build until that is tested.
+2. Everything else open is P3 and needs Cris's decision first. Do not loosen
+   rate limits, and do not open a PR for glossary, notifications, or merging
+   report types unless Cris asks.
+3. For browser verification with realistic data, build a scratch church from
+   the Data Play corpus (`scripts/demo-content/import-data-play.mts`); never
+   seed sample data into the application.
 
 ## Verification bar
 
