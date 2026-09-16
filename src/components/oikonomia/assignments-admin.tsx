@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Section } from "./section";
 import { PersonName } from "./person";
 import { useOrganization } from "./organization-provider";
+import { useViewer } from "@/domain/session";
 import { fetchAssignmentsAwaitingDecision, setAssignment } from "@/lib/organization-api";
 import { errorMessage, unwrap, withTimeout } from "@/lib/calendar-client";
 import { assignmentStatusLabel, functionLabel } from "@/domain/assignment";
@@ -26,6 +27,7 @@ import type { Assignment } from "@/domain/assignment";
 export function AssignmentsAdmin() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
+  const { persona } = useViewer();
 
   const query = useQuery<(Assignment & { personId: string })[]>({
     queryKey: ["assignments-awaiting"],
@@ -97,15 +99,22 @@ export function AssignmentsAdmin() {
               </span>
             </span>
 
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={mutation.isPending}
-              onClick={() => decide(assignment, true)}
-            >
-              <Check className="size-3.5" aria-hidden />
-              Confirm
-            </Button>
+            {/* Nobody confirms their own place; the service refuses it too. */}
+            {assignment.personId === persona.personId ? (
+              <span className="text-[12px] text-muted-foreground">
+                Another administrator confirms this
+              </span>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={mutation.isPending}
+                onClick={() => decide(assignment, true)}
+              >
+                <Check className="size-3.5" aria-hidden />
+                Confirm
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"

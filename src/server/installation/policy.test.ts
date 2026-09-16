@@ -196,11 +196,13 @@ describe("with Demo Mode on", () => {
     ["src/lib/auth-api.ts#changePassword", "authentication"],
     ["src/lib/auth-api.ts#claimFirstAccount", "authentication"],
     ["src/lib/auth-api.ts#inviteToOikonomia", "authentication"],
+    ["src/lib/auth-api.ts#inviteManyToOikonomia", "authentication"],
     ["src/lib/auth-api.ts#signOutSession", "sessions"],
     ["src/lib/auth-api.ts#signOutOtherSessions", "sessions"],
     ["src/lib/organization-api.ts#addPerson", "identity"],
     ["src/lib/organization-api.ts#updatePerson", "identity"],
     ["src/lib/organization-api.ts#claimFirstPerson", "identity"],
+    ["src/lib/onboarding-api.ts#giveOwnName", "identity"],
     ["src/lib/configuration-api.ts#addConfigurationOption", "configuration"],
     ["src/lib/configuration-api.ts#setConfigurationOption", "configuration"],
     ["src/lib/configuration-api.ts#setConfigurationValue", "configuration"],
@@ -217,11 +219,11 @@ describe("with Demo Mode on", () => {
     expect(decideServerFunction(ON, fn(key), method)).toEqual({ allowed: false, because });
   });
 
-  it("refuses exactly those 24 and nothing else that is classified", () => {
+  it("refuses exactly those 26 and nothing else that is classified", () => {
     const refused = Object.entries(SERVER_FUNCTIONS)
       .filter(([key, policy]) => !decideServerFunction(ON, fn(key), policy.method).allowed)
       .map(([key]) => key);
-    expect(refused).toHaveLength(24);
+    expect(refused).toHaveLength(26);
   });
 
   it.each([

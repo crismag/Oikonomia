@@ -45,7 +45,7 @@ export const destinations: Record<string, OikonomiaDestination> = {
   people: { path: "/people", label: "Open People" },
   attendance: { path: "/attendance", label: "Open Attendance" },
   campuses: { path: "/campuses", label: "Open Campuses" },
-  "leadership-journal": { path: "/leadership", label: "Open Leadership journal" },
+  "leadership-journal": { path: "/leadership", label: "Open Leadership Journal" },
   "account-security": { path: "/account-security", label: "Open Account & security" },
   administration: { path: "/administration", label: "Open Administration" },
   "administration.campuses": {
@@ -62,6 +62,11 @@ export const destinations: Record<string, OikonomiaDestination> = {
     path: "/administration",
     hash: "people",
     label: "Open Administration → People",
+  },
+  "administration.invite": {
+    path: "/administration",
+    hash: "invite",
+    label: "Open Administration → Invite people",
   },
   "administration.assignments": {
     path: "/administration",

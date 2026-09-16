@@ -184,6 +184,21 @@ export function createOrganizationService(repo: OrganizationRepository) {
     }
   };
 
+  /*
+   * Nobody confirms their own place.
+   *
+   * Being an administrator is the power to decide where *other* people serve.
+   * Turned on oneself it would let one account join any ministry, lead it, or
+   * sit in the leadership audience of every report — access nobody else agreed
+   * to. So a write that would widen what the administrator themselves can
+   * reach is refused; one that leaves it as it is, or narrows it, is not.
+   */
+  const refuseSelfGrant = (viewer: Viewer, personId: string | undefined, widens: boolean) => {
+    if (widens && personId === viewer.person.id) {
+      throw ApiError.forbidden(text("refusal.organization.self"));
+    }
+  };
+
   const everything = (): Organization => ({
     campuses: repo.campuses(),
     people: repo.people(),
@@ -308,6 +323,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
     addMinistry(viewer: Viewer, input: unknown): Ministry {
       requireAdmin(viewer);
       const parsed = parse(ministryInput, input);
+      refuseSelfGrant(viewer, parsed.leadId, true);
       return repo.insertMinistry({
         name: parsed.name,
         ...(parsed.purpose ? { purpose: parsed.purpose } : {}),
@@ -319,6 +335,7 @@ export function createOrganizationService(repo: OrganizationRepository) {
     updateMinistry(viewer: Viewer, id: string, input: unknown): Ministry {
       requireAdmin(viewer);
       const parsed = parse(ministryInput.partial(), input);
+      refuseSelfGrant(viewer, parsed.leadId, repo.findMinistry(id)?.leadId !== parsed.leadId);
       const saved = repo.updateMinistry(id, parsed);
       if (!saved) throw ApiError.notFound("That ministry");
       return saved;
@@ -331,6 +348,11 @@ export function createOrganizationService(repo: OrganizationRepository) {
       requireAdmin(viewer);
       if (!repo.findMinistry(input.ministryId)) throw ApiError.notFound("That ministry");
       if (!repo.findPerson(input.personId)) throw ApiError.notFound("That person");
+      const ministry = repo.findMinistry(input.ministryId)!;
+      const already = input.shared
+        ? (ministry.sharedWithIds ?? []).includes(input.personId)
+        : ministry.teamIds.includes(input.personId) || ministry.leadId === input.personId;
+      refuseSelfGrant(viewer, input.personId, input.member && !already);
 
       if (input.member) repo.addMember(input.ministryId, input.personId, input.shared ?? false);
       else repo.removeMember(input.ministryId, input.personId);
@@ -390,6 +412,11 @@ export function createOrganizationService(repo: OrganizationRepository) {
       requireAdmin(viewer);
       if (!repo.findGroup(input.groupId)) throw ApiError.notFound("That group");
       if (!repo.findPerson(input.personId)) throw ApiError.notFound("That person");
+      refuseSelfGrant(
+        viewer,
+        input.personId,
+        input.member && !repo.findGroup(input.groupId)!.memberIds.includes(input.personId),
+      );
       repo.setGroupMembership(input.groupId, input.personId, input.member);
       return repo.findGroup(input.groupId)!;
     },
@@ -428,12 +455,21 @@ export function createOrganizationService(repo: OrganizationRepository) {
       requireTarget(input.scope, input.targetId);
       if (!repo.findPerson(input.personId)) throw ApiError.notFound("That person");
 
+      const status = input.status ?? "confirmed";
+      const existing = repo.findAssignment(input.scope, input.targetId, input.personId);
+      refuseSelfGrant(
+        viewer,
+        input.personId,
+        status === "confirmed" &&
+          !(existing?.status === "confirmed" && existing.function === (input.function ?? "")),
+      );
+
       repo.setAssignment({
         scope: input.scope,
         targetId: input.targetId,
         personId: input.personId,
         function: input.function ?? "",
-        status: input.status ?? "confirmed",
+        status,
         shared: input.shared ?? false,
       });
       return repo.assignmentsFor(input.personId);

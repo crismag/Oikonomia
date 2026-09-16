@@ -21,6 +21,19 @@ import type { Persona } from "./types";
  * flow to membership, a role, a capability or a reporting line.
  */
 
+/**
+ * Whether somebody has yet to say what they are called.
+ *
+ * A person an administrator invited by address alone is recorded under that
+ * address, because a record needs a name and inventing one would be worse.
+ * Until they give their own, their name *is* their email address — and that
+ * is the only case in which somebody sets their own name: everything else on
+ * their record is the organisation's.
+ */
+export function awaitsOwnName(person: { name: string; email?: string | undefined }): boolean {
+  return !!person.email && person.name.trim().toLowerCase() === person.email.trim().toLowerCase();
+}
+
 export const onboardingSteps = [
   "welcome",
   "profile",

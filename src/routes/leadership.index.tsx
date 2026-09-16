@@ -19,7 +19,7 @@ import { useViewer } from "@/domain/session";
 export const Route = createFileRoute("/leadership/")({
   head: () => ({
     meta: [
-      { title: "Leadership — Oikonomia" },
+      { title: "Leadership Journal — Oikonomia" },
       {
         name: "description",
         content: "Personal reflection and development, private by default, shared only on purpose.",
@@ -93,7 +93,7 @@ function LeadershipPage() {
   return (
     <Page>
       <PageHeader
-        title="Leadership"
+        title="Leadership Journal"
         description="Reflection, goals and development. Private by default; sharing is an explicit act, and a derived report never opens the rest."
         actions={
           <Button type="button" variant="primary" onClick={() => void start()} disabled={starting}>

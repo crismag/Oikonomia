@@ -10,6 +10,7 @@ import { resolveAccess } from "@/domain/access";
 import { useOrganization } from "@/components/oikonomia/organization-provider";
 import { useWorkList } from "@/components/oikonomia/work-provider";
 import { AssignmentsAdmin } from "@/components/oikonomia/assignments-admin";
+import { InvitePeople } from "@/components/oikonomia/invite-people";
 import { DataManagement } from "@/components/oikonomia/data-management";
 import { OrganizationAdmin } from "@/components/oikonomia/organization-admin";
 import { ConfigurationAdmin } from "@/components/oikonomia/configuration-admin";
@@ -98,6 +99,7 @@ function AdministrationPage() {
         {persona.capabilities.includes("administration") ? (
           <>
             <AssignmentsAdmin />
+            <InvitePeople />
             <OrganizationAdmin />
             <DataManagement />
           </>

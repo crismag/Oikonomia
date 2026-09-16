@@ -26,6 +26,8 @@ The author sets **Who can read this** in the editor. The choices come from your 
 
 On the report page, the lock label beside the status opens a panel naming who can reach it.
 
+While a report is a **Draft**, nobody but its author reads it, whatever is chosen here. The people it names read it once the author moves it to Shared or Published.
+
 ### What does not give access
 
 - **Rank or oversight.** Campus or cross-ministry oversight does not open a report.

@@ -156,6 +156,14 @@ describe("reading a range", () => {
     expect(entries.map((e) => e.title)).toEqual(["Ministry meeting"]);
   });
 
+  /* Ministry and church events are shared the moment they are made: nobody
+     has to share them, and nobody but their creator is needed to see them. */
+  it("shows an event to everybody as soon as it is created", () => {
+    service.createEntry(maria, oneOff());
+    const { entries } = service.listRange(joel, { from: "2026-09-01", to: "2026-09-30" });
+    expect(entries.map((e) => e.title)).toEqual(["Ministry meeting"]);
+  });
+
   /** A rhythm that began before the range still lands inside it. */
   it("returns a rhythm whose occurrences reach the range", () => {
     service.createEntry(

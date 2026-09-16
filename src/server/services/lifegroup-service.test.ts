@@ -63,6 +63,14 @@ describe("scheduling a gathering", () => {
     expect(led().createdBy).toBe(maria.person.id);
   });
 
+  /* A LifeGroup gathering is shared schedule from the moment it exists; only
+     what a leader writes inside it has its own line. */
+  it("is on everybody's schedule as soon as it is created", () => {
+    const created = led();
+    expect(service.listAll(bishop).gatherings.map((g) => g.id)).toContain(created.id);
+    expect(service.getGathering(joel, created.id).gathering.id).toBe(created.id);
+  });
+
   /**
    * This used to be refused. The schedule is a shared roster now: "Tuesday,
    * Markham, leader needed" is a real row, and demanding a leader up front is

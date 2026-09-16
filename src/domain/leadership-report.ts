@@ -372,6 +372,16 @@ export function reportCapabilities(
 
   const isAuthor = report.authorId === me;
   const isSubject = report.subjectId === me;
+
+  /*
+   * A draft is not shared. Whoever the author has chosen as its audience —
+   * named people, a group, leadership — reads it only once the author moves it
+   * to a stage the audience sees. Until then it is as if it did not exist, for
+   * the same reason a private report is: knowing a draft about you is being
+   * written is itself disclosure.
+   */
+  if (!isAuthor && !statusBehavior(report.status).visibleToAudience) return NOTHING;
+
   const view = true;
 
   const canComment = (() => {

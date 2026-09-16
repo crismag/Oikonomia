@@ -42,8 +42,14 @@ To end everything except where you are now, choose **Sign out of all other devic
 
 ### Changing your password
 
-This page has no password form. To choose a new password, sign out and use **Forgot password?** on the sign-in screen; it appears only where the installation can send email. Otherwise ask your church administrator to set one for you.
+If you sign in with a password, **Change password** is on this page.
 
-Setting a new password signs out every session, so anyone who knew the old one loses access immediately.
+1. Enter your **Current password**.
+2. Enter the **New password** (at least 12 characters) twice.
+3. Choose **Change password**.
 
-> In the public demo, signing other devices out is switched off.
+This device stays signed in; every other device is signed out, so anyone who knew the old one loses access immediately.
+
+If you have forgotten it, sign out and use **Forgot password?** on the sign-in screen; it appears only where the installation can send email. Otherwise ask your church administrator to set one for you.
+
+> In the public demo, changing your password and signing other devices out are switched off.

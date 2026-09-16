@@ -26,6 +26,7 @@ import { notify } from "@/config/messages/handlers";
 import { config } from "@/config";
 import { groupTypeLabel } from "@/domain/assignment";
 import type { Ministry } from "@/domain/types";
+import { useViewer } from "@/domain/session";
 import {
   venueTypeLabel,
   type PersonaId,
@@ -149,12 +150,14 @@ function GroupMembers({
   write: ReturnType<typeof useOrganizationWrite>;
 }) {
   const organization = useOrganization();
+  const { persona } = useViewer();
   const [adding, setAdding] = useState("");
 
   /* Only people who are here now may be added to a body of responsibility;
-     somebody already in one stays in it, and stays named. */
+     somebody already in one stays in it, and stays named. Never yourself:
+     another administrator decides where you belong. */
   const candidates = organization.activePeople.filter(
-    (person) => !group.memberIds.includes(person.id),
+    (person) => !group.memberIds.includes(person.id) && person.id !== persona.personId,
   );
 
   return (
@@ -376,6 +379,7 @@ function MinistryEditor({
   onDone: () => void;
 }) {
   const organization = useOrganization();
+  const { persona } = useViewer();
   const [name, setName] = useState(ministry.name);
   const [purpose, setPurpose] = useState(ministry.purpose ?? "");
   const [campusId, setCampusId] = useState(ministry.campusId ?? "");
@@ -396,7 +400,9 @@ function MinistryEditor({
           label="Lead"
           value={leadId}
           onChange={setLeadId}
-          options={organization.activePeople.map((p) => ({ id: p.id, label: p.name }))}
+          options={organization.activePeople
+            .filter((p) => p.id !== persona.personId || p.id === ministry.leadId)
+            .map((p) => ({ id: p.id, label: p.name }))}
         />
       </div>
 
@@ -436,6 +442,7 @@ function MinistryEditor({
 
 export function OrganizationAdmin() {
   const organization = useOrganization();
+  const viewer = useViewer();
   const write = useOrganizationWrite();
   /* People themselves — who exists, their name, email and access role — are
      identity. Where they belong (memberships, assignments) is not, and stays
@@ -756,10 +763,12 @@ export function OrganizationAdmin() {
             label="Lead"
             value={ministryLead}
             onChange={setMinistryLead}
-            options={organization.activePeople.map((person) => ({
-              id: person.id,
-              label: person.name,
-            }))}
+            options={organization.activePeople
+              .filter((person) => person.id !== viewer.persona.personId)
+              .map((person) => ({
+                id: person.id,
+                label: person.name,
+              }))}
           />
           <div className="sm:col-span-2">
             <Button
