@@ -1513,6 +1513,11 @@ export interface ResourceSearchResult {
   openRoute?: string;
   /** True when opening leaves the application, and another system decides. */
   external: boolean;
+  /**
+   * The Drive file behind it, when there is one — recorded, or read from a
+   * pasted Drive address. Lets a list ask Drive for its live details.
+   */
+  driveFileId?: string;
   addedById?: string;
   /**
    * ISO date, when the source records one.

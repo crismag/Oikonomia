@@ -66,6 +66,53 @@ in memory until shortly before they expire.
 Leaders' **person records must carry their Workspace email address** for Drive
 and their calendar to work as them.
 
+## Drive
+
+Files live in Drive. The binder keeps a registry record per file — the Drive
+file id (`document.drive_file_id`), its `webViewLink` as the document's
+address, its name and MIME type — and never the file's content. Uploads pass
+through the server on their way to Drive and are not written anywhere.
+
+| Operation                                                         | Acts as            | Oikonomia's own rule                                             |
+| ----------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------- |
+| Browse or search (ministry folder, My Drive, Shared with me)      | The leader         | Signed in                                                        |
+| Choose a file to register                                         | The leader         | The same as registering a link (signed in); Drive is asked first |
+| Upload (≤ 25 MB) or start a Doc/Sheet/Slides in a ministry folder | The leader         | Contributes to that ministry (`canContribute`)                   |
+| Make a ministry's folder                                          | The church mailbox | Only when an upload or new file needs it                         |
+| Live details for listed documents                                 | The leader         | Only documents the viewer may already discover                   |
+
+- **Ministry folders** are created, named after the ministry, inside
+  `OIKONOMIA_GOOGLE_DRIVE_ROOT`, the first time someone uploads or creates a
+  file for that ministry, and recorded in `ministry_drive_folder` (migration
+  `044`) so they are made once. Browsing never creates one. Without a Drive
+  root there are no ministry folders: the Drive browser says so and offers only
+  choosing from My Drive and Shared with me.
+- **Sharing.** Because uploads and new files are made as the leader, the
+  leaders who will add files need write access to the Drive root — the usual
+  arrangement is a **shared drive** whose members are the church's leaders
+  (Content manager), with the church mailbox as a Manager so it can make the
+  ministry folders. Oikonomia does not change Drive sharing.
+- **A Drive file is one record.** Choosing a file already registered files the
+  existing record in the new ministry rather than creating a second.
+- **Details on lists** (owner, last modified) are fetched per request as the
+  viewer. A file Drive will not show them has no details and still opens its
+  address, where Drive decides. Documents registered earlier by pasting a Drive
+  or Docs address are read for a file id too.
+- **Icons** are drawn by Oikonomia from the MIME type. Drive's `iconLink`
+  images are served from Google's hosts, which the content security policy does
+  not load.
+- **Where Drive is not configured** (or in Demo Mode) the browser is not shown;
+  **Add from Drive** falls back to pasting a link and says Drive is not
+  connected on this installation. Every Drive write is refused in a
+  demonstration (`operations.ts`, `integrations`).
+- **Upload size.** Server functions read the multipart request into memory, so
+  25 MB is enforced in the browser, in the service before the bytes are read,
+  and in the Drive module. A reverse proxy's own body limit must allow it.
+
+Code: `src/server/google/drive.ts` (requests), `src/server/services/drive-service.ts`
+(rules), `src/lib/drive-api.ts` (server functions),
+`src/components/oikonomia/drive-browser.tsx` and `drive-details.tsx` (screens).
+
 ## Security notes
 
 - The key can act as any user in the domain for the listed scopes. Treat it

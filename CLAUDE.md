@@ -80,8 +80,10 @@ work.
    “enable” these in the UI when the server will refuse. Adding a server
    function requires an entry in that table
    (`src/installation-policy-classified.test.ts` fails otherwise).
-5. **Documents are links, not uploads.** The binder records where a document
-   lives. Do not add file storage.
+5. **Files live in Drive; Oikonomia never stores file bytes.** The binder
+   records where a document lives (a link, plus Drive's file id for Drive
+   documents). Uploads stream through to Google Drive and are not kept. Do not
+   add file storage.
 6. **Status is computed.** Nothing lets a leader paint an obligation green.
    Done means done (attendance without a gathering report is still in progress).
 7. **exactOptionalPropertyTypes is on.** Do not pass `prop={maybeUndefined}`;
@@ -320,7 +322,7 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 | Email or push reminders | In-app notices exist (`notices-bell.tsx`, `src/domain/notices.ts`): the bell counts only unseen asks and meeting tasks from someone else; past-due is listed, never counted; opening marks seen via `markSeen`. Do not add email/push or count overdue on the bell without Cris. |
 | Calendar sync (Google) | Real OAuth, not a fake “connected” badge. Demo must stay disconnected. |
 | CSV import / member import | Church setup journey first, or you import into a shapeless org. |
-| File uploads | Contradicts “documents are links”. |
+| File storage in Oikonomia | Files live in Drive. Uploads exist only as a pass-through to Drive (`drive-service.ts`). |
 | Replace “My Binder” | The metaphor *is* the product. It needed a sentence, not a rename. |
 | Sunday service attendance, giving, volunteer rotas | Other products. |
 | Custom workflow engine / enterprise RBAC UI | Roles are already church-defined capability bundles. |
@@ -365,6 +367,25 @@ whose a goal is from `ownerId` / `ministryId`: a personal goal may carry a
   entries written inside a gathering have their own visibility.
 - **Document registration** does not check the ministry on the server, by
   decision: documents live anywhere and are linked by their leader.
+
+## Drive-backed documents (Cris's decision)
+
+Files always live in Google Drive; the registry keeps a record with
+`document.drive_file_id` / `drive_mime_type` (migration 044) and shows live
+metadata. `src/server/google/drive.ts` (requests), `drive-service.ts` (rules),
+`drive-api.ts` (browse, register, upload via FormData, create Doc/Sheet/Slides,
+details), `drive-browser.tsx` / `drive-details.tsx` (UI, only when
+`methods.workspace.drive`; otherwise the paste-link form says Drive is not
+connected on this installation).
+
+- Everything acts **as the viewer** (`person.email`, must be in the domain);
+  only the ministry folder is created as the church mailbox, under
+  `driveRoot`, on first upload/create (`ministry_drive_folder`). Browsing never
+  creates it. No `driveRoot` → no ministry folder features.
+- Choosing a file follows the registration rule (signed in); upload/create
+  require `canContribute`. One Drive file = one record (re-choosing associates).
+- Drive icons are drawn locally: CSP `img-src` does not load Google's
+  `iconLink`, and should not be loosened for it.
 
 ## Access and accounts (Cris's decisions)
 

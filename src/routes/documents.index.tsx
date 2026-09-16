@@ -9,6 +9,7 @@ import { useRegistry } from "@/components/oikonomia/documents-provider";
 import { Page, PageHeader } from "@/components/oikonomia/page";
 import { RegisterDocument } from "@/components/oikonomia/register-document";
 import { Section } from "@/components/oikonomia/section";
+import { DriveFileIcon, driveLine, useDriveDetails } from "@/components/oikonomia/drive-details";
 
 export const Route = createFileRoute("/documents/")({
   head: () => ({
@@ -42,6 +43,8 @@ function DocumentsPage() {
   const { definitions, records } = useForms();
   const registry = useRegistry();
   const [registering, setRegistering] = useState(false);
+  /* Live details from Drive for Drive documents, where Drive is connected. */
+  const drive = useDriveDetails(registry.recent);
 
   return (
     <Page>
@@ -126,38 +129,51 @@ function DocumentsPage() {
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {registry.recent.map((resource) => (
-                <li key={resource.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px]">{resource.title}</span>
-                    <span className="block text-[12px] text-muted-foreground">
-                      {[resource.kind, resource.provider].filter(Boolean).join(" · ")}
+              {registry.recent.map((resource) => {
+                const details = drive.get(resource.id);
+                const live = driveLine(details);
+                return (
+                  <li key={resource.id} className="flex items-center gap-3 px-4 py-2.5">
+                    {details?.available ? (
+                      <DriveFileIcon mimeType={details.file.mimeType} />
+                    ) : (
+                      <FolderOpen className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px]">{resource.title}</span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {[resource.kind, resource.provider].filter(Boolean).join(" · ")}
+                      </span>
+                      {live ? (
+                        <span className="block truncate text-[12px] text-area-ink">
+                          In Drive: {live}
+                        </span>
+                      ) : null}
                     </span>
-                  </span>
-                  {/* Opening leaves the binder, and whoever keeps the document
-                      decides whether it opens — so the row says where it goes
-                      rather than implying the binder holds it. */}
-                  {resource.openUrl ? (
-                    <a
-                      href={resource.openUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex shrink-0 items-center gap-1 text-[13px] text-primary transition-colors hover:text-primary/80"
-                    >
-                      Open
-                      <ExternalLink className="size-3.5" aria-hidden />
-                    </a>
-                  ) : resource.openRoute ? (
-                    <Link
-                      to={resource.openRoute}
-                      className="shrink-0 text-[13px] text-primary transition-colors hover:text-primary/80"
-                    >
-                      Open
-                    </Link>
-                  ) : null}
-                </li>
-              ))}
+                    {/* Opening leaves the binder, and whoever keeps the document
+                        decides whether it opens — so the row says where it goes
+                        rather than implying the binder holds it. */}
+                    {resource.openUrl ? (
+                      <a
+                        href={resource.openUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex shrink-0 items-center gap-1 text-[13px] text-primary transition-colors hover:text-primary/80"
+                      >
+                        {resource.driveFileId ? "Open in Drive" : "Open"}
+                        <ExternalLink className="size-3.5" aria-hidden />
+                      </a>
+                    ) : resource.openRoute ? (
+                      <Link
+                        to={resource.openRoute}
+                        className="shrink-0 text-[13px] text-primary transition-colors hover:text-primary/80"
+                      >
+                        Open
+                      </Link>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Section>

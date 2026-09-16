@@ -18,9 +18,9 @@ import { originForUrl, originLabel } from "@/domain/registry";
  * The form says so in as many words, because "Add document" beside a web
  * address would read like the file was being taken into the binder.
  *
- * Uploading a file is deliberately not offered. The binder cannot store one
- * yet, and a control that looked like it could would be a promise the system
- * does not keep.
+ * Nothing is uploaded here. Where Google Drive is connected, uploading goes
+ * through the Drive browser (`drive-browser.tsx`) straight into Drive; the
+ * binder itself never stores a file.
  */
 
 const kinds = [
@@ -44,8 +44,8 @@ export function RegisterDocument({
   ministryId?: string;
   /**
    * Where the leader said it lives. Only the wording changes — a Drive
-   * document is registered by its address like any other, and nothing here
-   * connects to Drive.
+   * document pasted here is registered by its address like any other. This
+   * form is what "Add from Drive" offers where Drive is not connected.
    */
   from?: "link" | "drive";
 }) {
@@ -94,8 +94,8 @@ export function RegisterDocument({
         </p>
         {from === "drive" ? (
           <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
-            Oikonomia does not connect to Google Drive. Copy the document&apos;s link from Drive and
-            paste it below; Drive&apos;s own sharing still decides who can open it.
+            Google Drive is not connected on this installation. Copy the document&apos;s link from
+            Drive and paste it below; Drive&apos;s own sharing still decides who can open it.
           </p>
         ) : null}
       </div>

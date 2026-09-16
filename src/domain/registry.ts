@@ -93,6 +93,10 @@ export interface RegisteredDocument {
   fileName?: string;
   /** Opens inside the application, for binder-native resources. */
   openRoute?: string;
+  /** Which Drive file this is, when it was chosen, uploaded or created through Drive. */
+  driveFileId?: string;
+  /** What kind of Drive file it was when registered. */
+  driveMimeType?: string;
   tags: string[];
   registeredById: string;
   createdAt: string;
@@ -153,9 +157,11 @@ export const originLabel: Record<RegisteredDocument["origin"], string> = {
  * Where a URL points, as far as the application is willing to claim.
  *
  * This reads the address and nothing else. It does not check that the document
- * exists, that it opens, or that anyone can reach it — there is no Google
- * Workspace integration here (§37), and a guess dressed up as a connection
- * would be exactly the kind of claim the binder should not make.
+ * exists, that it opens, or that anyone can reach it — a pasted address is a
+ * leader's word. Documents chosen through the Drive browser are checked with
+ * Drive instead (`src/server/services/drive-service.ts`), and a guess here
+ * dressed up as that check would be the kind of claim the binder should not
+ * make.
  */
 export function originForUrl(url: string): "drive" | "link" {
   try {
