@@ -298,10 +298,7 @@ before selecting the new report). `ReachOutStore.selectedId` exists for that.
 - Reach-Out's page description and the Home legend (My Binder / Leadership)
   now explain themselves in one sentence each. "Oikonomia" itself is still
   unexplained; same rule if you touch it — a sentence, not a tour.
-- Home greeting uses full name (`PersonName`); Welcome uses
-  `context.person.name.split(" ")[0]` (`welcome.tsx`). Decide one. First name
-  is warmer for Welcome; keep full name on Home if you split the difference —
-  then say so in copy, do not leave it accidental.
+- Greetings use the full name on both Home and Welcome (Cris's decision).
 - Goals empty state on ministry vs `/goals` — already close; keep wording
   consistent if you touch either.
 - Mobile: drawer exists; toolbars overflow on some workspaces (meeting
@@ -371,7 +368,6 @@ leave the guide describing “More” or a Goals-less My Work.
 1. The P0 first-church question needs Cris's decision before code: should a
    brand-new admin with no church data see the leadership cycle on Home, or a
    "set up the church first" path?
-2. P2 Welcome vs Home name also wants a decision, not a guess.
 3. Do not open a second PR for glossary, notifications, or merging report
    types unless Cris asks.
 
