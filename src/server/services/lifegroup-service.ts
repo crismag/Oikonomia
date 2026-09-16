@@ -151,9 +151,7 @@ export function createLifegroupService(
     const { version: _version, ...rest } = values as GatheringValues & { version?: number };
     const saved = repo.saveGathering(id, rest as GatheringValues, expectedVersion);
     if (saved === "stale") {
-      throw ApiError.conflict(
-        "This gathering was changed somewhere else while you were working. Reopen it to see the current version.",
-      );
+      throw ApiError.conflict(text("refusal.lifegroup.staleVersion"));
     }
     if (!saved) throw ApiError.notFound("That gathering");
     return published(saved);

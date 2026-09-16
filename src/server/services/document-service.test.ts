@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiError } from "../api/response";
 import { registryContext } from "@/test/registry-context";
-import { seedOrganization } from "@/test/seeds";
+import { seedOrganization, seedReports } from "@/test/seeds";
 import { openDatabase } from "../db/connection";
 import { createBinderContentRepository } from "../repositories/binder-content-repository";
 import { createDocumentRepository } from "../repositories/document-repository";
@@ -37,6 +37,9 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "oikonomia-registry-"));
   db = openDatabase(join(dir, "test.db"));
   seedOrganization(db);
+  /* A real report for documents to be filed against: filing into a place that
+     does not exist, or that the viewer cannot see, is refused. */
+  seedReports(db);
   repo = createDocumentRepository(db);
   notes = createMeetingRepository(db);
   service = createDocumentService(repo, createBinderContentRepository(db), registryContext(db));
@@ -100,6 +103,70 @@ describe("registering a resource", () => {
 /**
  * §3 of the registry contract, and the gap it was written to close.
  */
+describe("filing a document somewhere", () => {
+  it("is refused into a place the viewer cannot see, as if it were not there", () => {
+    const theirs = notes.insertNote({
+      title: "Joel's own",
+      noteType: "personal",
+      date: "2026-09-01",
+      status: "draft",
+      authorId: joel.person.id,
+    } as NoteValues);
+    expect(() =>
+      service.register(
+        maria,
+        doc({ associations: [{ entityType: "meeting-note", entityId: theirs.id }] }),
+      ),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+
+    const mine = service.register(maria, doc());
+    expect(() =>
+      service.associate(maria, {
+        documentId: mine.id,
+        entityType: "meeting-note",
+        entityId: theirs.id,
+      }),
+    ).toThrow(expect.objectContaining({ code: "not-found" }));
+  });
+
+  it("needs permission to change the document, because filing widens who can reach it", () => {
+    const joels = service.register(
+      joel,
+      doc({ associations: [{ entityType: "ministry", entityId: "" }] }),
+    );
+    expect(() =>
+      service.associate(maria, {
+        documentId: joels.id,
+        entityType: "ministry",
+        entityId: "min-music",
+      }),
+    ).toThrow(expect.objectContaining({ code: "forbidden" }));
+  });
+
+  it("names in search results only the places the viewer may know about", () => {
+    const note = notes.insertNote({
+      title: "A private title",
+      noteType: "personal",
+      date: "2026-09-01",
+      status: "draft",
+      authorId: maria.person.id,
+    } as NoteValues);
+    const registered = service.register(
+      maria,
+      doc({
+        associations: [
+          { entityType: "ministry", entityId: "min-music" },
+          { entityType: "meeting-note", entityId: note.id },
+        ],
+      }),
+    );
+    const forJoel = service.search(joel, {}).resources.find((r) => r.id === registered.id);
+    expect(forJoel, "reachable through the ministry").toBeDefined();
+    expect(JSON.stringify(forJoel!.associations)).not.toContain("A private title");
+    expect(forJoel!.associations.map((a) => a.section)).not.toContain("meeting-notes");
+  });
+});
+
 describe("a document and its association are different concepts", () => {
   it("takes part in several places without being duplicated", () => {
     const registered = service.register(
@@ -107,7 +174,7 @@ describe("a document and its association are different concepts", () => {
       doc({
         associations: [
           { entityType: "ministry", entityId: "min-music" },
-          { entityType: "leadership-report", entityId: "lr-1", relationship: "supporting" },
+          { entityType: "leadership-report", entityId: "lr-a-private", relationship: "supporting" },
         ],
       }),
     );
@@ -143,7 +210,11 @@ describe("a document and its association are different concepts", () => {
       maria,
       doc({
         associations: [
-          { entityType: "leadership-report", entityId: "lr-1", relationship: "report-content" },
+          {
+            entityType: "leadership-report",
+            entityId: "lr-a-private",
+            relationship: "report-content",
+          },
         ],
       }),
     );
@@ -342,7 +413,10 @@ describe("discoverability", () => {
     } as NoteValues);
 
     for (const note of [mine, theirs, minutes]) {
-      const registered = service.register(maria, {
+      /* Filed by somebody who can see the note: nobody may file into a note
+         hidden from them. */
+      const filer = note.authorId === joel.person.id && note.noteType === "personal" ? joel : maria;
+      const registered = service.register(filer, {
         ...doc({ title: `For ${note.id}` }),
         associations: [{ entityType: "meeting-note", entityId: note.id }],
       });
@@ -560,10 +634,15 @@ describe("unfiling a registered document", () => {
       joel,
       doc({ associations: [{ entityType: "ministry", entityId: "" }] }),
     );
-    service.associate(maria, {
+    /* Filed straight through the repository: the arrangement under test, not
+       how it came about (filing someone else's document now needs their
+       permission). */
+    repo.associate({
       documentId: registered.id,
       entityType: "meeting-note",
       entityId: note.id,
+      relationship: "filed-in",
+      createdById: maria.person.id,
     });
     const hidden = service
       .get(maria, registered.id)

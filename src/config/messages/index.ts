@@ -364,6 +364,24 @@ export const messages = {
   },
 
   /* document */
+  "refusal.document.addressOfBinderDocument": {
+    title: "This document is kept in the binder, not at an address.",
+    severity: "warning",
+  },
+  "refusal.document.unfileBinderDocument": {
+    title: "A document written in the binder lives in its ministry and cannot be unfiled from it.",
+    severity: "warning",
+  },
+  "refusal.goals.staleVersion": {
+    title:
+      "This goal was changed somewhere else while you were working. Reopen it to see the current version.",
+    severity: "warning",
+  },
+  "refusal.lifegroup.staleVersion": {
+    title:
+      "This gathering was changed somewhere else while you were working. Reopen it to see the current version.",
+    severity: "warning",
+  },
   "refusal.document.notABinderRecord": {
     title: "That is not a binder record.",
     severity: "warning",

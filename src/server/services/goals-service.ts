@@ -91,9 +91,7 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
   function commit(id: string, next: GoalValues, expectedVersion?: number): Goal {
     const saved = repo.saveGoal(id, next, expectedVersion);
     if (saved === "stale") {
-      throw ApiError.conflict(
-        "This goal was changed somewhere else while you were working. Reopen it to see the current version.",
-      );
+      throw ApiError.conflict(text("refusal.goals.staleVersion"));
     }
     if (!saved) throw ApiError.notFound("That goal");
     return saved;
@@ -287,9 +285,7 @@ export function createGoalsService(repo: GoalsRepository, organization?: Organiz
       /* Checked before the new year's copy exists, so a stale carry leaves
          nothing half-made behind. */
       if (expectedVersion !== undefined && goal.version !== expectedVersion) {
-        throw ApiError.conflict(
-          "This goal was changed somewhere else while you were working. Reopen it to see the current version.",
-        );
+        throw ApiError.conflict(text("refusal.goals.staleVersion"));
       }
 
       const { number: _position, ...carriedValues } = values(goal);

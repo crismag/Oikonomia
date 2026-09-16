@@ -204,13 +204,20 @@ export function createDocumentService(
   }
 
   function project(
+    viewer: Viewer,
     document: RegisteredDocument,
     persisted: Map<string, { label: string; secondaryLabel?: string }>,
   ): ResourceSearchResult {
+    /* A result names only the places this viewer may know about — the same
+       rule as the document page, so search is not the way round it. */
+    const visible = {
+      ...document,
+      associations: document.associations.filter((a) => placeVisible(viewer, a)),
+    };
     return {
       id: document.id,
       title: document.title,
-      associations: associationsOf(document, persisted),
+      associations: associationsOf(visible, persisted),
       tags: document.tags,
       kind: document.kind,
       provider: originLabel[document.origin],
@@ -368,6 +375,13 @@ export function createDocumentService(
     }
   }
 
+  /** A requested filing, in the shape `placeVisible` reads. */
+  const toPlace = (input: { entityType: string; entityId?: string | undefined }) =>
+    ({
+      entityType: input.entityType as DocumentEntityType,
+      entityId: input.entityId ?? "",
+    }) as DocumentAssociation;
+
   function requireWrite(viewer: Viewer, document: RegisteredDocument): void {
     if (!mayWrite(viewer, document)) {
       throw ApiError.forbidden(text("refusal.ministry.write"));
@@ -395,7 +409,7 @@ export function createDocumentService(
         ...(query.since ? { since: query.since } : {}),
       })
       .filter((document) => discoverableThroughItsPlaces(viewer, document))
-      .map((document) => project(document, persisted));
+      .map((document) => project(viewer, document, persisted));
 
     /*
      * Section and related-record are navigation, not privacy — the privacy
@@ -538,7 +552,7 @@ export function createDocumentService(
       return repo
         .all({ readableBy: viewer.person.id, entityType, entityId })
         .filter((document) => discoverableThroughItsPlaces(viewer, document))
-        .map((document) => project(document, persisted));
+        .map((document) => project(viewer, document, persisted));
     },
 
     /** One record, withheld exactly as the list withholds it. */
@@ -562,6 +576,13 @@ export function createDocumentService(
      */
     register(viewer: Viewer, input: unknown): RegisteredDocument {
       const parsed = parse(registerDocument, input);
+      /* Filing into a place this viewer cannot see would both reveal that it
+         exists and make the document reachable through it. */
+      for (const association of parsed.associations ?? []) {
+        if (!placeVisible(viewer, toPlace(association))) {
+          throw ApiError.notFound("That place");
+        }
+      }
       const document = repo.insert({
         title: parsed.title,
         kind: parsed.kind ?? "Document",
@@ -604,7 +625,7 @@ export function createDocumentService(
       const moving = patch.url !== undefined && patch.url !== current.url;
       if (moving && current.origin === "binder") {
         throw ApiError.validation({
-          url: "This document is kept in the binder, not at an address.",
+          url: text("refusal.document.addressOfBinderDocument"),
         });
       }
       const saved = repo.update(
@@ -654,7 +675,14 @@ export function createDocumentService(
      */
     associate(viewer: Viewer, input: unknown) {
       const parsed = parse(associateDocument, input);
-      this.get(viewer, parsed.documentId);
+      const document = this.get(viewer, parsed.documentId);
+      if (!placeVisible(viewer, toPlace(parsed))) throw ApiError.notFound("That place");
+      /*
+       * Filing is a change to who can reach a document — it is discoverable
+       * through any place it is filed in — so it takes the same permission as
+       * unfiling, not merely being able to find it.
+       */
+      requireWrite(viewer, document);
 
       const association = repo.associate({
         documentId: parsed.documentId,
@@ -683,7 +711,7 @@ export function createDocumentService(
       requireWrite(viewer, document);
       if (!mayUnfile(document, association, true)) {
         throw ApiError.validation({
-          id: "A document written in the binder lives in its ministry and cannot be unfiled from it.",
+          id: text("refusal.document.unfileBinderDocument"),
         });
       }
       repo.removeAssociation(id);
