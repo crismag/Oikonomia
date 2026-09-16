@@ -22,8 +22,8 @@ import type { EscalationView } from "@/lib/escalation-api";
  *
  * One control wherever the ask is met — the inbox row and the record it came
  * from — so the two cannot drift on which day it lands or what counts as
- * already filed. It creates an ordinary agenda item and nothing else; once
- * filed it becomes a link to that day.
+ * already filed. It creates an ordinary agenda item that names the ask, and
+ * nothing else; once filed it becomes a link to that day.
  */
 export function PutOnWeekButton({
   item,
@@ -56,7 +56,7 @@ export function PutOnWeekButton({
   const putOnWeek = async () => {
     onFailure(null);
     try {
-      await schedule.addAgenda({ text: item.request, date });
+      await schedule.addAgenda({ text: item.request, date, escalationId: item.id });
       setFiled(true);
       /* Dating the work is taking it on; an ask already moving stays where it is. */
       if (item.status === "requested") await inbox.move(item.id, "in-progress");

@@ -688,6 +688,11 @@ export interface AgendaItem {
   ministryId?: string;
   /** Optional tie to something scheduled that day. */
   relatedEntryId?: string;
+  /**
+   * The ask this item was put on the week for, when it came from one. How
+   * "Put on my week" knows it has already been done — never by matching text.
+   */
+  escalationId?: string;
   dueAt?: string;
   assigneeId?: string;
   completedAt?: string;

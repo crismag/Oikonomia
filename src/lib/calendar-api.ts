@@ -61,6 +61,9 @@ async function withCalendar<T>(
     { refreshConfiguration },
     { createCalendarRepository },
     { createCalendarService },
+    { createEscalationRepository },
+    { createOrganizationRepository },
+    { createEscalationService },
     { getRequest },
   ] = await Promise.all([
     import("@/server/api/response"),
@@ -69,6 +72,9 @@ async function withCalendar<T>(
     import("@/server/config/runtime"),
     import("@/server/repositories/calendar-repository"),
     import("@/server/services/calendar-service"),
+    import("@/server/repositories/escalation-repository"),
+    import("@/server/repositories/organization-repository"),
+    import("@/server/services/escalation-service"),
     import("@tanstack/react-start/server"),
   ]);
 
@@ -77,7 +83,19 @@ async function withCalendar<T>(
     /* An administrator\'s configuration is effective on the next request,
        not the next deployment. */
     refreshConfiguration(db);
-    const service = createCalendarService(createCalendarRepository(db));
+    const escalations = createEscalationService(
+      createEscalationRepository(db),
+      createOrganizationRepository(db),
+    );
+    const service = createCalendarService(createCalendarRepository(db), {
+      askedOf: (viewer, escalationId) => {
+        try {
+          return escalations.get(viewer, escalationId).mine;
+        } catch {
+          return false;
+        }
+      },
+    });
     return { data: work(service, requireCurrentUser(getRequest(), db)) };
   } catch (error) {
     if (error instanceof ApiError) return { error: error.body() };

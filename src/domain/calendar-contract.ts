@@ -155,6 +155,8 @@ export const createAgendaItem = z
     relatedEntryId: z.string().min(1).optional(),
     dueAt: isoDate.optional(),
     assigneeId: z.string().min(1).optional(),
+    /** The ask this was put on the week for. Set once, when it is created. */
+    escalationId: z.string().min(1).optional(),
   })
   .refine((v) => !!v.date || !!v.weekOf, {
     message: "File it on a day, or on the week.",

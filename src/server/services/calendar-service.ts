@@ -30,7 +30,18 @@ import type { Viewer } from "@/domain/viewer";
  * that happened to call it.
  */
 
-export function createCalendarService(repo: CalendarRepository) {
+export function createCalendarService(
+  repo: CalendarRepository,
+  /**
+   * Whether an ask was made of this viewer.
+   *
+   * An agenda item may name the ask it was put on the week for only if the
+   * ask is theirs. Anything else is answered as if the ask did not exist —
+   * attention is not access. Optional so the calendar works without it; an
+   * item naming an ask is then refused.
+   */
+  asks?: { askedOf: (viewer: Viewer, escalationId: string) => boolean },
+) {
   /** Load, or refuse in a way that does not confirm the record exists. */
   function require(id: string): ScheduleEntry {
     const entry = repo.findEntry(id);
@@ -210,6 +221,9 @@ export function createCalendarService(repo: CalendarRepository) {
       const values = parse(createAgendaItem, input);
       if (values.relatedEntryId && !repo.findEntry(values.relatedEntryId)) {
         throw ApiError.validation({ relatedEntryId: "That entry no longer exists." });
+      }
+      if (values.escalationId && !asks?.askedOf(viewer, values.escalationId)) {
+        throw ApiError.notFound("That request");
       }
       return repo.insertAgendaItem({ ...values, createdBy: viewer.person.id });
     },
