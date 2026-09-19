@@ -38,6 +38,14 @@ export class InstallationConfigurationError extends Error {
 
 export interface Installation {
   demoMode: boolean;
+  /**
+   * Addresses allowed to sign in with Google on a public demonstration.
+   *
+   * Empty on an ordinary installation, where Google sign-in is decided by
+   * whether it is configured at all, not by a list. Only ever read in Demo
+   * Mode — see `demoGoogleTesters`.
+   */
+  googleTesters?: readonly string[];
 }
 
 /**
@@ -56,9 +64,35 @@ export function parseDemoMode(raw: string | undefined): boolean {
   );
 }
 
+/**
+ * Who may sign in with Google on a public demonstration.
+ *
+ * A demonstration refuses authentication it does not control: nobody arrives
+ * at it with an account, and an open Google button would let anybody with a
+ * Google account try the door. `OIKONOMIA_DEMO_GOOGLE_TESTERS` names the
+ * addresses — the operator's own, to try the journey on the deployed site —
+ * and nothing else is let through.
+ *
+ * Unset (the ordinary case) is an empty list, and an empty list keeps Google
+ * sign-in off in Demo Mode entirely, credentials or not. It is not a way to
+ * grant anything: a named address still needs an account here, exactly as on
+ * a church's own installation.
+ */
+export function demoGoogleTesters(
+  env: Record<string, string | undefined> = process.env,
+): readonly string[] {
+  return (env["OIKONOMIA_DEMO_GOOGLE_TESTERS"] ?? "")
+    .split(",")
+    .map((address) => address.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 /** Read from the environment on every call: a process that changes it is believed. */
 export function currentInstallation(): Installation {
-  return { demoMode: parseDemoMode(process.env["OIKONOMIA_DEMO_MODE"]) };
+  return {
+    demoMode: parseDemoMode(process.env["OIKONOMIA_DEMO_MODE"]),
+    googleTesters: demoGoogleTesters(),
+  };
 }
 
 /** Strictly: unset, `true` or `false` — the same reading `OIKONOMIA_DEMO_MODE` gets. */
@@ -168,11 +202,14 @@ export function decideServerFunction(
  * about too.
  */
 export const ROUTE_HANDLERS: Readonly<
-  Record<string, { demo: "allowed" | "denied" | "by-task"; because?: DenialReason }>
+  Record<string, { demo: "allowed" | "denied" | "by-task" | "by-tester"; because?: DenialReason }>
 > = {
   "/healthz": { demo: "allowed" },
-  "/auth/google/start": { demo: "denied", because: "authentication" },
-  "/auth/google/callback": { demo: "denied", because: "authentication" },
+  /* Denied unless the operator named testers — see `demoGoogleTesters`. The
+     address itself is checked again when Google answers, so reaching these
+     handlers signs nobody in. */
+  "/auth/google/start": { demo: "by-tester", because: "authentication" },
+  "/auth/google/callback": { demo: "by-tester", because: "authentication" },
   /* Bearer-token maintenance for cron: each task is decided on its own. */
   "/maintenance/run": { demo: "by-task" },
 };
@@ -203,6 +240,11 @@ export function decideRouteRequest(installation: Installation, url: URL): Decisi
   const route = ROUTE_HANDLERS[pathname];
   if (!route || route.demo === "allowed") return ALLOW;
   if (route.demo === "denied") return { allowed: false, because: route.because! };
+  if (route.demo === "by-tester") {
+    return (installation.googleTesters ?? []).length > 0
+      ? ALLOW
+      : { allowed: false, because: route.because! };
+  }
 
   const task = MAINTENANCE_TASKS[url.searchParams.get("task") ?? ""];
   if (task?.demo === "allowed") return ALLOW;

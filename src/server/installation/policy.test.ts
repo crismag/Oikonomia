@@ -10,6 +10,7 @@ import {
   assertDeploymentProfile,
   currentInstallation,
   decideRouteRequest,
+  demoGoogleTesters,
   decideServerFunction,
   installationView,
   parseDemoMode,
@@ -57,7 +58,7 @@ describe("reading OIKONOMIA_DEMO_MODE", () => {
 
   it("is read from the process environment", () => {
     vi.stubEnv("OIKONOMIA_DEMO_MODE", "true");
-    expect(currentInstallation()).toEqual({ demoMode: true });
+    expect(currentInstallation()).toEqual({ demoMode: true, googleTesters: [] });
     vi.stubEnv("OIKONOMIA_DEMO_MODE", "maybe");
     expect(() => currentInstallation()).toThrow(InstallationConfigurationError);
   });
@@ -297,6 +298,23 @@ describe("with Demo Mode on", () => {
         "POST",
       ),
     ).toEqual({ allowed: true });
+  });
+
+  it("lets named testers reach Google sign-in, and nobody else", () => {
+    const withTester = { demoMode: true, googleTesters: ["cris@example.com"] };
+    for (const path of ["/auth/google/start", "/auth/google/callback?code=abc"]) {
+      expect(decideRouteRequest(withTester, new URL(`http://x${path}`))).toEqual({ allowed: true });
+      expect(
+        decideRouteRequest({ demoMode: true, googleTesters: [] }, new URL(`http://x${path}`)),
+      ).toEqual({ allowed: false, because: "authentication" });
+    }
+  });
+
+  it("reads the tester list from the environment, lowercased, and empty when unset", () => {
+    expect(demoGoogleTesters({})).toEqual([]);
+    expect(
+      demoGoogleTesters({ OIKONOMIA_DEMO_GOOGLE_TESTERS: " One@Example.com , two@x.org ," }),
+    ).toEqual(["one@example.com", "two@x.org"]);
   });
 
   it("refuses Google sign-in at both ends", () => {

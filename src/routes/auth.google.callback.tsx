@@ -3,9 +3,11 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 /**
  * Coming back from Google.
  *
- * Four things have to be true before anybody is signed in: Google is
- * configured, a `state` was remembered, the returned `state` matches it, and
- * the code exchanges for an identity this installation has an account for.
+ * Five things have to be true before anybody is signed in: Google is
+ * configured, a `state` was remembered, the returned `state` matches it, the
+ * address is one this installation admits (every address, unless this is a
+ * demonstration with named testers), and the code exchanges for an identity
+ * this installation has an account for.
  *
  * Every failure lands on the sign-in page with a generic message. Saying which
  * check failed would tell somebody probing exactly which one to work on — and
@@ -17,7 +19,7 @@ export const Route = createFileRoute("/auth/google/callback")({
     handlers: {
       GET: async ({ request }) => {
         const [
-          { exchange, googleConfigured, stateMatches },
+          { exchange, googleConfigured, mayCompleteSignIn, stateMatches },
           { STATE_COOKIE, clearStateCookie },
           { cookieValue, sessionCookie },
           { getDatabase },
@@ -56,6 +58,11 @@ export const Route = createFileRoute("/auth/google/callback")({
 
         try {
           const identity = await exchange(code);
+
+          /* A demonstration lets only the addresses its operator named through,
+             checked here on what Google returned. Sent back the same generic
+             way as an unknown account: a probe learns nothing either way. */
+          if (!mayCompleteSignIn(identity.email)) return back("no-access");
 
           const db = getDatabase();
           const { createThrottle } = await import("@/server/auth/throttle");

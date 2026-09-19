@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route as callbackRoute } from "@/routes/auth.google.callback";
 import { Route as startRoute } from "@/routes/auth.google.start";
 import { STATE_COOKIE } from "./oauth-state";
-import { exchange, googleConfig, googleConfigured, startUrl } from "./google";
+import { exchange, googleConfig, googleConfigured, mayCompleteSignIn, startUrl } from "./google";
 
 /**
  * Google sign-in in a public demonstration: not started, not completed, and
@@ -99,5 +99,35 @@ describe("with Demo Mode on, Google sign-in cannot happen", () => {
     expect(response.headers.get("location")).toMatch(/^\/login/);
     expect(response.headers.get("set-cookie") ?? "").not.toMatch(/oikonomia_session=/);
     expect(tokenExchange).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The one way a demonstration does offer Google: the operator names the
+ * addresses that may use it, to try the deployed journey. Everything else
+ * about a demonstration is unchanged, and a named address is not an account.
+ */
+describe("with Demo Mode on and testers named", () => {
+  beforeEach(() => {
+    vi.stubEnv("OIKONOMIA_DEMO_MODE", "true");
+    vi.stubEnv("OIKONOMIA_DEMO_GOOGLE_TESTERS", "Tester@example.com");
+  });
+
+  it("offers Google, and a start URL that goes to Google", () => {
+    expect(googleConfigured()).toBe(true);
+    expect(startUrl()?.url).toMatch(/^https:\/\/accounts\.google\.com\//);
+  });
+
+  it("admits a named address however it is cased, and no other", () => {
+    expect(mayCompleteSignIn("tester@example.com")).toBe(true);
+    expect(mayCompleteSignIn(" TESTER@example.com ")).toBe(true);
+    expect(mayCompleteSignIn("somebody@example.com")).toBe(false);
+  });
+
+  it("still refuses an address nobody named, at the callback", async () => {
+    const response = await handlerOf(callbackRoute)({ request: callbackRequest() });
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toMatch(/^\/login/);
+    expect(response.headers.get("set-cookie") ?? "").not.toMatch(/oikonomia_session=/);
   });
 });

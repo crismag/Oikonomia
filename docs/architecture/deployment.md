@@ -119,6 +119,7 @@ dependency audit.
 | `OIKONOMIA_DEMO_DB`                                       | Demo Mode's own live database — never `OIKONOMIA_DB`           | Demo Mode **refuses to open any database** in production (`/healthz` 503)       |
 | `OIKONOMIA_DEMO_BASELINE`                                 | The curated baseline a demonstration is reset to               | A demo reset refuses                                                            |
 | `OIKONOMIA_REQUIRE_DEMO_MODE`                             | Pins a deployment to always be a demonstration — see below     | No such pin. Only `true`/`false`; anything else serves 503                      |
+| `OIKONOMIA_DEMO_GOOGLE_TESTERS`                           | Addresses allowed to sign in with Google on a demonstration    | Demo Mode refuses Google sign-in entirely                                       |
 
 **`OIKONOMIA_URL` is read from configuration, never from the request's `Host`
 header.** A host header is something the client sends, and a sign-in link built

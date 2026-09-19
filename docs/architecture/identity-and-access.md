@@ -96,6 +96,19 @@ Google is offered only when `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
 `OIKONOMIA_URL` are all set. The screen does not draw a button that cannot
 work.
 
+Signing in with Google proves who somebody is and nothing more. There is no
+self-registration: an account exists because the church entered that person, so
+a Google identity with no account here is refused rather than welcomed, and one
+that is not linked yet is linked only on a Google-verified email that already
+belongs to an account.
+
+A **public demonstration** refuses Google sign-in, credentials or not, unless
+`OIKONOMIA_DEMO_GOOGLE_TESTERS` names the addresses that may use it — a
+comma-separated list, meant for the operator trying the deployed journey. Both
+`/auth/google/*` handlers are refused while that list is empty, and the address
+Google returns is checked against it before anybody is signed in. A named
+address still needs an account on the demonstration, like everyone else.
+
 ## Sessions
 
 An opaque random token in an `HttpOnly`, `SameSite=Lax` cookie, marked

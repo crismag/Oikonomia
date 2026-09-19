@@ -41,11 +41,15 @@ const ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 export function googleConfig():
   { clientId: string; clientSecret: string; redirectUri: string } | undefined {
   /* A public demonstration has no Google sign-in, even with credentials left in
-     its environment. Its routes are already refused before they run; this is
-     the layer every step goes through — the authorization URL, the code
-     exchange that calls Google, and whether the sign-in screen offers it — so
-     none of them can happen by another path. */
-  if (currentInstallation().demoMode) return undefined;
+     its environment — unless the operator has named the addresses that may use
+     it (`OIKONOMIA_DEMO_GOOGLE_TESTERS`), which is how the deployed journey is
+     tried on the demonstration itself. Its routes are refused on the same
+     condition before they run; this is the layer every step goes through — the
+     authorization URL, the code exchange that calls Google, and whether the
+     sign-in screen offers it — so none of them can happen by another path, and
+     `mayCompleteSignIn` checks the address Google actually returns. */
+  const installation = currentInstallation();
+  if (installation.demoMode && (installation.googleTesters ?? []).length === 0) return undefined;
 
   const clientId = process.env["GOOGLE_CLIENT_ID"];
   const clientSecret = process.env["GOOGLE_CLIENT_SECRET"];
@@ -59,6 +63,21 @@ export function googleConfig():
 }
 
 export const googleConfigured = (): boolean => siteUrlConfigured() && Boolean(googleConfig());
+
+/**
+ * Whether the identity Google returned may sign in on this installation.
+ *
+ * An ordinary installation: yes — who has an account is `auth-service`'s
+ * decision, not this layer's. A public demonstration: only an address its
+ * operator named, checked after Google has verified it rather than trusted
+ * from the request, so a demonstration cannot be walked into with any Google
+ * account.
+ */
+export function mayCompleteSignIn(email: string): boolean {
+  const installation = currentInstallation();
+  if (!installation.demoMode) return true;
+  return (installation.googleTesters ?? []).includes(email.trim().toLowerCase());
+}
 
 /**
  * Where to send somebody, and the `state` to remember.
