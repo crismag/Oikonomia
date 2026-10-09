@@ -6,6 +6,9 @@ running instance.
 Where this documentation and the code disagree, **the code is right and the
 documentation is a bug**.
 
+For the product capabilities and workflows, see the
+[product overview](../product-overview.md).
+
 ## The documents
 
 |                                               |                                                                     |
@@ -17,16 +20,8 @@ documentation is a bug**.
 | [Configuration](configuration.md)             | What an administrator can change while the application runs         |
 | [Deployment and operations](deployment.md)    | Building, configuring, backing up, restoring, scheduling            |
 
-## The shape, in numbers
-
-|                    |     |
-| ------------------ | --- |
-| Routes             | 44  |
-| Client API modules | 18  |
-| Services           | 19  |
-| Repositories       | 18  |
-| Schema migrations  | 33  |
-| Test files         | 62  |
+[Google Workspace](google-workspace.md) covers Gmail, Drive, Calendar and
+service-account delegation.
 
 ## Three ideas the rest of this follows from
 

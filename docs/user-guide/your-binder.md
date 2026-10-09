@@ -33,7 +33,10 @@ asked of you, or a task somebody gave you in a meeting, that you have not seen
 yet. Opening it marks those as seen — seen is not done, and the work stays in
 the Leadership Inbox and on your week. It also lists what is **past its date**,
 but never counts it: the number on the bell is about news, not about how much
-is outstanding. Nothing is emailed or sent to your phone.
+is outstanding. The bell itself is an in-app notice. You can separately opt in to email notices
+for asks and assigned meeting tasks under **Account & security**, where the
+installation has configured email delivery. These preferences start off; demo
+mode sends no email.
 
 **My Progress** sits beside it: how your leadership responsibilities are going
 this week and this month, as cycles with steps rather than a percentage.
@@ -243,7 +246,7 @@ sentence saying so and the page shows the goal as it now stands.
 ## Documents & Forms and Resource Search
 
 **Documents & Forms** keeps the ministry's reusable forms, guides and reference
-material. Two different things live here:
+material. Three kinds of material live here:
 
 - **Register a document** — the binder records what it is and where it lives.
   The document itself stays where it is; nothing is copied in, and whoever
@@ -251,6 +254,10 @@ material. Two different things live here:
   Google Drive is connected, a Drive document also shows its owner and when it
   last changed, and uploading or choosing Drive files happens from a
   ministry's **New → Add from Drive**.
+- **Binder documents** — on a ministry page, use **New → Plan**, **Report**,
+  **Announcement** or **Checklist** to open a document for writing, with sections
+  and formatted content. These documents also appear in the resource library.
+  Their content is saved in Oikonomia rather than being an external file upload.
 - **Create a form** — built in Oikonomia, with sections and fields.
 
 Choosing a registered document's name — on a ministry's **Documents** view,
@@ -271,3 +278,14 @@ are listed separately on the Forms page.
 
 **Resource Search** looks across documents, forms, links and reference material
 in one place, sorted by relevance, recency or title.
+
+## Guide and walkthroughs
+
+The in-app **Guide** offers contextual help, searchable instructions and
+step-by-step walkthroughs. It uses curated knowledge and filters help and
+navigation destinations for your capabilities and installation. Opening a help
+link does not grant permission to the page or record behind it.
+
+The current Guide retrieves written help deterministically; no AI provider is
+needed. **Setup & walkthrough** in the account menu also provides orientation
+to the binder and the church setup journey.

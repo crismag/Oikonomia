@@ -1,5 +1,15 @@
 # Oikonomia documentation
 
+## [Product overview](product-overview.md)
+
+Capabilities, leadership workflows, access and sharing, connected services and
+deployment scope.
+
+## [Demonstration](user-guide/demonstration.md)
+
+Explore the public demo, switch perspectives and understand its security
+restrictions and temporary data.
+
 ## [User guide](user-guide/)
 
 How leaders, ministry heads and administrators use Oikonomia.

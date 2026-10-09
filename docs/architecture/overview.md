@@ -24,7 +24,7 @@ explicitly.
 | Server     | Node 22, built by Vite to a Nitro `node-server` bundle           |
 | Database   | SQLite through `better-sqlite3`, WAL journaling, foreign keys on |
 | Mail       | SMTP through nodemailer, when configured                         |
-| Tests      | vitest — 1,434 across 62 files                                   |
+| Tests      | Vitest — domain, service, integration and UI tests                                   |
 
 **SQLite on disk is the reason the build targets a Node server** rather than an
 edge runtime. A Workers-style build has no filesystem and could not open its
@@ -63,7 +63,7 @@ Each layer has one job, and the boundaries are not decorative:
 - **Repositories** hold the SQL. Every statement is prepared with bound
   parameters; no query is built by string concatenation anywhere in the
   repository layer.
-- **Domain** (`src/domain/`, 41 modules) holds the rules that are true
+- **Domain** (`src/domain/`) holds the rules that are true
   regardless of storage or screen — what a status transition means, who an
   audience is, how a date is read. It imports neither React nor the database,
   which is why most of the test suite can exercise it directly.
@@ -72,18 +72,18 @@ Each layer has one job, and the boundaries are not decorative:
 
 ```text
 src/
-  routes/            44 routes, file-based
+  routes/            file-based routes
   components/        UI; providers under components/oikonomia/
   domain/            rules independent of storage and screen
   config/            the configuration platform and message catalogue
-  lib/               18 *-api.ts modules — the client→server boundary
+  lib/               *-api.ts modules — the client→server boundary
   server/
     api/             the response envelope and ApiError
     auth/            principal, sessions, passwords, throttling, SMTP, Google
     data/            artifact storage, backup destinations, alerting
     db/              connection, migrations, record helpers
-    repositories/    18 — SQL only
-    services/        19 — the rules
+    repositories/    SQL only
+    services/        the rules
     http/            security response headers
 scripts/             operations tooling: set-password, smoke, maintenance
 ```
