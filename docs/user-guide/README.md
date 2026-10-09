@@ -1,6 +1,9 @@
 # Oikonomia user guide
 
-Written from the running application.
+A practical guide to the implemented application.
+
+For a capability overview, start with the [product overview](../product-overview.md).
+For the public demonstration, see [Explore the demo](demonstration.md).
 
 ## Start here
 
